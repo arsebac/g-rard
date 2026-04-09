@@ -210,47 +210,21 @@ function Toolbar({ editor }: { editor: Editor }) {
   );
 }
 
-// ─── Styles prose injectés via une balise <style> ─────────────────────────────
-
-const PROSE_STYLE = `
-.task-ref-link { display: inline-flex; align-items: center; background: #ede9fe; color: #5b21b6; border-radius: 4px; padding: 0 5px; font-size: 0.78em; font-weight: 600; font-family: monospace; text-decoration: none; cursor: pointer; border: 1px solid #c4b5fd; white-space: nowrap; }
-.task-ref-link:hover { background: #ddd6fe; }
-
-.gerard-prose { min-height: 120px; padding: 12px 16px; outline: none; font-size: 0.875rem; line-height: 1.7; color: #374151; }
-.gerard-prose p { margin: 0 0 0.5em; }
-.gerard-prose p:last-child { margin-bottom: 0; }
-.gerard-prose h1 { font-size: 1.25rem; font-weight: 700; margin: 0.75em 0 0.4em; color: #111827; }
-.gerard-prose h2 { font-size: 1.1rem; font-weight: 700; margin: 0.75em 0 0.4em; color: #111827; }
-.gerard-prose h3 { font-size: 0.95rem; font-weight: 700; margin: 0.6em 0 0.3em; color: #111827; }
-.gerard-prose ul { list-style: disc; padding-left: 1.4em; margin: 0.4em 0; }
-.gerard-prose ol { list-style: decimal; padding-left: 1.4em; margin: 0.4em 0; }
-.gerard-prose li { margin: 0.15em 0; }
-.gerard-prose blockquote { border-left: 3px solid #6366f1; padding-left: 0.9em; color: #6b7280; margin: 0.5em 0; font-style: italic; }
-.gerard-prose code { background: #f3f4f6; border-radius: 3px; padding: 0.1em 0.35em; font-family: monospace; font-size: 0.82em; color: #6366f1; }
-.gerard-prose pre { background: #1e1e2e; color: #cdd6f4; padding: 1em; border-radius: 8px; overflow-x: auto; margin: 0.5em 0; }
-.gerard-prose pre code { background: none; color: inherit; padding: 0; font-size: 0.8rem; }
-.gerard-prose hr { border: none; border-top: 2px solid #e5e7eb; margin: 0.75em 0; }
-.gerard-prose strong { font-weight: 700; color: #111827; }
-.gerard-prose em { font-style: italic; }
-.gerard-prose u { text-decoration: underline; }
-.gerard-prose s { text-decoration: line-through; }
-.gerard-prose a { color: #6366f1; text-decoration: underline; }
-.gerard-prose .is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #d1d5db; pointer-events: none; height: 0; }
-`;
-
 // ─── Composant principal ──────────────────────────────────────────────────────
 
 interface RichTextEditorProps {
   defaultValue: string;
-  onSave: (html: string) => void;
+  onSave?: (html: string) => void;
   placeholder?: string;
   onTaskRefClick?: (ref: string) => void;
+  readOnly?: boolean;
 }
 
-export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefClick }: RichTextEditorProps) {
+export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefClick, readOnly }: RichTextEditorProps) {
   const [dirty, setDirty] = useState(false);
 
   const editor = useEditor({
+    editable: !readOnly,
     extensions: [
       StarterKit,
       Underline,
@@ -261,6 +235,7 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
     ],
     content: defaultValue || "",
     onUpdate: ({ editor }) => {
+      if (readOnly) return;
       const current = editor.getHTML();
       const clean = current === "<p></p>" ? "" : current;
       setDirty(clean !== (defaultValue || ""));
@@ -271,12 +246,13 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       editor.commands.setContent(defaultValue || "");
+      editor.setEditable(!readOnly);
       setDirty(false);
     }
-  }, [defaultValue]);
+  }, [defaultValue, readOnly]);
 
   const commit = () => {
-    if (!editor) return;
+    if (!editor || !onSave) return;
     const html = editor.getHTML();
     onSave(html === "<p></p>" ? "" : html);
     setDirty(false);
@@ -290,10 +266,10 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
 
   return (
     <>
-      <style>{PROSE_STYLE}</style>
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
       <div
         className={`border rounded-xl overflow-hidden transition-colors ${
+          readOnly ? "border-transparent" :
           editor?.isFocused
             ? "border-indigo-400 ring-2 ring-indigo-100"
             : "border-gray-200 hover:border-gray-300"
@@ -310,11 +286,11 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
           }
         }}
       >
-        {editor && <Toolbar editor={editor} />}
-        <EditorContent editor={editor} className="gerard-prose" />
+        {editor && !readOnly && <Toolbar editor={editor} />}
+        <EditorContent editor={editor} className={`gerard-prose ${readOnly ? "px-0 py-0" : ""}`} />
       </div>
 
-      {dirty && (
+      {!readOnly && dirty && (
         <div className="flex items-center gap-2 mt-2">
           <button
             onClick={commit}

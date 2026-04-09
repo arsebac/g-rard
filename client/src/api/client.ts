@@ -1,10 +1,10 @@
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const hasBody = options?.body != null;
+  const isFormData = options?.body instanceof FormData;
   const res = await fetch(url, {
     ...options,
     credentials: "include",
     headers: {
-      ...(hasBody ? { "Content-Type": "application/json" } : {}),
+      ...(!isFormData && options?.body != null ? { "Content-Type": "application/json" } : {}),
       ...options?.headers,
     },
   });
@@ -19,10 +19,27 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  baseURL: "", // empty string = relative URLs
+
   get: <T>(url: string) => request<T>(url),
-  post: <T>(url: string, data?: unknown) =>
-    request<T>(url, { method: "POST", body: JSON.stringify(data) }),
-  patch: <T>(url: string, data?: unknown) =>
-    request<T>(url, { method: "PATCH", body: JSON.stringify(data) }),
+
+  post: <T>(url: string, data?: unknown) => {
+    const isFormData = data instanceof FormData;
+    return request<T>(url, {
+      method: "POST",
+      body: isFormData ? (data as any) : JSON.stringify(data),
+      headers: isFormData ? {} : undefined, // let the browser set boundary for FormData
+    });
+  },
+
+  patch: <T>(url: string, data?: unknown) => {
+    const isFormData = data instanceof FormData;
+    return request<T>(url, {
+      method: "PATCH",
+      body: isFormData ? (data as any) : JSON.stringify(data),
+      headers: isFormData ? {} : undefined,
+    });
+  },
+
   delete: <T>(url: string) => request<T>(url, { method: "DELETE" }),
 };

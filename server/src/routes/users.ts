@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
+import { storageService } from "../services/storage";
 
 const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
@@ -58,5 +59,27 @@ export default async function userRoutes(app: FastifyInstance) {
     const newHash = await bcrypt.hash(body.data.newPassword, 10);
     await db.user.update({ where: { id: parseInt(id) }, data: { passwordHash: newHash } });
     return reply.send({ ok: true });
+  });
+
+  // POST /api/users/me/avatar — upload d'avatar
+  app.post("/api/users/me/avatar", { preHandler: requireAuth }, async (req, reply) => {
+    const data = await req.file();
+    if (!data) return reply.status(400).send({ error: "Fichier requis" });
+
+    // Supprimer l'ancien avatar si nécessaire
+    const user = await db.user.findUnique({ where: { id: req.currentUserId } });
+    if (user?.avatarUrl) {
+      await storageService.deleteFile(user.avatarUrl);
+    }
+
+    const storedPath = await storageService.saveFile(data.file, data.filename);
+    
+    const updatedUser = await db.user.update({
+      where: { id: req.currentUserId },
+      data: { avatarUrl: storedPath },
+      select: { id: true, name: true, email: true, avatarUrl: true },
+    });
+
+    return reply.send(updatedUser);
   });
 }

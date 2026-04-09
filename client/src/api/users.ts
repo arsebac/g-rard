@@ -7,4 +7,9 @@ export const usersApi = {
     api.patch<User>(`/api/users/${id}`, data),
   changePassword: (id: number, data: { currentPassword: string; newPassword: string }) =>
     api.patch(`/api/users/${id}/password`, data),
+  uploadAvatar: (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post<User>("/api/users/me/avatar", formData);
+  },
 };

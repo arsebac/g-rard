@@ -1,10 +1,14 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { projectsApi } from "@/api/projects";
 import { authApi } from "@/api/auth";
+import { usersApi } from "@/api/users";
+import { attachmentsApi } from "@/api/attachments";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, LogOut, Plus, Settings } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, Plus, Camera, Loader2, Menu, X } from "lucide-react";
+
+import { useEffect, useState } from "react";
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -12,7 +16,13 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user, setUser } = useAuthStore();
+
+  // Close sidebar on route change (mobile)
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [navigate]);
   const { data: projects = [] } = useQuery({
     queryKey: ["projects"],
     queryFn: projectsApi.list,
@@ -24,10 +34,38 @@ export function AppShell({ children }: AppShellProps) {
     navigate({ to: "/login" });
   };
 
+  const uploadAvatar = useMutation({
+    mutationFn: (file: File) => usersApi.uploadAvatar(file),
+    onSuccess: (updatedUser) => {
+      setUser(updatedUser);
+    },
+  });
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      uploadAvatar.mutate(file);
+    }
+  };
+
+  const avatarUrl = user?.avatarUrl ? attachmentsApi.getPublicUrl(user.avatarUrl) : null;
+
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
+      {/* Mobile Menu Toggle */}
+      <button
+        onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        className="fixed bottom-6 right-6 z-50 p-3.5 bg-indigo-600 text-white rounded-full shadow-2xl md:hidden transition-transform active:scale-95 border-2 border-white"
+      >
+        {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      </button>
+
       {/* Sidebar */}
-      <aside className="w-60 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+      <aside className={cn(
+        "w-60 bg-white border-r border-gray-200 flex flex-col flex-shrink-0 transition-transform duration-300 ease-in-out z-40",
+        "fixed inset-y-0 left-0 md:relative md:translate-x-0",
+        isMobileMenuOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full"
+      )}>
         {/* Logo */}
         <div className="px-4 py-4 border-b border-gray-200">
           <h1 className="text-xl font-bold text-indigo-600 tracking-tight">Gérard</h1>
@@ -49,6 +87,21 @@ export function AppShell({ children }: AppShellProps) {
           >
             <LayoutDashboard size={16} />
             Tableau de bord
+          </Link>
+
+          <Link
+            to="/wiki"
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
+                isActive
+                  ? "bg-indigo-50 text-indigo-700"
+                  : "text-gray-600 hover:bg-gray-100"
+              )
+            }
+          >
+            <BookOpen size={16} />
+            Wiki
           </Link>
 
           {/* Projets */}
@@ -92,9 +145,28 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* User */}
         <div className="border-t border-gray-200 p-3 flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-sm font-semibold flex-shrink-0">
-            {user?.name?.[0]?.toUpperCase() ?? "?"}
-          </div>
+          <label className="relative group cursor-pointer flex-shrink-0">
+            <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-sm font-semibold overflow-hidden border border-gray-100 transition-all group-hover:ring-2 group-hover:ring-indigo-200">
+              {uploadAvatar.isPending ? (
+                <Loader2 size={14} className="animate-spin text-indigo-600" />
+              ) : avatarUrl ? (
+                <img src={avatarUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                user?.name?.[0]?.toUpperCase() ?? "?"
+              )}
+              {/* Overlay on hover */}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <Camera size={12} className="text-white" />
+              </div>
+            </div>
+            <input 
+              type="file" 
+              className="hidden" 
+              accept="image/*" 
+              onChange={handleAvatarChange} 
+              disabled={uploadAvatar.isPending} 
+            />
+          </label>
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-gray-900 truncate">{user?.name}</p>
           </div>
@@ -108,8 +180,16 @@ export function AppShell({ children }: AppShellProps) {
         </div>
       </aside>
 
+      {/* Overlay for mobile sidebar */}
+      {isMobileMenuOpen && (
+        <div 
+          className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 md:hidden" 
+          onClick={() => setIsMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Main */}
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto min-w-0 relative">{children}</main>
     </div>
   );
 }

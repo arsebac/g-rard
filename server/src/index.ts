@@ -6,11 +6,15 @@ import path from "path";
 import fs from "fs";
 import { config } from "./config";
 import authPlugin from "./plugins/auth";
+import multipartPlugin from "./plugins/multipart";
 import authRoutes from "./routes/auth";
 import projectRoutes from "./routes/projects";
 import taskRoutes from "./routes/tasks";
 import userRoutes from "./routes/users";
 import commentRoutes from "./routes/comments";
+import labelRoutes from "./routes/labels";
+import wikiRoutes from "./routes/wiki";
+import attachmentRoutes from "./routes/attachments";
 
 const app = Fastify({ logger: config.isDev });
 
@@ -35,7 +39,15 @@ async function start() {
     },
   });
 
+  const staticPlugin = await import("@fastify/static");
+  await app.register(staticPlugin.default, {
+    root: path.resolve(config.uploadDir),
+    prefix: "/uploads/",
+    decorateReply: false,
+  });
+
   await app.register(authPlugin);
+  await app.register(multipartPlugin);
 
   // Routes API
   await app.register(authRoutes);
@@ -43,6 +55,9 @@ async function start() {
   await app.register(taskRoutes);
   await app.register(userRoutes);
   await app.register(commentRoutes);
+  await app.register(labelRoutes);
+  await app.register(wikiRoutes);
+  await app.register(attachmentRoutes);
 
   // En production : servir le build Vite
   if (!config.isDev) {

@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Task, tasksApi, CreateTaskData } from "@/api/tasks";
 import { usersApi } from "@/api/users";
 import { projectsApi } from "@/api/projects";
+import { labelsApi } from "@/api/labels";
 import {
   STATUS_LABELS,
   STATUS_COLORS,
@@ -18,9 +19,12 @@ import {
   ChevronDown,
   Check,
   Pencil,
+  Tag,
+  Paperclip,
 } from "lucide-react";
 import { TaskActivity } from "./TaskActivity";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { AttachmentList } from "@/components/ui/AttachmentList";
 
 interface TaskDrawerProps {
   task: Task;
@@ -163,6 +167,21 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
     queryFn: () => projectsApi.get(task.projectId),
   });
 
+  const addLabel = useMutation({
+    mutationFn: (labelId: number) => labelsApi.addToTask(task.id, labelId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["task", task.id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", task.projectId] });
+    },
+  });
+  const removeLabel = useMutation({
+    mutationFn: (labelId: number) => labelsApi.removeFromTask(task.id, labelId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["task", task.id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", task.projectId] });
+    },
+  });
+
   const { data: fullTask } = useQuery({
     queryKey: ["task", task.id],
     queryFn: () => tasksApi.get(task.id),
@@ -177,6 +196,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["tasks", task.projectId] });
       queryClient.invalidateQueries({ queryKey: ["task", task.id] });
+      queryClient.invalidateQueries({ queryKey: ["activity", task.id] });
     },
   });
 
@@ -245,7 +265,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                 key={fullTask.id}
                 defaultValue={fullTask.description ?? ""}
                 onSave={(description) => update({ description })}
-                placeholder="Ajouter une description… (tapez CUI-3 pour lier un ticket)"
+                placeholder="Ajouter une description…"
                 onTaskRefClick={async (ref) => {
                   const [key, num] = ref.split("-");
                   if (!key || !num) return;
@@ -346,6 +366,44 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               </div>
             </div>
 
+            {/* Labels */}
+            {project?.labels && project.labels.length > 0 && (
+              <div>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                  <Tag size={12} /> Labels
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {project.labels.map((label) => {
+                    const isActive = fullTask.labels?.some((tl) => tl.labelId === label.id);
+                    return (
+                      <button
+                        key={label.id}
+                        onClick={() =>
+                          isActive
+                            ? removeLabel.mutate(label.id)
+                            : addLabel.mutate(label.id)
+                        }
+                        className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium border transition-all ${
+                          isActive
+                            ? "opacity-100 shadow-sm scale-100"
+                            : "opacity-50 hover:opacity-75"
+                        }`}
+                        style={{
+                          backgroundColor: label.color + "25",
+                          color: label.color,
+                          borderColor: label.color + "60",
+                        }}
+                        title={isActive ? "Retirer ce label" : "Ajouter ce label"}
+                      >
+                        {isActive && <Check size={10} />}
+                        {label.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Date d'échéance */}
             <div>
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">
@@ -360,6 +418,14 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                   className="w-full text-sm border border-gray-200 rounded-lg pl-8 pr-3 py-2 bg-white hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent transition-colors"
                 />
               </div>
+            </div>
+
+            {/* Pièces jointes */}
+            <div>
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <Paperclip size={12} /> Pièces jointes
+              </p>
+              <AttachmentList entityType="task" entityId={fullTask.id} />
             </div>
 
           </div>

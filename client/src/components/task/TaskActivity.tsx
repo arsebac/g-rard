@@ -207,7 +207,6 @@ export function TaskActivity({ taskId }: { taskId: number }) {
   const { data: activity = [] } = useQuery({
     queryKey: ["activity", taskId],
     queryFn: () => commentsApi.activity(taskId),
-    enabled: tab === "history",
   });
 
   const { data: users = [] } = useQuery({
@@ -222,18 +221,25 @@ export function TaskActivity({ taskId }: { taskId: number }) {
     mutationFn: (body: string) => commentsApi.create(taskId, body),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["activity", taskId] });
       setNewComment("");
     },
   });
 
   const updateComment = useMutation({
     mutationFn: ({ id, body }: { id: number; body: string }) => commentsApi.update(id, body),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["comments", taskId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["comments", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["activity", taskId] });
+    },
   });
 
   const deleteComment = useMutation({
     mutationFn: (id: number) => commentsApi.delete(id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["comments", taskId] }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["comments", taskId] });
+      queryClient.invalidateQueries({ queryKey: ["activity", taskId] });
+    },
   });
 
   const submitComment = () => {
