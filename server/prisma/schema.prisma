@@ -29,6 +29,7 @@ model User {
 model Project {
   id          Int           @id @default(autoincrement())
   name        String        @db.VarChar(255)
+  key         String?       @unique @db.VarChar(5)
   description String?       @db.Text
   color       String        @default("#6366f1") @db.VarChar(7)
   status      ProjectStatus @default(actif)
@@ -64,6 +65,7 @@ model Label {
 model Task {
   id          Int          @id @default(autoincrement())
   projectId   Int          @map("project_id")
+  number      Int          @default(0)
   title       String       @db.VarChar(500)
   description String?      @db.Text
   status      TaskStatus   @default(a_faire)

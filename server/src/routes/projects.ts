@@ -3,9 +3,11 @@ import { z } from "zod";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { logActivity } from "../services/activity";
+import { generateUniqueKey } from "../services/projectKey";
 
 const createProjectSchema = z.object({
   name: z.string().min(1).max(255),
+  key: z.string().min(1).max(5).regex(/^[A-Z0-9]+$/).optional(),
   description: z.string().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#6366f1"),
 });
@@ -33,8 +35,9 @@ export default async function projectRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
     }
 
+    const key = body.data.key ?? await generateUniqueKey(body.data.name);
     const project = await db.project.create({
-      data: { ...body.data, createdBy: req.currentUserId },
+      data: { ...body.data, key, createdBy: req.currentUserId },
     });
 
     await logActivity({

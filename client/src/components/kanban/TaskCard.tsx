@@ -1,7 +1,7 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Task } from "@/api/tasks";
-import { PRIORITY_COLORS, PRIORITY_LABELS } from "@/lib/utils";
+import { PRIORITY_COLORS, PRIORITY_LABELS, taskRef } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
 import { MessageSquare, Calendar, AlertCircle } from "lucide-react";
@@ -51,6 +51,11 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
 
       {/* Title */}
       <p className="text-sm text-gray-900 font-medium leading-snug mb-2">{task.title}</p>
+
+      {/* Ref */}
+      {task.number > 0 && (
+        <p className="text-xs font-mono text-gray-300 mb-1">{taskRef(task.projectKey, task.number)}</p>
+      )}
 
       {/* Footer */}
       <div className="flex items-center justify-between gap-2">

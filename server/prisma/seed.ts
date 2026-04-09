@@ -38,9 +38,10 @@ async function main() {
   // Projet de démonstration
   const project = await prisma.project.upsert({
     where: { id: 1 },
-    update: {},
+    update: { key: "CUI" },
     create: {
       name: "Cuisine",
+      key: "CUI",
       description: "Rénovation complète de la cuisine",
       color: "#f59e0b",
       createdBy: user1.id,
@@ -57,48 +58,28 @@ async function main() {
     ],
   });
 
-  // Tâches de démonstration
-  await prisma.task.createMany({
-    skipDuplicates: true,
-    data: [
-      {
-        projectId: project.id,
-        title: "Choisir le modèle de cuisine",
-        status: "termine",
-        priority: "haute",
-        assigneeId: user1.id,
-        createdBy: user1.id,
-        position: 1000,
-      },
-      {
-        projectId: project.id,
-        title: "Demander des devis aux cuisinistes",
-        status: "en_cours",
-        priority: "haute",
-        assigneeId: user2.id,
-        createdBy: user1.id,
-        position: 1000,
-      },
-      {
-        projectId: project.id,
-        title: "Choisir le carrelage",
-        status: "a_faire",
-        priority: "normale",
-        assigneeId: user1.id,
-        createdBy: user1.id,
-        position: 1000,
-      },
-      {
-        projectId: project.id,
-        title: "Contacter un électricien",
-        status: "a_faire",
-        priority: "haute",
-        assigneeId: user2.id,
-        createdBy: user2.id,
-        position: 2000,
-      },
-    ],
-  });
+  // Tâches de démonstration — numérotées séquentiellement
+  const taskDefs = [
+    { title: "Choisir le modèle de cuisine",       status: "termine" as const, priority: "haute" as const,   assigneeId: user1.id, createdBy: user1.id, position: 1000 },
+    { title: "Demander des devis aux cuisinistes",  status: "en_cours" as const, priority: "haute" as const,  assigneeId: user2.id, createdBy: user1.id, position: 1000 },
+    { title: "Choisir le carrelage",               status: "a_faire" as const,  priority: "normale" as const, assigneeId: user1.id, createdBy: user1.id, position: 1000 },
+    { title: "Contacter un électricien",           status: "a_faire" as const,  priority: "haute" as const,   assigneeId: user2.id, createdBy: user2.id, position: 2000 },
+  ];
+
+  for (let i = 0; i < taskDefs.length; i++) {
+    const existing = await prisma.task.findFirst({ where: { projectId: project.id, number: i + 1 } });
+    if (!existing) {
+      await prisma.task.create({ data: { ...taskDefs[i], projectId: project.id, number: i + 1 } });
+    }
+  }
+
+  // Mettre à jour les tâches existantes sans numéro
+  const noNumber = await prisma.task.findMany({ where: { projectId: project.id, number: 0 } });
+  const maxNum = await prisma.task.findFirst({ where: { projectId: project.id, number: { gt: 0 } }, orderBy: { number: "desc" } });
+  let counter = (maxNum?.number ?? 0) + 1;
+  for (const t of noNumber) {
+    await prisma.task.update({ where: { id: t.id }, data: { number: counter++ } });
+  }
 
   console.log("Seed terminé !");
   console.log(`Compte 1 : utilisateur1@gerard.local / gerard2024`);

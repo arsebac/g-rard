@@ -4,6 +4,7 @@ import { User } from "./auth";
 export interface Project {
   id: number;
   name: string;
+  key: string | null;
   description: string | null;
   color: string;
   status: "actif" | "archive";
@@ -25,7 +26,7 @@ export interface Label {
 export const projectsApi = {
   list: () => api.get<Project[]>("/api/projects"),
   get: (id: number) => api.get<Project>(`/api/projects/${id}`),
-  create: (data: { name: string; description?: string; color?: string }) =>
+  create: (data: { name: string; key?: string; description?: string; color?: string }) =>
     api.post<Project>("/api/projects", data),
   update: (id: number, data: Partial<Project>) =>
     api.patch<Project>(`/api/projects/${id}`, data),

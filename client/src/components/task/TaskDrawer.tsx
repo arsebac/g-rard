@@ -2,11 +2,13 @@ import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Task, tasksApi, CreateTaskData } from "@/api/tasks";
 import { usersApi } from "@/api/users";
+import { projectsApi } from "@/api/projects";
 import {
   STATUS_LABELS,
   STATUS_COLORS,
   PRIORITY_LABELS,
   PRIORITY_COLORS,
+  taskRef,
 } from "@/lib/utils";
 import {
   X,
@@ -154,7 +156,12 @@ function SelectField<T extends string>({
 
 export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
   const queryClient = useQueryClient();
+  const [linkedTask, setLinkedTask] = useState<Task | null>(null);
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: usersApi.list });
+  const { data: project } = useQuery({
+    queryKey: ["project", task.projectId],
+    queryFn: () => projectsApi.get(task.projectId),
+  });
 
   const { data: fullTask } = useQuery({
     queryKey: ["task", task.id],
@@ -191,10 +198,15 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
       {/* Modal */}
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
 
+        {/* Modale ticket lié (ouverture en cascade) */}
+        {linkedTask && (
+          <TaskDrawer task={linkedTask} onClose={() => setLinkedTask(null)} />
+        )}
+
         {/* Top bar */}
         <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 flex-shrink-0">
-          <span className="text-xs font-mono text-gray-400 bg-gray-100 px-2 py-0.5 rounded">
-            #{fullTask.id}
+          <span className="text-xs font-mono font-semibold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+            {taskRef(project?.key, fullTask.number)}
           </span>
           <div className="flex items-center gap-1">
             <button
@@ -233,7 +245,17 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                 key={fullTask.id}
                 defaultValue={fullTask.description ?? ""}
                 onSave={(description) => update({ description })}
-                placeholder="Ajouter une description…"
+                placeholder="Ajouter une description… (tapez CUI-3 pour lier un ticket)"
+                onTaskRefClick={async (ref) => {
+                  const [key, num] = ref.split("-");
+                  if (!key || !num) return;
+                  try {
+                    const t = await tasksApi.getByRef(key, parseInt(num));
+                    setLinkedTask(t);
+                  } catch {
+                    // ref invalide — on ne fait rien
+                  }
+                }}
               />
             </div>
 
