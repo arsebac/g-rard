@@ -8,18 +8,16 @@ import {
   PRIORITY_LABELS,
   PRIORITY_COLORS,
 } from "@/lib/utils";
-import { format } from "date-fns";
-import { fr } from "date-fns/locale";
 import {
   X,
   Trash2,
   Calendar,
-  User,
   Flag,
   ChevronDown,
   Check,
   Pencil,
 } from "lucide-react";
+import { TaskActivity } from "./TaskActivity";
 
 interface TaskDrawerProps {
   task: Task;
@@ -219,30 +217,9 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               />
             </div>
 
-            {/* Dates meta */}
-            <div className="flex items-center gap-4 text-xs text-gray-400 pt-2 border-t border-gray-100">
-              {fullTask.creator && (
-                <span>
-                  Créée par{" "}
-                  <span className="font-medium text-gray-600">{fullTask.creator.name}</span>
-                </span>
-              )}
-              {fullTask.createdAt && (
-                <span>
-                  le{" "}
-                  <span className="text-gray-500">
-                    {format(new Date(fullTask.createdAt), "d MMM yyyy", { locale: fr })}
-                  </span>
-                </span>
-              )}
-              {fullTask.updatedAt && fullTask.updatedAt !== fullTask.createdAt && (
-                <span>
-                  · modifiée le{" "}
-                  <span className="text-gray-500">
-                    {format(new Date(fullTask.updatedAt), "d MMM yyyy", { locale: fr })}
-                  </span>
-                </span>
-              )}
+            {/* Activité */}
+            <div className="pt-2 border-t border-gray-100">
+              <TaskActivity taskId={fullTask.id} />
             </div>
           </div>
 

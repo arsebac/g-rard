@@ -131,17 +131,28 @@ export default async function taskRoutes(app: FastifyInstance) {
       },
     });
 
+    const logs: Promise<void>[] = [];
+
+    if (old?.title !== task.title) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "title_changed", oldValue: { title: old?.title }, newValue: { title: task.title } }));
+    }
     if (old?.status !== task.status) {
-      await logActivity({
-        entityType: "task",
-        entityId: task.id,
-        actorId: req.currentUserId,
-        action: "status_changed",
-        oldValue: { status: old?.status },
-        newValue: { status: task.status },
-      });
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "status_changed", oldValue: { status: old?.status }, newValue: { status: task.status } }));
+    }
+    if (old?.priority !== task.priority) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "priority_changed", oldValue: { priority: old?.priority }, newValue: { priority: task.priority } }));
+    }
+    if (old?.assigneeId !== task.assigneeId) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "assignee_changed", oldValue: { assigneeId: old?.assigneeId }, newValue: { assigneeId: task.assigneeId } }));
+    }
+    if (old?.dueDate?.toISOString() !== task.dueDate?.toISOString()) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "due_date_changed", oldValue: { dueDate: old?.dueDate }, newValue: { dueDate: task.dueDate } }));
+    }
+    if (old?.description !== task.description) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "description_changed", newValue: {} }));
     }
 
+    await Promise.all(logs);
     return reply.send(task);
   });
 
