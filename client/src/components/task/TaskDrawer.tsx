@@ -30,41 +30,130 @@ function EditableTitle({ value, onSave }: { value: string; onSave: (v: string) =
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    if (editing) inputRef.current?.focus();
+    if (editing) {
+      const el = inputRef.current;
+      if (el) { el.focus(); el.setSelectionRange(el.value.length, el.value.length); }
+    }
   }, [editing]);
 
   const commit = () => {
+    if (!draft.trim()) return;
     setEditing(false);
-    if (draft.trim() && draft !== value) onSave(draft.trim());
-    else setDraft(value);
+    if (draft.trim() !== value) onSave(draft.trim());
+  };
+
+  const cancel = () => {
+    setEditing(false);
+    setDraft(value);
   };
 
   if (editing) {
     return (
-      <textarea
-        ref={inputRef}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commit(); }
-          if (e.key === "Escape") { setEditing(false); setDraft(value); }
-        }}
-        rows={2}
-        className="w-full text-xl font-semibold text-gray-900 leading-snug resize-none border-0 border-b-2 border-indigo-400 outline-none bg-transparent pb-1"
-      />
+      <div className="flex flex-col gap-2">
+        <textarea
+          ref={inputRef}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); commit(); }
+            if (e.key === "Escape") cancel();
+          }}
+          rows={2}
+          className="w-full text-xl font-semibold text-gray-900 leading-snug resize-none border-0 border-b-2 border-indigo-400 outline-none bg-transparent pb-1"
+        />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={commit}
+            disabled={!draft.trim()}
+            className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white text-xs font-medium rounded-md transition-colors"
+          >
+            <Check size={12} /> Enregistrer
+          </button>
+          <button
+            onClick={cancel}
+            className="flex items-center gap-1 px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-600 text-xs font-medium rounded-md transition-colors"
+          >
+            <X size={12} /> Annuler
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
     <div
       className="group flex items-start gap-2 cursor-pointer"
-      onClick={() => setEditing(true)}
+      onClick={() => { setDraft(value); setEditing(true); }}
     >
       <h2 className="text-xl font-semibold text-gray-900 leading-snug flex-1 hover:text-indigo-700 transition-colors">
         {value}
       </h2>
       <Pencil size={14} className="mt-1.5 text-gray-300 group-hover:text-indigo-400 flex-shrink-0 transition-colors" />
+    </div>
+  );
+}
+
+function AutoResizeTextarea({
+  defaultValue,
+  onSave,
+  placeholder,
+}: {
+  defaultValue: string;
+  onSave: (v: string) => void;
+  placeholder?: string;
+}) {
+  const [draft, setDraft] = useState(defaultValue);
+  const [dirty, setDirty] = useState(false);
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  // sync si la tâche change (autre ouverture)
+  useEffect(() => {
+    setDraft(defaultValue);
+    setDirty(false);
+  }, [defaultValue]);
+
+  // auto-resize
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [draft]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setDraft(e.target.value);
+    setDirty(e.target.value !== defaultValue);
+  };
+
+  const commit = () => { onSave(draft); setDirty(false); };
+  const cancel = () => { setDraft(defaultValue); setDirty(false); };
+
+  return (
+    <div className="flex flex-col gap-2">
+      <textarea
+        ref={ref}
+        value={draft}
+        onChange={handleChange}
+        placeholder={placeholder}
+        rows={4}
+        className="w-full text-sm text-gray-700 leading-relaxed border border-gray-200 rounded-xl px-4 py-3 resize-none overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent placeholder-gray-300 transition-colors"
+      />
+      {dirty && (
+        <div className="flex items-center gap-2">
+          <button
+            onClick={commit}
+            className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-md transition-colors"
+          >
+            <Check size={12} /> Enregistrer
+          </button>
+          <button
+            onClick={cancel}
+            className="flex items-center gap-1 px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-600 text-xs font-medium rounded-md transition-colors"
+          >
+            <X size={12} /> Annuler
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -203,17 +292,11 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
                 Description
               </p>
-              <textarea
+              <AutoResizeTextarea
                 key={fullTask.id}
                 defaultValue={fullTask.description ?? ""}
-                onBlur={(e) => {
-                  if (e.target.value !== (fullTask.description ?? "")) {
-                    update({ description: e.target.value });
-                  }
-                }}
-                rows={8}
+                onSave={(description) => update({ description })}
                 placeholder="Ajouter une description…"
-                className="w-full text-sm text-gray-700 leading-relaxed border border-gray-200 rounded-xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent placeholder-gray-300"
               />
             </div>
 
