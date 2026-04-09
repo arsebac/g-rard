@@ -11,7 +11,7 @@ const createProjectSchema = z.object({
 });
 
 const updateProjectSchema = createProjectSchema.partial().extend({
-  status: z.enum(["actif", "archivé"]).optional(),
+  status: z.enum(["actif", "archive"]).optional(),
 });
 
 export default async function projectRoutes(app: FastifyInstance) {
@@ -89,7 +89,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     await db.project.update({
       where: { id: parseInt(id) },
-      data: { status: "archivé" },
+      data: { status: "archive" },
     });
     return reply.send({ ok: true });
   });

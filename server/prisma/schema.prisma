@@ -46,7 +46,7 @@ model Project {
 
 enum ProjectStatus {
   actif
-  archivé @map("archive")
+  archive
 }
 
 model Label {
