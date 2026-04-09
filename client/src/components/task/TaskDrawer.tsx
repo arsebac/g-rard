@@ -18,6 +18,7 @@ import {
   Pencil,
 } from "lucide-react";
 import { TaskActivity } from "./TaskActivity";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 
 interface TaskDrawerProps {
   task: Task;
@@ -93,70 +94,6 @@ function EditableTitle({ value, onSave }: { value: string; onSave: (v: string) =
   );
 }
 
-function AutoResizeTextarea({
-  defaultValue,
-  onSave,
-  placeholder,
-}: {
-  defaultValue: string;
-  onSave: (v: string) => void;
-  placeholder?: string;
-}) {
-  const [draft, setDraft] = useState(defaultValue);
-  const [dirty, setDirty] = useState(false);
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  // sync si la tâche change (autre ouverture)
-  useEffect(() => {
-    setDraft(defaultValue);
-    setDirty(false);
-  }, [defaultValue]);
-
-  // auto-resize
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [draft]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDraft(e.target.value);
-    setDirty(e.target.value !== defaultValue);
-  };
-
-  const commit = () => { onSave(draft); setDirty(false); };
-  const cancel = () => { setDraft(defaultValue); setDirty(false); };
-
-  return (
-    <div className="flex flex-col gap-2">
-      <textarea
-        ref={ref}
-        value={draft}
-        onChange={handleChange}
-        placeholder={placeholder}
-        rows={4}
-        className="w-full text-sm text-gray-700 leading-relaxed border border-gray-200 rounded-xl px-4 py-3 resize-none overflow-hidden focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent placeholder-gray-300 transition-colors"
-      />
-      {dirty && (
-        <div className="flex items-center gap-2">
-          <button
-            onClick={commit}
-            className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-md transition-colors"
-          >
-            <Check size={12} /> Enregistrer
-          </button>
-          <button
-            onClick={cancel}
-            className="flex items-center gap-1 px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-600 text-xs font-medium rounded-md transition-colors"
-          >
-            <X size={12} /> Annuler
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
 
 function SelectField<T extends string>({
   label,
@@ -292,7 +229,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">
                 Description
               </p>
-              <AutoResizeTextarea
+              <RichTextEditor
                 key={fullTask.id}
                 defaultValue={fullTask.description ?? ""}
                 onSave={(description) => update({ description })}
