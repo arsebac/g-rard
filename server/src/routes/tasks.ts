@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { logActivity } from "../services/activity";
+import { nextTaskNumber } from "../services/projectKey";
 import { TaskStatus } from "@prisma/client";
 
 const createTaskSchema = z.object({
@@ -27,6 +28,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     const { projectId } = req.params as { projectId: string };
     const query = req.query as { status?: string; assigneeId?: string; labelId?: string };
 
+    const project = await db.project.findUnique({ where: { id: parseInt(projectId) }, select: { key: true } });
     const tasks = await db.task.findMany({
       where: {
         projectId: parseInt(projectId),
@@ -44,7 +46,9 @@ export default async function taskRoutes(app: FastifyInstance) {
       },
       orderBy: [{ status: "asc" }, { position: "asc" }],
     });
-    return reply.send(tasks);
+    // Injecter la clé du projet dans chaque tâche
+    const projectKey = project?.key ?? null;
+    return reply.send(tasks.map((t) => ({ ...t, projectKey })));
   });
 
   app.post("/api/projects/:projectId/tasks", { preHandler: requireAuth }, async (req, reply) => {
@@ -62,6 +66,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     const position = (lastTask?.position ?? 0) + 1000;
 
     const { dueDate, ...rest } = body.data;
+    const number = await nextTaskNumber(parseInt(projectId));
     const task = await db.task.create({
       data: {
         ...rest,
@@ -69,6 +74,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         projectId: parseInt(projectId),
         createdBy: req.currentUserId,
         position,
+        number,
         dueDate: dueDate ? new Date(dueDate) : null,
       },
       include: {
@@ -87,6 +93,28 @@ export default async function taskRoutes(app: FastifyInstance) {
     });
 
     return reply.status(201).send(task);
+  });
+
+  // Lookup par référence projet (ex: CUI-5)
+  app.get("/api/tasks/ref/:key/:number", { preHandler: requireAuth }, async (req, reply) => {
+    const { key, number } = req.params as { key: string; number: string };
+    const project = await db.project.findFirst({ where: { key: key.toUpperCase() } });
+    if (!project) return reply.status(404).send({ error: "Projet introuvable" });
+
+    const task = await db.task.findFirst({
+      where: { projectId: project.id, number: parseInt(number) },
+      include: {
+        assignee: { select: { id: true, name: true, avatarUrl: true } },
+        creator: { select: { id: true, name: true, avatarUrl: true } },
+        labels: { include: { label: true } },
+        comments: {
+          include: { author: { select: { id: true, name: true, avatarUrl: true } } },
+          orderBy: { createdAt: "asc" },
+        },
+      },
+    });
+    if (!task) return reply.status(404).send({ error: "Tâche introuvable" });
+    return reply.send({ ...task, projectKey: project.key });
   });
 
   app.get("/api/tasks/:id", { preHandler: requireAuth }, async (req, reply) => {

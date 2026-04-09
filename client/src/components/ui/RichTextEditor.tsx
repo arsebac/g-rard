@@ -6,6 +6,7 @@ import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
 import Link from "@tiptap/extension-link";
 import { Check, X } from "lucide-react";
+import { TaskRefExtension } from "./TaskRefExtension";
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
@@ -212,6 +213,9 @@ function Toolbar({ editor }: { editor: Editor }) {
 // ─── Styles prose injectés via une balise <style> ─────────────────────────────
 
 const PROSE_STYLE = `
+.task-ref-link { display: inline-flex; align-items: center; background: #ede9fe; color: #5b21b6; border-radius: 4px; padding: 0 5px; font-size: 0.78em; font-weight: 600; font-family: monospace; text-decoration: none; cursor: pointer; border: 1px solid #c4b5fd; white-space: nowrap; }
+.task-ref-link:hover { background: #ddd6fe; }
+
 .gerard-prose { min-height: 120px; padding: 12px 16px; outline: none; font-size: 0.875rem; line-height: 1.7; color: #374151; }
 .gerard-prose p { margin: 0 0 0.5em; }
 .gerard-prose p:last-child { margin-bottom: 0; }
@@ -240,9 +244,10 @@ interface RichTextEditorProps {
   defaultValue: string;
   onSave: (html: string) => void;
   placeholder?: string;
+  onTaskRefClick?: (ref: string) => void;
 }
 
-export function RichTextEditor({ defaultValue, onSave, placeholder }: RichTextEditorProps) {
+export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefClick }: RichTextEditorProps) {
   const [dirty, setDirty] = useState(false);
 
   const editor = useEditor({
@@ -252,6 +257,7 @@ export function RichTextEditor({ defaultValue, onSave, placeholder }: RichTextEd
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Placeholder.configure({ placeholder: placeholder ?? "Ajouter une description…" }),
       Link.configure({ openOnClick: false }),
+      TaskRefExtension,
     ],
     content: defaultValue || "",
     onUpdate: ({ editor }) => {
@@ -285,12 +291,24 @@ export function RichTextEditor({ defaultValue, onSave, placeholder }: RichTextEd
   return (
     <>
       <style>{PROSE_STYLE}</style>
+      {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events */}
       <div
         className={`border rounded-xl overflow-hidden transition-colors ${
           editor?.isFocused
             ? "border-indigo-400 ring-2 ring-indigo-100"
             : "border-gray-200 hover:border-gray-300"
         }`}
+        onClick={(e) => {
+          const target = e.target as HTMLElement;
+          const ref =
+            target.getAttribute("data-task-ref") ??
+            target.closest("[data-task-ref]")?.getAttribute("data-task-ref");
+          if (ref && onTaskRefClick) {
+            e.preventDefault();
+            e.stopPropagation();
+            onTaskRefClick(ref);
+          }
+        }}
       >
         {editor && <Toolbar editor={editor} />}
         <EditorContent editor={editor} className="gerard-prose" />

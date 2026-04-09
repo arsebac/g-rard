@@ -18,21 +18,30 @@ export function DashboardPage() {
   });
 
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: "", description: "", color: PROJECT_COLORS[0] });
+  const [form, setForm] = useState({ name: "", key: "", description: "", color: PROJECT_COLORS[0] });
+
+  // Auto-génère la clé depuis le nom
+  const autoKey = (name: string) => {
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (!words.length) return "";
+    if (words.length === 1) return words[0].substring(0, 3).toUpperCase();
+    return words.map((w) => w[0].toUpperCase()).join("").substring(0, 5);
+  };
 
   const createMutation = useMutation({
     mutationFn: projectsApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setShowForm(false);
-      setForm({ name: "", description: "", color: PROJECT_COLORS[0] });
+      setForm({ name: "", key: "", description: "", color: PROJECT_COLORS[0] });
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) return;
-    createMutation.mutate(form);
+    const key = (form.key.trim() || autoKey(form.name)).toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5);
+    createMutation.mutate({ ...form, key });
   };
 
   return (
@@ -66,12 +75,17 @@ export function DashboardPage() {
                 className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-indigo-200 transition-all group"
               >
                 <div className="flex items-start justify-between mb-3">
-                  <span
-                    className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg font-bold"
-                    style={{ backgroundColor: project.color }}
-                  >
-                    {project.name[0].toUpperCase()}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="w-10 h-10 rounded-lg flex items-center justify-center text-white text-lg font-bold"
+                      style={{ backgroundColor: project.color }}
+                    >
+                      {project.name[0].toUpperCase()}
+                    </span>
+                    {project.key && (
+                      <span className="text-xs font-mono font-bold text-gray-400">{project.key}</span>
+                    )}
+                  </div>
                   <span className="text-xs text-gray-400 bg-gray-100 rounded-full px-2 py-1">
                     {project._count?.tasks ?? 0} tâche{(project._count?.tasks ?? 0) !== 1 ? "s" : ""}
                   </span>
@@ -110,19 +124,31 @@ export function DashboardPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="text-xs text-gray-500 block mb-1">Nom du projet *</label>
-                <input
-                  autoFocus
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Cuisine, Salle de bain..."
-                  required
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className="text-xs text-gray-500 block mb-1">Nom du projet *</label>
+                  <input
+                    autoFocus
+                    type="text"
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value, key: form.key || autoKey(e.target.value) })}
+                    placeholder="Ex: Cuisine, Salle de bain..."
+                    required
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="w-24">
+                  <label className="text-xs text-gray-500 block mb-1">Clé</label>
+                  <input
+                    type="text"
+                    value={form.key || autoKey(form.name)}
+                    onChange={(e) => setForm({ ...form, key: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").substring(0, 5) })}
+                    placeholder="CUI"
+                    maxLength={5}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono uppercase focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
               </div>
-
               <div>
                 <label className="text-xs text-gray-500 block mb-1">Description</label>
                 <textarea

@@ -5,6 +5,8 @@ import { Label } from "./projects";
 export interface Task {
   id: number;
   projectId: number;
+  number: number;
+  projectKey?: string | null;
   title: string;
   description: string | null;
   status: "a_faire" | "en_cours" | "termine" | "bloque";
@@ -47,4 +49,6 @@ export const tasksApi = {
   move: (id: number, status: Task["status"], position: number) =>
     api.patch<Task>(`/api/tasks/${id}/move`, { status, position }),
   delete: (id: number) => api.delete(`/api/tasks/${id}`),
+  getByRef: (key: string, number: number) =>
+    api.get<Task>(`/api/tasks/ref/${key}/${number}`),
 };

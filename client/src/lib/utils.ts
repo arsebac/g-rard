@@ -42,3 +42,12 @@ export const PRIORITY_COLORS: Record<string, string> = {
 
 export const STATUSES = ["a_faire", "en_cours", "termine", "bloque"] as const;
 export type Status = (typeof STATUSES)[number];
+
+/** Formate la référence d'un ticket : "CUI-5" ou "#5" si pas de clé projet */
+export function taskRef(key: string | null | undefined, number: number): string {
+  if (key) return `${key}-${number}`;
+  return `#${number || "?"}`;
+}
+
+/** Regex de détection d'une référence ticket */
+export const TASK_REF_REGEX = /\b([A-Z]{2,5})-(\d+)\b/g;
