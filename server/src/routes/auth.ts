@@ -8,6 +8,12 @@ const loginSchema = z.object({
   password: z.string().min(1),
 });
 
+const registerSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  password: z.string().min(6),
+});
+
 export default async function authRoutes(app: FastifyInstance) {
   app.post("/api/auth/login", async (req, reply) => {
     const body = loginSchema.safeParse(req.body);
@@ -27,6 +33,31 @@ export default async function authRoutes(app: FastifyInstance) {
 
     req.session.userId = user.id;
     return reply.send({
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      avatarUrl: user.avatarUrl,
+    });
+  });
+
+  app.post("/api/auth/register", async (req, reply) => {
+    const body = registerSchema.safeParse(req.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
+    }
+
+    const existing = await db.user.findUnique({ where: { email: body.data.email } });
+    if (existing) {
+      return reply.status(409).send({ error: "Cet email est déjà utilisé" });
+    }
+
+    const passwordHash = await bcrypt.hash(body.data.password, 10);
+    const user = await db.user.create({
+      data: { name: body.data.name, email: body.data.email, passwordHash },
+    });
+
+    req.session.userId = user.id;
+    return reply.status(201).send({
       id: user.id,
       name: user.name,
       email: user.email,
