@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  db:
+    image: mariadb:11
+    container_name: gerard-db
+    restart: unless-stopped
+    environment:
+      MARIADB_ROOT_PASSWORD: rootpassword
+      MARIADB_DATABASE: gerard
+      MARIADB_USER: gerard
+      MARIADB_PASSWORD: gerard_password
+    ports:
+      - "3306:3306"
+    volumes:
+      - gerard_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: gerard-app
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql://gerard:gerard_password@db:3306/gerard
+      SESSION_SECRET: changeme_use_a_random_32_char_string
+      UPLOAD_DIR: /app/uploads
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    volumes:
+      - gerard_uploads:/app/uploads
+
+volumes:
+  gerard_data:
+  gerard_uploads:
