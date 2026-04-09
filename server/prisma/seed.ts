@@ -81,6 +81,22 @@ async function main() {
     await prisma.task.update({ where: { id: t.id }, data: { number: counter++ } });
   }
 
+  // Page wiki d'accueil — wiki global Flatulence
+  const existingWikiHome = await prisma.wikiPage.findFirst({ where: { slug: "accueil" } });
+  if (!existingWikiHome) {
+    await prisma.wikiPage.create({
+      data: {
+        title: "Accueil",
+        slug: "accueil",
+        projectId: null,
+        parentId: null,
+        body: "<h1>Bienvenue dans Flatulence</h1><p>Cet espace wiki est destiné à documenter les projets de rénovation.</p>",
+        contentType: "tiptap",
+        createdBy: user1.id,
+      },
+    });
+  }
+
   console.log("Seed terminé !");
   console.log(`Compte 1 : utilisateur1@gerard.local / gerard2024`);
   console.log(`Compte 2 : utilisateur2@gerard.local / gerard2024`);

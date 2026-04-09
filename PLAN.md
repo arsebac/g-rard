@@ -38,6 +38,7 @@ users
 projects
   id            INT PK AUTO_INCREMENT
   name          VARCHAR(255)           -- "Cuisine", "Salle de bain"
+  key           VARCHAR(10)            -- "CUI", "SDB" (clé courte unique)
   description   TEXT NULL
   color         VARCHAR(7)             -- couleur hex pour le badge UI
   status        ENUM('actif','archivé') DEFAULT 'actif'
@@ -54,6 +55,7 @@ labels
 tasks
   id            INT PK AUTO_INCREMENT
   project_id    INT FK -> projects.id
+  number        INT                    -- numéro séquentiel par projet (CUI-1, CUI-2…)
   title         VARCHAR(500)
   description   TEXT NULL              -- Tiptap JSON
   status        ENUM('à_faire','en_cours','terminé','bloqué') DEFAULT 'à_faire'
@@ -74,7 +76,7 @@ comments
   id            INT PK AUTO_INCREMENT
   task_id       INT FK -> tasks.id
   author_id     INT FK -> users.id
-  body          TEXT                   -- Tiptap JSON
+  body          TEXT                   -- texte brut
   created_at    DATETIME
   updated_at    DATETIME
 
@@ -122,6 +124,7 @@ wiki_pages
 POST   /api/auth/login
 POST   /api/auth/logout
 GET    /api/auth/me
+POST   /api/auth/register
 ```
 
 ### Projets
@@ -139,6 +142,7 @@ GET    /api/projects/:id/activity
 GET    /api/projects/:id/tasks
 POST   /api/projects/:id/tasks
 GET    /api/tasks/:id
+GET    /api/tasks/ref/:key/:number      -- accès direct par ref (ex: CUI-4)
 PATCH  /api/tasks/:id
 DELETE /api/tasks/:id
 PATCH  /api/tasks/:id/move
@@ -150,6 +154,7 @@ GET    /api/tasks/:id/comments
 POST   /api/tasks/:id/comments
 PATCH  /api/comments/:id
 DELETE /api/comments/:id
+GET    /api/tasks/:id/activity
 ```
 
 ### Labels
@@ -200,28 +205,27 @@ gerard/
 │   ├── prisma/
 │   │   ├── schema.prisma
 │   │   └── seed.ts
-│   ├── src/
-│   │   ├── index.ts
-│   │   ├── config.ts
-│   │   ├── db.ts
-│   │   ├── plugins/
-│   │   │   ├── auth.ts
-│   │   │   └── multipart.ts
-│   │   ├── routes/
-│   │   │   ├── auth.ts
-│   │   │   ├── projects.ts
-│   │   │   ├── tasks.ts
-│   │   │   ├── comments.ts
-│   │   │   ├── labels.ts
-│   │   │   ├── attachments.ts
-│   │   │   ├── wiki.ts
-│   │   │   └── users.ts
-│   │   ├── services/
-│   │   │   ├── activity.ts
-│   │   │   └── storage.ts
-│   │   └── schemas/
-│   │       └── *.ts
-│   └── uploads/
+│   └── src/
+│       ├── index.ts
+│       ├── config.ts
+│       ├── db.ts
+│       ├── plugins/
+│       │   ├── auth.ts
+│       │   └── multipart.ts
+│       ├── routes/
+│       │   ├── auth.ts
+│       │   ├── projects.ts
+│       │   ├── tasks.ts
+│       │   ├── comments.ts
+│       │   ├── labels.ts
+│       │   ├── attachments.ts        -- à faire (Phase 3)
+│       │   ├── wiki.ts
+│       │   └── users.ts
+│       ├── services/
+│       │   ├── activity.ts
+│       │   └── storage.ts            -- à faire (Phase 3)
+│       └── schemas/
+│           └── *.ts
 │
 ├── client/
 │   ├── package.json
@@ -231,20 +235,29 @@ gerard/
 │       ├── router.tsx
 │       ├── api/
 │       ├── components/
-│       │   ├── ui/               -- shadcn/ui
+│       │   ├── ui/
+│       │   │   ├── RichTextEditor.tsx
+│       │   │   └── TaskRefExtension.ts
 │       │   ├── kanban/
+│       │   │   ├── KanbanBoard.tsx
+│       │   │   ├── KanbanColumn.tsx
+│       │   │   └── TaskCard.tsx
 │       │   ├── task/
+│       │   │   ├── TaskDrawer.tsx
+│       │   │   ├── TaskForm.tsx
+│       │   │   └── TaskActivity.tsx
 │       │   ├── wiki/
 │       │   └── layout/
+│       │       └── AppShell.tsx
 │       ├── pages/
 │       │   ├── LoginPage.tsx
 │       │   ├── DashboardPage.tsx
 │       │   ├── ProjectPage.tsx
-│       │   ├── TaskPage.tsx
+│       │   ├── TicketPage.tsx
 │       │   └── WikiPage.tsx
 │       └── lib/
 │
-├── mcp/                            -- Phase 5
+├── mcp/                              -- Phase 5
 │   ├── package.json
 │   └── src/
 │       ├── index.ts
@@ -259,52 +272,64 @@ gerard/
 
 ## Phases de développement
 
-### Phase 1 — MVP Kanban ⭐⭐
+### Phase 1 — MVP Kanban ✅ Complète
 **Objectif : tableau kanban fonctionnel pour un projet**
 
-- [ ] Scaffold monorepo (npm workspaces, Vite, Fastify, Prisma)
-- [ ] Docker Compose : MariaDB + app
-- [ ] Migrations Prisma : `users`, `projects`, `tasks`
-- [ ] Seed : 2 utilisateurs
-- [ ] Auth : login/logout, session, middleware
-- [ ] API : projets CRUD
-- [ ] API : tâches CRUD + move (changement de colonne)
-- [ ] UI : page login
-- [ ] UI : dashboard projets
-- [ ] UI : tableau kanban avec drag & drop
-- [ ] UI : formulaire création/édition tâche
+- [x] Scaffold monorepo (npm workspaces, Vite, Fastify, Prisma)
+- [x] Docker Compose : MariaDB + app
+- [x] Migrations Prisma : `users`, `projects`, `tasks`
+- [x] Seed : 2 utilisateurs + page d'inscription
+- [x] Auth : login/logout, session, middleware
+- [x] API : projets CRUD
+- [x] API : tâches CRUD + move (changement de colonne)
+- [x] UI : page login
+- [x] UI : dashboard projets
+- [x] UI : tableau kanban avec drag & drop (dnd-kit)
+- [x] UI : formulaire création/édition tâche (TaskDrawer)
 
-### Phase 2 — Fonctionnalités core ⭐⭐
+**Bonus :**
+- [x] Clés de projet courtes (`CUI`, `SDB`…) + numéros séquentiels par projet (CUI-1, CUI-2…)
+- [x] URL directe par ticket : `/tickets/CUI-4` → ouvre le drawer
+
+---
+
+### Phase 2 — Fonctionnalités core ✅ Complète
 **Objectif : remplacer le document de notes partagé**
 
-- [ ] Labels : création par projet, assignation aux tâches, filtre
-- [ ] Commentaires sur les tâches
-- [ ] Historique d'activité automatique (changement de statut, assignée…)
-- [ ] Drawer latéral pour le détail d'une tâche
-- [ ] Vue liste (en plus du kanban)
-- [ ] Mise en évidence des dates : rouge = dépassé, orange = aujourd'hui
+- [x] Labels : création par projet, assignation aux tâches, filtre
+- [x] Commentaires sur les tâches (création, édition, suppression)
+- [x] Historique d'activité automatique (changement de statut, assignée, titre…)
+- [x] Drawer latéral pour le détail d'une tâche (style Jira)
+- [x] Vue liste (en plus du kanban)
+- [x] Mise en évidence des dates : rouge = dépassé, orange = aujourd'hui
 
-### Phase 3 — Pièces jointes & rich text ⭐⭐⭐
+---
+
+### Phase 3 — Pièces jointes & rich text ✅ Complète
 **Objectif : remplacer le dossier photos/liens partagé**
 
-- [ ] Upload fichiers/images sur tâches et projets
-- [ ] Intégration Tiptap pour descriptions et commentaires
-- [ ] Prévisualisation des images dans la liste des pièces jointes
-- [ ] Onglet "Documents" sur la page projet
-- [ ] Upload avatar utilisateur
-- [ ] Layout responsive mobile
+- [x] Upload fichiers/images sur tâches et projets
+- [x] Intégration Tiptap pour descriptions (WYSIWYG + mentions @ticket cliquables)
+- [x] Prévisualisation des images dans la liste des pièces jointes
+- [x] Onglet "Documents" sur la page projet
+- [x] Upload avatar utilisateur
+- [x] Layout responsive mobile
 
-### Phase 3 bis — Wiki WYSIWYG ⭐⭐⭐
+---
+
+### Phase 3 bis — Wiki WYSIWYG ✅ Complète
 **Objectif : espace Confluence-like par projet**
 
-- [ ] Migration Prisma : `wiki_pages`
-- [ ] API wiki CRUD
-- [ ] Arborescence de pages dans la sidebar
-- [ ] Éditeur Tiptap WYSIWYG
-- [ ] Import de fichiers `.md` (rendu via `react-markdown` + `rehype-highlight`)
-- [ ] Export d'une page en `.md`
-- [ ] Toggle Édition ↔ Aperçu
-- [ ] Breadcrumb de navigation
+- [x] Migration Prisma : `wiki_pages`
+- [x] API wiki CRUD
+- [x] Arborescence de pages dans la sidebar (recursif)
+- [x] Éditeur Tiptap WYSIWYG
+- [x] Import de fichiers `.md` (rendu via `react-markdown` + `rehype-highlight`)
+- [x] Export d'une page en `.md`
+- [x] Toggle Édition ↔ Aperçu
+- [x] Breadcrumb de navigation
+
+---
 
 ### Phase 4 — Recherche & export ⭐⭐
 **Objectif : confort d'utilisation**
@@ -313,6 +338,8 @@ gerard/
 - [ ] Panneau de filtres avancés (labels, assignée, plage de dates)
 - [ ] Export projet CSV/PDF
 - [ ] Raccourcis clavier (`N` = nouvelle tâche, etc.)
+
+---
 
 ### Phase 5 — Serveur MCP ⭐⭐⭐
 **Objectif : piloter Gérard depuis Claude Code**

@@ -10,6 +10,8 @@ import { useAuthStore } from "./store/auth";
 import { LoginPage } from "./pages/LoginPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { ProjectPage } from "./pages/ProjectPage";
+import { TicketPage } from "./pages/TicketPage";
+import { WikiPage } from "./pages/WikiPage";
 
 const rootRoute = createRootRoute({
   component: Outlet,
@@ -46,10 +48,26 @@ const projectRoute = createRoute({
   component: ProjectPage,
 });
 
+const ticketRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/tickets/$ref",
+  beforeLoad: authGuard,
+  component: TicketPage,
+});
+
+const wikiRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/wiki",
+  beforeLoad: authGuard,
+  component: WikiPage,
+});
+
 const routeTree = rootRoute.addChildren([
   loginRoute,
   dashboardRoute,
   projectRoute,
+  ticketRoute,
+  wikiRoute,
 ]);
 
 export const router = createRouter({ routeTree });

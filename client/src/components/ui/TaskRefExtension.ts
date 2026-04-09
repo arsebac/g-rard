@@ -39,8 +39,7 @@ export const TaskRefExtension = Mark.create({
       "a",
       mergeAttributes(HTMLAttributes, {
         class: "task-ref-link",
-        href: "#",
-        "data-task-ref": HTMLAttributes.ref,
+        href: `/tickets/${HTMLAttributes["data-task-ref"]}`,
       }),
       0,
     ];
