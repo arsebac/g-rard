@@ -10,6 +10,7 @@ import authRoutes from "./routes/auth";
 import projectRoutes from "./routes/projects";
 import taskRoutes from "./routes/tasks";
 import userRoutes from "./routes/users";
+import commentRoutes from "./routes/comments";
 
 const app = Fastify({ logger: config.isDev });
 
@@ -41,6 +42,7 @@ async function start() {
   await app.register(projectRoutes);
   await app.register(taskRoutes);
   await app.register(userRoutes);
+  await app.register(commentRoutes);
 
   // En production : servir le build Vite
   if (!config.isDev) {
