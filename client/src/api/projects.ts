@@ -6,7 +6,7 @@ export interface Project {
   name: string;
   description: string | null;
   color: string;
-  status: "actif" | "archivé";
+  status: "actif" | "archive";
   createdBy: number;
   createdAt: string;
   updatedAt: string;
