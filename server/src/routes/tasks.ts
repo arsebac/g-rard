@@ -1,9 +1,10 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, requireProjectMember, getProjectAccess } from "../plugins/auth";
 import { logActivity } from "../services/activity";
 import { nextTaskNumber } from "../services/projectKey";
+import { sanitizeHtml } from "../services/sanitize";
 import { TaskStatus } from "@prisma/client";
 
 const createTaskSchema = z.object({
@@ -35,7 +36,7 @@ const moveTaskSchema = z.object({
 });
 
 export default async function taskRoutes(app: FastifyInstance) {
-  app.get("/api/projects/:projectId/tasks", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:projectId/tasks", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const { projectId } = req.params as { projectId: string };
     const query = req.query as {
       status?: string;
@@ -69,7 +70,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     return reply.send(tasks.map((t) => ({ ...t, projectKey })));
   });
 
-  app.post("/api/projects/:projectId/tasks", { preHandler: requireAuth }, async (req, reply) => {
+  app.post("/api/projects/:projectId/tasks", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const { projectId } = req.params as { projectId: string };
     const body = createTaskSchema.safeParse(req.body);
     if (!body.success) {
@@ -83,11 +84,13 @@ export default async function taskRoutes(app: FastifyInstance) {
     });
     const position = (lastTask?.position ?? 0) + 1000;
 
-    const { dueDate, ...rest } = body.data;
+    const { dueDate, title, description, ...rest } = body.data;
     const number = await nextTaskNumber(parseInt(projectId));
     const task = await db.task.create({
       data: {
         ...rest,
+        title: sanitizeHtml(title),
+        description: description ? sanitizeHtml(description) : null,
         status: rest.status as TaskStatus,
         projectId: parseInt(projectId),
         createdBy: req.currentUserId,
@@ -114,6 +117,10 @@ export default async function taskRoutes(app: FastifyInstance) {
     const { key, number } = req.params as { key: string; number: string };
     const project = await db.project.findFirst({ where: { key: key.toUpperCase() } });
     if (!project) return reply.status(404).send({ error: "Projet introuvable" });
+
+    // Vérification accès projet
+    const access = await getProjectAccess(req.currentUserId, project.id);
+    if (!access) return reply.status(403).send({ error: "Accès refusé" });
 
     const task = await db.task.findFirst({
       where: { projectId: project.id, number: parseInt(number) },
@@ -142,23 +149,37 @@ export default async function taskRoutes(app: FastifyInstance) {
       },
     });
     if (!task) return reply.status(404).send({ error: "Tâche introuvable" });
+
+    // Vérification accès projet
+    const access = await getProjectAccess(req.currentUserId, task.projectId);
+    if (!access) return reply.status(403).send({ error: "Accès refusé" });
+
     return reply.send(task);
   });
 
   app.patch("/api/tasks/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    
+    const old = await db.task.findUnique({ where: { id: parseInt(id) } });
+    if (!old) return reply.status(404).send({ error: "Tâche introuvable" });
+
+    // Vérification accès projet
+    const access = await getProjectAccess(req.currentUserId, old.projectId);
+    if (!access) return reply.status(403).send({ error: "Accès refusé" });
+
     const body = updateTaskSchema.safeParse(req.body);
     if (!body.success) {
       return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
     }
 
-    const old = await db.task.findUnique({ where: { id: parseInt(id) } });
-    const { dueDate, ...rest } = body.data;
+    const { dueDate, title, description, ...rest } = body.data;
 
     const task = await db.task.update({
       where: { id: parseInt(id) },
       data: {
         ...rest,
+        ...(title !== undefined && { title: sanitizeHtml(title) }),
+        ...(description !== undefined && { description: description ? sanitizeHtml(description) : null }),
         ...(rest.status && { status: rest.status as TaskStatus }),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
       },
@@ -192,12 +213,18 @@ export default async function taskRoutes(app: FastifyInstance) {
 
   app.patch("/api/tasks/:id/move", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    const old = await db.task.findUnique({ where: { id: parseInt(id) } });
+    if (!old) return reply.status(404).send({ error: "Tâche introuvable" });
+
+    // Vérification accès projet
+    const access = await getProjectAccess(req.currentUserId, old.projectId);
+    if (!access) return reply.status(403).send({ error: "Accès refusé" });
+
     const body = moveTaskSchema.safeParse(req.body);
     if (!body.success) {
       return reply.status(400).send({ error: "Données invalides" });
     }
 
-    const old = await db.task.findUnique({ where: { id: parseInt(id) } });
     const task = await db.task.update({
       where: { id: parseInt(id) },
       data: { status: body.data.status as TaskStatus, position: body.data.position },
@@ -219,6 +246,13 @@ export default async function taskRoutes(app: FastifyInstance) {
 
   app.delete("/api/tasks/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    const taskToDelete = await db.task.findUnique({ where: { id: parseInt(id) } });
+    if (!taskToDelete) return reply.status(404).send({ error: "Tâche introuvable" });
+
+    // Vérification accès projet
+    const access = await getProjectAccess(req.currentUserId, taskToDelete.projectId);
+    if (!access) return reply.status(403).send({ error: "Accès refusé" });
+
     await db.task.delete({ where: { id: parseInt(id) } });
     return reply.send({ ok: true });
   });
