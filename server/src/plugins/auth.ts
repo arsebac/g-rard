@@ -53,13 +53,27 @@ export const requireProjectMember = async (req: FastifyRequest, reply: FastifyRe
   const projectId = parseInt(projectIdStr);
   if (isNaN(projectId)) return;
 
-  const role = await getProjectAccess(req.currentUserId, projectId);
+  const project = await db.project.findUnique({
+    where: { id: projectId },
+    include: { members: { where: { userId: req.currentUserId } } },
+  });
 
-  if (!role) {
-    return reply.status(403).send({ error: "Accès refusé au projet" });
+  if (!project) {
+    return reply.status(404).send({ error: "Projet introuvable" });
   }
 
-  req.projectRole = role;
+  const member = project.members[0];
+  if (member) {
+    req.projectRole = member.role;
+    return;
+  }
+
+  if (project.isPublic) {
+    req.projectRole = "member" as ProjectMemberRole;
+    return;
+  }
+
+  return reply.status(403).send({ error: "Accès refusé au projet" });
 };
 
 /**
