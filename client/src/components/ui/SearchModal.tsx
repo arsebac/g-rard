@@ -11,10 +11,10 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  a_faire: "À faire",
-  en_cours: "En cours",
-  termine: "Terminé",
-  bloque: "Bloqué",
+  a_faire: "To do",
+  en_cours: "In progress",
+  termine: "Done",
+  bloque: "Blocked",
 };
 
 interface SearchModalProps {
@@ -94,7 +94,7 @@ export function SearchModal({ onClose }: SearchModalProps) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKeyDown}
-            placeholder="Rechercher une tâche…"
+            placeholder="Search a task…"
             className="flex-1 text-sm outline-none placeholder-gray-400 text-gray-900"
           />
           {loading && (
@@ -141,9 +141,9 @@ export function SearchModal({ onClose }: SearchModalProps) {
             ))}
           </ul>
         ) : q.length >= 2 && !loading ? (
-          <div className="py-10 text-center text-sm text-gray-400">Aucun résultat pour « {q} »</div>
+          <div className="py-10 text-center text-sm text-gray-400">No results for « {q} »</div>
         ) : q.length > 0 && q.length < 2 ? (
-          <div className="py-6 text-center text-xs text-gray-400">Tapez au moins 2 caractères…</div>
+          <div className="py-6 text-center text-xs text-gray-400">Type at least 2 characters…</div>
         ) : (
           <div className="py-6 text-center text-xs text-gray-400">
             Raccourci : <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-500 font-mono">/</kbd>
@@ -152,9 +152,9 @@ export function SearchModal({ onClose }: SearchModalProps) {
 
         {/* Footer */}
         <div className="border-t border-gray-100 px-4 py-2 flex items-center gap-4 text-xs text-gray-400">
-          <span><kbd className="px-1 bg-gray-100 rounded">↑↓</kbd> naviguer</span>
-          <span><kbd className="px-1 bg-gray-100 rounded">↵</kbd> ouvrir</span>
-          <span><kbd className="px-1 bg-gray-100 rounded">Esc</kbd> fermer</span>
+          <span><kbd className="px-1 bg-gray-100 rounded">↑↓</kbd> navigate</span>
+          <span><kbd className="px-1 bg-gray-100 rounded">↵</kbd> open</span>
+          <span><kbd className="px-1 bg-gray-100 rounded">Esc</kbd> close</span>
         </div>
       </div>
     </div>

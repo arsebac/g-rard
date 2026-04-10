@@ -21,7 +21,7 @@ export const attachmentsApi = {
 
   upload: (entityType: AttachmentType, entityId: number, file: File) => {
     const formData = new FormData();
-    // Les champs textuels doivent être ajoutés AVANT le fichier pour @fastify/multipart
+    // Text fields must be appended BEFORE the file for @fastify/multipart
     formData.append("entityType", entityType);
     formData.append("entityId", entityId.toString());
     formData.append("file", file);

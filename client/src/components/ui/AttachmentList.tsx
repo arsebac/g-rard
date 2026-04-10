@@ -54,7 +54,7 @@ export function AttachmentList({ entityType, entityId }: AttachmentListProps) {
     }
   };
 
-  if (isLoading) return <div className="text-xs text-gray-400">Chargement des fichiers...</div>;
+  if (isLoading) return <div className="text-xs text-gray-400">Loading files...</div>;
 
   return (
     <div className="space-y-3">
@@ -96,16 +96,16 @@ export function AttachmentList({ entityType, entityId }: AttachmentListProps) {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-md hover:bg-indigo-50"
-                    title="Télécharger"
+                    title="Download"
                   >
                     <Download size={14} />
                   </a>
                   <button
                     onClick={() => {
-                      if (confirm("Supprimer ce fichier ?")) deleteMutation.mutate(attachment.id);
+                      if (confirm("Delete this file?")) deleteMutation.mutate(attachment.id);
                     }}
                     className="p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-red-50"
-                    title="Supprimer"
+                    title="Delete"
                   >
                     <Trash2 size={14} />
                   </button>
@@ -124,7 +124,7 @@ export function AttachmentList({ entityType, entityId }: AttachmentListProps) {
           <Plus size={16} className="group-hover:scale-110 transition-transform" />
         )}
         <span className="text-xs font-medium">
-          {uploadMutation.isPending ? "Envoi en cours..." : "Ajouter un fichier"}
+          {uploadMutation.isPending ? "Uploading..." : "Add a file"}
         </span>
         <input 
           type="file" 

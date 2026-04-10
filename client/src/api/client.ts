@@ -10,7 +10,7 @@ async function request<T>(url: string, options?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ error: "Erreur réseau" }));
+    const error = await res.json().catch(() => ({ error: "Network error" }));
     throw new Error(error.error ?? `HTTP ${res.status}`);
   }
 

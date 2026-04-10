@@ -105,32 +105,32 @@ function NewPageModal({ pages, onClose, onCreate }: NewPageModalProps) {
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-gray-900">Nouvelle page</h2>
+          <h2 className="text-base font-semibold text-gray-900">New page</h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={18} />
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Titre *</label>
+            <label className="text-xs text-gray-500 block mb-1">Title *</label>
             <input
               autoFocus
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Titre de la page…"
+              placeholder="Page title…"
               required
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
           </div>
           <div>
-            <label className="text-xs text-gray-500 block mb-1">Page parente</label>
+            <label className="text-xs text-gray-500 block mb-1">Parent page</label>
             <select
               value={parentId}
               onChange={(e) => setParentId(e.target.value === "" ? "" : Number(e.target.value))}
               className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="">— Aucune (racine) —</option>
+              <option value="">— None (root) —</option>
               {pages.map((p) => (
                 <option key={p.id} value={p.id}>{p.title}</option>
               ))}
@@ -142,14 +142,14 @@ function NewPageModal({ pages, onClose, onCreate }: NewPageModalProps) {
               onClick={onClose}
               className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
             >
-              Annuler
+              Cancel
             </button>
             <button
               type="submit"
               disabled={createMutation.isPending || !title.trim()}
               className="flex-1 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
             >
-              {createMutation.isPending ? "Création…" : "Créer"}
+              {createMutation.isPending ? "Creating…" : "Create"}
             </button>
           </div>
         </form>
@@ -235,7 +235,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
   if (isLoading) {
     return (
       <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
-        Chargement…
+        Loading…
       </div>
     );
   }
@@ -255,7 +255,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
   };
 
   const handleDelete = () => {
-    if (!confirm(`Supprimer la page "${page.title}" ?`)) return;
+    if (!confirm(`Delete page "${page.title}"?`)) return;
     deleteMutation.mutate();
     onSelectPage(-1);
   };
@@ -292,7 +292,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
               onClick={() => setEditing(false)}
               className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
             >
-              Annuler
+              Cancel
             </button>
           </div>
         ) : (
@@ -300,7 +300,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
             <h1
               className="text-2xl font-bold text-gray-900 cursor-pointer hover:text-indigo-700 transition-colors"
               onClick={() => { setEditTitle(page.title); setEditing(true); }}
-              title="Cliquer pour modifier le titre"
+              title="Click to edit the title"
             >
               {page.title}
             </h1>
@@ -308,7 +308,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
               <button
                 onClick={() => setIsReadOnly(!isReadOnly)}
                 className={`p-1.5 rounded-lg transition-colors ${isReadOnly ? "text-indigo-600 bg-indigo-50" : "text-gray-400 hover:text-indigo-600"}`}
-                title={isReadOnly ? "Passer en édition" : "Passer en aperçu"}
+                title={isReadOnly ? "Switch to edit" : "Switch to preview"}
               >
                 {isReadOnly ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -316,7 +316,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
                 href={wikiApi.getExportUrl(page.id)}
                 download
                 className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors"
-                title="Exporter en Markdown"
+                title="Export as Markdown"
               >
                 <Download size={16} />
               </a>
@@ -324,7 +324,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
                 onClick={handleDelete}
                 disabled={deleteMutation.isPending}
                 className="p-1.5 text-gray-300 hover:text-red-400 transition-colors"
-                title="Supprimer cette page"
+                title="Delete this page"
               >
                 <Trash2 size={16} />
               </button>
@@ -332,13 +332,13 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
           </div>
         )}
         <p className="text-xs text-gray-400 mt-1">
-          Modifié le{" "}
-          {new Date(page.updatedAt).toLocaleDateString("fr-FR", {
+          Last modified{" "}
+          {new Date(page.updatedAt).toLocaleDateString("en-US", {
             day: "numeric",
             month: "long",
             year: "numeric",
           })}
-          {page.creator ? ` par ${page.creator.name}` : ""}
+          {page.creator ? ` by ${page.creator.name}` : ""}
         </p>
       </div>
 
@@ -354,7 +354,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
           key={pageId}
           defaultValue={page.body ?? ""}
           onSave={handleSaveBody}
-          placeholder="Écrivez le contenu de cette page…"
+          placeholder="Write the content of this page…"
           readOnly={isReadOnly}
         />
       )}
@@ -363,7 +363,7 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
       {children.length > 0 && (
         <div className="mt-8">
           <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
-            Sous-pages
+            Subpages
           </h2>
           <ul className="space-y-1">
             {children.map((child) => (
@@ -432,17 +432,17 @@ export function WikiPage() {
           <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen size={16} className="text-indigo-500" />
-              <span className="text-sm font-semibold text-gray-800">Wiki Flatulence</span>
+              <span className="text-sm font-semibold text-gray-800">Flatulence Wiki</span>
             </div>
             <div className="flex items-center gap-1">
-              <label className="p-1 text-gray-400 hover:text-indigo-600 cursor-pointer transition-colors" title="Importer Markdown">
+              <label className="p-1 text-gray-400 hover:text-indigo-600 cursor-pointer transition-colors" title="Import Markdown">
                 {importMutation.isPending ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
                 <input type="file" className="hidden" accept=".md" onChange={handleImport} disabled={importMutation.isPending} />
               </label>
               <button
                 onClick={() => setShowNewPage(true)}
                 className="p-1 text-gray-400 hover:text-indigo-600 transition-colors"
-                title="Nouvelle page"
+                title="New page"
               >
                 <Plus size={16} />
               </button>
@@ -451,9 +451,9 @@ export function WikiPage() {
 
           <nav className="flex-1 overflow-y-auto py-2 px-2">
             {isLoading ? (
-              <p className="text-xs text-gray-400 px-2 py-2">Chargement…</p>
+              <p className="text-xs text-gray-400 px-2 py-2">Loading…</p>
             ) : pages.length === 0 ? (
-              <p className="text-xs text-gray-400 px-2 py-2">Aucune page pour l'instant.</p>
+              <p className="text-xs text-gray-400 px-2 py-2">No pages yet.</p>
             ) : (
               <ul>
                 {roots.map((root) => (
@@ -486,18 +486,18 @@ export function WikiPage() {
               <BookOpen size={32} className="text-indigo-400" />
             </div>
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Bienvenue dans le wiki Flatulence
+              Welcome to the Flatulence wiki
             </h2>
             <p className="text-sm text-gray-500 max-w-sm mb-6">
-              Cet espace vous permet de documenter vos projets de rénovation.
-              Sélectionnez une page dans la barre latérale ou créez-en une nouvelle.
+              This space allows you to document your projects.
+              Select a page from the sidebar or create a new one.
             </p>
             <button
               onClick={() => setShowNewPage(true)}
               className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
             >
               <Plus size={16} />
-              Créer la première page
+              Create the first page
             </button>
           </div>
         )}

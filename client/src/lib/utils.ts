@@ -6,10 +6,10 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export const STATUS_LABELS: Record<string, string> = {
-  a_faire: "À faire",
-  en_cours: "En cours",
-  termine: "Terminé",
-  bloque: "Bloqué",
+  a_faire: "To do",
+  en_cours: "In progress",
+  termine: "Done",
+  bloque: "Blocked",
 };
 
 export const STATUS_COLORS: Record<string, string> = {
@@ -27,10 +27,10 @@ export const STATUS_COLUMN_COLORS: Record<string, string> = {
 };
 
 export const PRIORITY_LABELS: Record<string, string> = {
-  basse: "Basse",
-  normale: "Normale",
-  haute: "Haute",
-  urgente: "Urgente",
+  basse: "Low",
+  normale: "Normal",
+  haute: "High",
+  urgente: "Urgent",
 };
 
 export const PRIORITY_COLORS: Record<string, string> = {
@@ -43,11 +43,11 @@ export const PRIORITY_COLORS: Record<string, string> = {
 export const STATUSES = ["a_faire", "en_cours", "termine", "bloque"] as const;
 export type Status = (typeof STATUSES)[number];
 
-/** Formate la référence d'un ticket : "CUI-5" ou "#5" si pas de clé projet */
+/** Formats a ticket reference: "CUI-5" or "#5" if no project key */
 export function taskRef(key: string | null | undefined, number: number): string {
   if (key) return `${key}-${number}`;
   return `#${number || "?"}`;
 }
 
-/** Regex de détection d'une référence ticket */
+/** Regex to detect a ticket reference */
 export const TASK_REF_REGEX = /\b([A-Z]{2,5})-(\d+)\b/g;

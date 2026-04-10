@@ -68,7 +68,7 @@ function LabelDropdown({
             onClick={() => { onChange(null); setOpen(false); }}
             className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors ${value === null ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`}
           >
-            Tous les labels
+            All labels
           </button>
           {labels.map((label) => (
             <button
@@ -120,13 +120,13 @@ function UserAvatar({
 type ViewMode = "kanban" | "list" | "backlog" | "versions";
 
 const VIEWS: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
-  { id: "kanban",   label: "Tableau",  icon: <LayoutGrid size={14} /> },
-  { id: "list",     label: "Liste",    icon: <List size={14} /> },
+  { id: "kanban",   label: "Board",    icon: <LayoutGrid size={14} /> },
+  { id: "list",     label: "List",     icon: <List size={14} /> },
   { id: "backlog",  label: "Backlog",  icon: <Layers size={14} /> },
   { id: "versions", label: "Versions", icon: <GitBranch size={14} /> },
 ];
 
-// ─── Page principale ──────────────────────────────────────────────────────────
+// ─── Main page ────────────────────────────────────────────────────────────────
 
 interface FilterState {
   search: string;
@@ -213,7 +213,7 @@ export function ProjectPage() {
     <AppShell>
       <div className="flex flex-col h-full">
 
-        {/* ── Row 1 : titre + actions ─────────────────────────────────────── */}
+        {/* ── Row 1: title + actions ──────────────────────────────────────── */}
         <div className="bg-white border-b border-gray-100 px-6 pt-5 pb-0 flex-shrink-0">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -230,22 +230,22 @@ export function ProjectPage() {
               <button
                 onClick={() => handleAddTask("a_faire")}
                 className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors"
-                title="Nouvelle tâche (N)"
+                title="New task (N)"
               >
                 <Plus size={14} />
-                Créer
+                Create
               </button>
               <button
                 onClick={() => setShowSettings(true)}
                 className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-300 px-3 py-1.5 rounded-lg transition-colors"
-                title="Paramètres du projet"
+                title="Project settings"
               >
                 <Settings size={15} />
               </button>
             </div>
           </div>
 
-          {/* ── Row 2 : onglets ──────────────────────────────────────────── */}
+          {/* ── Row 2: tabs ──────────────────────────────────────────────── */}
           <div className="flex items-end gap-0">
             {VIEWS.map((view) => (
               <button
@@ -264,7 +264,7 @@ export function ProjectPage() {
           </div>
         </div>
 
-        {/* ── Row 3 : filtres ─────────────────────────────────────────────── */}
+        {/* ── Row 3: filters ───────────────────────────────────────────────── */}
         <div className="bg-white border-b border-gray-200 px-6 py-2.5 flex items-center gap-3 flex-shrink-0">
           <div className="relative flex-1 max-w-xs">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -272,7 +272,7 @@ export function ProjectPage() {
               type="text"
               value={filters.search}
               onChange={(e) => setFilters((f) => ({ ...f, search: e.target.value }))}
-              placeholder="Rechercher un ticket…"
+              placeholder="Search a ticket…"
               className="w-full pl-8 pr-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
             />
             {filters.search && (
@@ -305,7 +305,7 @@ export function ProjectPage() {
             />
           )}
 
-          {/* Filtre par type de ticket — masqué en mode backlog */}
+          {/* Ticket type filter — hidden in backlog mode */}
           {!isBacklog && ticketTypes.length > 0 && (
             <>
               <div className="w-px h-5 bg-gray-200" />
@@ -341,16 +341,16 @@ export function ProjectPage() {
             <>
               <div className="w-px h-5 bg-gray-200" />
               <button onClick={() => setFilters(EMPTY_FILTERS)} className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1">
-                <X size={11} /> Réinitialiser
+                <X size={11} /> Reset
               </button>
             </>
           )}
         </div>
 
-        {/* ── Contenu ─────────────────────────────────────────────────────── */}
+        {/* ── Content ──────────────────────────────────────────────────────── */}
         <div className="flex-1 overflow-auto p-6">
           {isLoading ? (
-            <div className="text-sm text-gray-400">Chargement...</div>
+            <div className="text-sm text-gray-400">Loading...</div>
           ) : viewMode === "kanban" ? (
             <KanbanBoard
               tasks={tasks}
@@ -366,7 +366,7 @@ export function ProjectPage() {
           ) : (
             <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
               <GitBranch size={32} className="opacity-30" />
-              <p className="text-sm">La gestion des versions arrive bientôt.</p>
+              <p className="text-sm">Versions management coming soon.</p>
             </div>
           )}
         </div>

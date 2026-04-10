@@ -18,7 +18,7 @@ import {
 
 type Tab = "comments" | "history";
 
-// ─── Helpers pour le rendu des événements ────────────────────────────────────
+// ─── Event rendering helpers ──────────────────────────────────────────────────
 
 function parseJson(v: string | null): Record<string, unknown> {
   if (!v) return {};
@@ -47,11 +47,11 @@ function formatAction(log: ActivityLog, users: { id: number; name: string }[]): 
 
   switch (log.action) {
     case "task_created":
-      return <span>a créé cette tâche</span>;
+      return <span>created this task</span>;
     case "title_changed":
       return (
         <span>
-          a modifié le titre{" "}
+          changed the title{" "}
           <span className="line-through text-gray-400 text-xs">{String(old.title ?? "")}</span>
           {" "}<ArrowRight size={11} className="inline text-gray-400" />{" "}
           <span className="font-medium text-gray-800">{String(next.title ?? "")}</span>
@@ -60,7 +60,7 @@ function formatAction(log: ActivityLog, users: { id: number; name: string }[]): 
     case "status_changed":
       return (
         <span>
-          a changé le statut{" "}
+          changed the status{" "}
           <span className="text-gray-400 text-xs">{STATUS_LABELS[String(old.status)] ?? old.status}</span>
           {" "}<ArrowRight size={11} className="inline text-gray-400" />{" "}
           <span className="font-medium text-gray-800">{STATUS_LABELS[String(next.status)] ?? next.status}</span>
@@ -69,7 +69,7 @@ function formatAction(log: ActivityLog, users: { id: number; name: string }[]): 
     case "priority_changed":
       return (
         <span>
-          a changé la priorité{" "}
+          changed the priority{" "}
           <span className="text-gray-400 text-xs">{PRIORITY_LABELS[String(old.priority)] ?? old.priority}</span>
           {" "}<ArrowRight size={11} className="inline text-gray-400" />{" "}
           <span className="font-medium text-gray-800">{PRIORITY_LABELS[String(next.priority)] ?? next.priority}</span>
@@ -79,46 +79,46 @@ function formatAction(log: ActivityLog, users: { id: number; name: string }[]): 
       return (
         <span>
           {next.assigneeId
-            ? <span>a assigné la tâche à <span className="font-medium text-gray-800">{userName(next.assigneeId)}</span></span>
-            : <span>a retiré l'assignation</span>}
+            ? <span>assigned the task to <span className="font-medium text-gray-800">{userName(next.assigneeId)}</span></span>
+            : <span>removed the assignee</span>}
         </span>
       );
     case "due_date_changed":
       return (
         <span>
           {next.dueDate
-            ? <span>a défini l'échéance au <span className="font-medium text-gray-800">{format(new Date(String(next.dueDate)), "d MMM yyyy", { locale: fr })}</span></span>
-            : <span>a supprimé la date d'échéance</span>}
+            ? <span>set the due date to <span className="font-medium text-gray-800">{format(new Date(String(next.dueDate)), "d MMM yyyy", { locale: fr })}</span></span>
+            : <span>removed the due date</span>}
         </span>
       );
     case "description_changed":
-      return <span>a modifié la description</span>;
+      return <span>updated the description</span>;
     case "type_changed":
       return (
         <span>
           {next.typeId
-            ? <span>a changé le type de ticket</span>
-            : <span>a retiré le type de ticket</span>}
+            ? <span>changed the ticket type</span>
+            : <span>removed the ticket type</span>}
         </span>
       );
     case "parent_changed":
       return (
         <span>
           {next.parentId
-            ? <span>a défini un ticket parent <span className="font-medium text-gray-800">#{String(next.parentId)}</span></span>
-            : <span>a retiré le ticket parent</span>}
+            ? <span>set parent ticket <span className="font-medium text-gray-800">#{String(next.parentId)}</span></span>
+            : <span>removed the parent ticket</span>}
         </span>
       );
     case "comment_added":
-      return <span>a ajouté un commentaire</span>;
+      return <span>added a comment</span>;
     case "comment_deleted":
-      return <span>a supprimé un commentaire</span>;
+      return <span>deleted a comment</span>;
     default:
       return <span className="text-gray-400">{log.action}</span>;
   }
 }
 
-// ─── Composant commentaire individuel ────────────────────────────────────────
+// ─── Individual comment component ────────────────────────────────────────────
 
 function CommentItem({
   comment,
@@ -152,7 +152,7 @@ function CommentItem({
             {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true, locale: fr })}
           </span>
           {comment.updatedAt !== comment.createdAt && (
-            <span className="text-xs text-gray-300 italic">modifié</span>
+            <span className="text-xs text-gray-300 italic">edited</span>
           )}
           {isOwn && !editing && (
             <div className="ml-auto flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -190,13 +190,13 @@ function CommentItem({
                 onClick={commit}
                 className="flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-800 font-medium"
               >
-                <Check size={12} /> Enregistrer
+                <Check size={12} /> Save
               </button>
               <button
                 onClick={() => { setEditing(false); setDraft(comment.body); }}
                 className="flex items-center gap-1 text-xs text-gray-400 hover:text-gray-600"
               >
-                <X size={12} /> Annuler
+                <X size={12} /> Cancel
               </button>
             </div>
           </div>
@@ -208,7 +208,7 @@ function CommentItem({
   );
 }
 
-// ─── Export principal ─────────────────────────────────────────────────────────
+// ─── Main export ──────────────────────────────────────────────────────────────
 
 export function TaskActivity({ taskId }: { taskId: number }) {
   const [tab, setTab] = useState<Tab>("comments");
@@ -278,7 +278,7 @@ export function TaskActivity({ taskId }: { taskId: number }) {
           }`}
         >
           <MessageSquare size={14} />
-          Commentaires
+          Comments
           {comments.length > 0 && (
             <span className="text-xs bg-indigo-100 text-indigo-600 rounded-full px-1.5 py-0.5 leading-none">
               {comments.length}
@@ -294,7 +294,7 @@ export function TaskActivity({ taskId }: { taskId: number }) {
           }`}
         >
           <History size={14} />
-          Historique
+          History
           {activity.length > 0 && (
             <span className="text-xs bg-gray-100 text-gray-500 rounded-full px-1.5 py-0.5 leading-none">
               {activity.length}
@@ -319,7 +319,7 @@ export function TaskActivity({ taskId }: { taskId: number }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); }
                 }}
-                placeholder="Ajouter un commentaire… (Entrée pour envoyer, Shift+Entrée pour sauter une ligne)"
+                placeholder="Add a comment… (Enter to send, Shift+Enter for a new line)"
                 rows={newComment ? 3 : 1}
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent placeholder-gray-300 transition-all"
               />
@@ -331,7 +331,7 @@ export function TaskActivity({ taskId }: { taskId: number }) {
                     className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
                   >
                     <Send size={11} />
-                    Envoyer
+                    Send
                   </button>
                 </div>
               )}
@@ -340,7 +340,7 @@ export function TaskActivity({ taskId }: { taskId: number }) {
 
           {/* Liste */}
           {comments.length === 0 ? (
-            <p className="text-sm text-gray-300 text-center py-4">Aucun commentaire</p>
+            <p className="text-sm text-gray-300 text-center py-4">No comments</p>
           ) : (
             <div className="flex flex-col gap-4">
               {comments.map((c) => (
@@ -361,7 +361,7 @@ export function TaskActivity({ taskId }: { taskId: number }) {
       {tab === "history" && (
         <div className="flex flex-col gap-0">
           {activity.length === 0 ? (
-            <p className="text-sm text-gray-300 text-center py-4">Aucun événement</p>
+            <p className="text-sm text-gray-300 text-center py-4">No events</p>
           ) : (
             <div className="relative">
               {/* Ligne verticale */}
