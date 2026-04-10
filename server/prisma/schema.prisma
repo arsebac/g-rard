@@ -22,6 +22,7 @@ model User {
   activityLogs    ActivityLog[]
   attachments     Attachment[]
   wikiPages       WikiPage[]
+  taskLinks       TaskLink[]
 
   @@map("users")
 }
@@ -37,10 +38,11 @@ model Project {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  creator  User      @relation("ProjectCreator", fields: [createdBy], references: [id])
-  tasks    Task[]
-  labels   Label[]
-  wikiPages WikiPage[]
+  creator     User         @relation("ProjectCreator", fields: [createdBy], references: [id])
+  tasks       Task[]
+  labels      Label[]
+  wikiPages   WikiPage[]
+  ticketTypes TicketType[]
 
   @@map("projects")
 }
@@ -74,14 +76,21 @@ model Task {
   createdBy   Int          @map("created_by")
   dueDate     DateTime?    @map("due_date") @db.Date
   position    Int          @default(0)
+  typeId      Int?         @map("type_id")
+  parentId    Int?         @map("parent_id")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  project  Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  assignee User?       @relation("TaskAssignee", fields: [assigneeId], references: [id])
-  creator  User        @relation("TaskCreator", fields: [createdBy], references: [id])
-  labels   TaskLabel[]
-  comments Comment[]
+  project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assignee   User?        @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  creator    User         @relation("TaskCreator", fields: [createdBy], references: [id])
+  type       TicketType?  @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  parent     Task?        @relation("TaskChildren", fields: [parentId], references: [id], onDelete: SetNull)
+  children   Task[]       @relation("TaskChildren")
+  labels     TaskLabel[]
+  comments   Comment[]
+  linksFrom  TaskLink[]   @relation("LinkSource")
+  linksTo    TaskLink[]   @relation("LinkTarget")
 
   @@map("tasks")
 }
@@ -193,4 +202,46 @@ model WikiPage {
 enum WikiContentType {
   tiptap
   markdown
+}
+
+model TicketType {
+  id        Int      @id @default(autoincrement())
+  projectId Int      @map("project_id")
+  name      String   @db.VarChar(100)
+  icon      String   @default("square") @db.VarChar(50)
+  color     String   @default("#6366f1") @db.VarChar(7)
+  isEpic    Boolean  @default(false) @map("is_epic")
+  position  Int      @default(0)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@map("ticket_types")
+}
+
+model TaskLink {
+  id        Int          @id @default(autoincrement())
+  sourceId  Int          @map("source_id")
+  targetId  Int          @map("target_id")
+  linkType  TaskLinkType @map("link_type")
+  createdBy Int          @map("created_by")
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  source  Task @relation("LinkSource", fields: [sourceId], references: [id], onDelete: Cascade)
+  target  Task @relation("LinkTarget", fields: [targetId], references: [id], onDelete: Cascade)
+  creator User @relation(fields: [createdBy], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, targetId, linkType])
+  @@map("task_links")
+}
+
+enum TaskLinkType {
+  blocks
+  is_blocked_by
+  relates_to
+  duplicates
+  is_duplicated_by
+  causes
+  is_caused_by
 }

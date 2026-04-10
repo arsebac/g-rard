@@ -1,6 +1,7 @@
 import { api } from "./client";
 import { User } from "./auth";
 import { Label } from "./projects";
+import { TicketType } from "./ticketTypes";
 
 export interface Task {
   id: number;
@@ -15,11 +16,15 @@ export interface Task {
   createdBy: number;
   dueDate: string | null;
   position: number;
+  typeId: number | null;
+  parentId: number | null;
   createdAt: string;
   updatedAt: string;
   assignee?: Pick<User, "id" | "name" | "avatarUrl"> | null;
   creator?: Pick<User, "id" | "name" | "avatarUrl">;
   labels?: { taskId: number; labelId: number; label: Label }[];
+  type?: TicketType | null;
+  parent?: { id: number; number: number; title: string; project: { key: string | null } } | null;
   _count?: { comments: number };
 }
 
@@ -30,14 +35,27 @@ export interface CreateTaskData {
   priority?: Task["priority"];
   assigneeId?: number | null;
   dueDate?: string | null;
+  typeId?: number | null;
+  parentId?: number | null;
 }
 
 export const tasksApi = {
-  list: (projectId: number, filters?: { status?: string; assigneeId?: number; labelId?: number }) => {
+  list: (
+    projectId: number,
+    filters?: {
+      status?: string;
+      assigneeId?: number;
+      labelId?: number;
+      dueDateFrom?: string;
+      dueDateTo?: string;
+    }
+  ) => {
     const params = new URLSearchParams();
     if (filters?.status) params.set("status", filters.status);
     if (filters?.assigneeId) params.set("assigneeId", String(filters.assigneeId));
     if (filters?.labelId) params.set("labelId", String(filters.labelId));
+    if (filters?.dueDateFrom) params.set("dueDateFrom", filters.dueDateFrom);
+    if (filters?.dueDateTo) params.set("dueDateTo", filters.dueDateTo);
     const qs = params.toString();
     return api.get<Task[]>(`/api/projects/${projectId}/tasks${qs ? `?${qs}` : ""}`);
   },

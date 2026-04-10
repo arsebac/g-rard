@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tasksApi, CreateTaskData } from "@/api/tasks";
 import { usersApi } from "@/api/users";
-import { STATUS_LABELS, PRIORITY_LABELS } from "@/lib/utils";
+import { ticketTypesApi } from "@/api/ticketTypes";
+import { STATUS_LABELS, PRIORITY_LABELS, taskRef } from "@/lib/utils";
 import { X } from "lucide-react";
 
 interface TaskFormProps {
@@ -14,6 +15,14 @@ interface TaskFormProps {
 export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: TaskFormProps) {
   const queryClient = useQueryClient();
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: usersApi.list });
+  const { data: ticketTypes = [] } = useQuery({
+    queryKey: ["ticket-types", projectId],
+    queryFn: () => ticketTypesApi.list(projectId),
+  });
+  const { data: allTasks = [] } = useQuery({
+    queryKey: ["tasks", projectId],
+    queryFn: () => tasksApi.list(projectId),
+  });
 
   const [form, setForm] = useState<CreateTaskData>({
     title: "",
@@ -22,7 +31,17 @@ export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: Task
     priority: "normale",
     assigneeId: null,
     dueDate: null,
+    typeId: null,
+    parentId: null,
   });
+
+  const selectedType = ticketTypes.find((t) => t.id === form.typeId);
+  const isEpic = selectedType?.isEpic ?? false;
+
+  // Parents possibles : epics + stories
+  const possibleParents = allTasks.filter(
+    (t) => t.type?.isEpic || t.type?.name === "Story"
+  );
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTaskData) => tasksApi.create(projectId, data),
@@ -44,12 +63,39 @@ export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: Task
       <div className="relative bg-white rounded-xl shadow-2xl w-full max-w-md p-6">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-base font-semibold text-gray-900">Nouvelle tâche</h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
-            <X size={18} />
-          </button>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600"><X size={18} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-3">
+          {/* Type */}
+          {ticketTypes.length > 0 && (
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Type</label>
+              <div className="flex flex-wrap gap-1.5">
+                {ticketTypes.map((type) => {
+                  const active = form.typeId === type.id;
+                  return (
+                    <button
+                      key={type.id}
+                      type="button"
+                      onClick={() => setForm({ ...form, typeId: active ? null : type.id, parentId: null })}
+                      className="text-xs px-2.5 py-1 rounded-lg font-semibold border transition-all"
+                      style={{
+                        backgroundColor: type.color + (active ? "25" : "10"),
+                        color: type.color,
+                        borderColor: type.color + (active ? "70" : "30"),
+                        opacity: active ? 1 : 0.6,
+                      }}
+                    >
+                      {type.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Titre */}
           <div>
             <input
               autoFocus
@@ -61,6 +107,25 @@ export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: Task
               required
             />
           </div>
+
+          {/* Parent (masqué si Epic) */}
+          {!isEpic && possibleParents.length > 0 && (
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">Parent (Epic / Story)</label>
+              <select
+                value={form.parentId ?? ""}
+                onChange={(e) => setForm({ ...form, parentId: e.target.value ? parseInt(e.target.value) : null })}
+                className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white"
+              >
+                <option value="">Aucun</option>
+                {possibleParents.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {taskRef(t.projectKey, t.number)} {t.title}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-3">
             <div>
@@ -125,18 +190,10 @@ export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: Task
           </div>
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50 transition-colors"
-            >
+            <button type="button" onClick={onClose} className="flex-1 px-4 py-2 text-sm border border-gray-200 rounded-md hover:bg-gray-50 transition-colors">
               Annuler
             </button>
-            <button
-              type="submit"
-              disabled={createMutation.isPending || !form.title.trim()}
-              className="flex-1 px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-            >
+            <button type="submit" disabled={createMutation.isPending || !form.title.trim()} className="flex-1 px-4 py-2 text-sm bg-indigo-600 text-white rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors">
               {createMutation.isPending ? "Création..." : "Créer"}
             </button>
           </div>

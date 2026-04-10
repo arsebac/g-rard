@@ -15,6 +15,10 @@ import commentRoutes from "./routes/comments";
 import labelRoutes from "./routes/labels";
 import wikiRoutes from "./routes/wiki";
 import attachmentRoutes from "./routes/attachments";
+import searchRoutes from "./routes/search";
+import exportRoutes from "./routes/export";
+import ticketTypeRoutes from "./routes/ticketTypes";
+import taskLinkRoutes from "./routes/taskLinks";
 
 const app = Fastify({ logger: config.isDev });
 
@@ -58,6 +62,10 @@ async function start() {
   await app.register(labelRoutes);
   await app.register(wikiRoutes);
   await app.register(attachmentRoutes);
+  await app.register(searchRoutes);
+  await app.register(exportRoutes);
+  await app.register(ticketTypeRoutes);
+  await app.register(taskLinkRoutes);
 
   // En production : servir le build Vite
   if (!config.isDev) {
