@@ -46,8 +46,10 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns 
       queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
       setOptimisticTasks(null);
     },
-    onError: () => {
+    onError: (error: any) => {
       setOptimisticTasks(null);
+      const message = error.response?.data?.error || "Une erreur est survenue lors du déplacement.";
+      alert(message);
     },
   });
 
