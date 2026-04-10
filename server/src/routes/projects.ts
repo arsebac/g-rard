@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, requireProjectMember, requireProjectAdmin } from "../plugins/auth";
 import { logActivity } from "../services/activity";
 import { generateUniqueKey } from "../services/projectKey";
 import { ensureDefaultColumns } from "./projectColumns";
@@ -11,6 +11,7 @@ const createProjectSchema = z.object({
   key: z.string().min(1).max(5).regex(/^[A-Z0-9]+$/).optional(),
   description: z.string().optional(),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#6366f1"),
+  isPublic: z.boolean().default(true),
 });
 
 const updateProjectSchema = createProjectSchema.partial().extend({
@@ -20,7 +21,13 @@ const updateProjectSchema = createProjectSchema.partial().extend({
 export default async function projectRoutes(app: FastifyInstance) {
   app.get("/api/projects", { preHandler: requireAuth }, async (req, reply) => {
     const projects = await db.project.findMany({
-      where: { status: "actif" },
+      where: { 
+        status: "actif",
+        OR: [
+          { isPublic: true },
+          { members: { some: { userId: req.currentUserId } } }
+        ]
+      },
       include: {
         creator: { select: { id: true, name: true, avatarUrl: true } },
         _count: { select: { tasks: true } },
@@ -38,7 +45,14 @@ export default async function projectRoutes(app: FastifyInstance) {
 
     const key = body.data.key ?? await generateUniqueKey(body.data.name);
     const project = await db.project.create({
-      data: { ...body.data, key, createdBy: req.currentUserId },
+      data: { 
+        ...body.data, 
+        key, 
+        createdBy: req.currentUserId,
+        members: {
+          create: { userId: req.currentUserId, role: "admin" }
+        }
+      },
     });
 
     await logActivity({
@@ -52,7 +66,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     return reply.status(201).send(project);
   });
 
-  app.get("/api/projects/:id", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:id", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const projectId = parseInt(id);
     await ensureDefaultColumns(projectId);
@@ -70,7 +84,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     return reply.send(project);
   });
 
-  app.patch("/api/projects/:id", { preHandler: requireAuth }, async (req, reply) => {
+  app.patch("/api/projects/:id", { preHandler: [requireAuth, requireProjectAdmin] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = updateProjectSchema.safeParse(req.body);
     if (!body.success) {
@@ -93,7 +107,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     return reply.send(project);
   });
 
-  app.delete("/api/projects/:id", { preHandler: requireAuth }, async (req, reply) => {
+  app.delete("/api/projects/:id", { preHandler: [requireAuth, requireProjectAdmin] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     await db.project.update({
       where: { id: parseInt(id) },
@@ -102,7 +116,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     return reply.send({ ok: true });
   });
 
-  app.get("/api/projects/:id/activity", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:id/activity", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const query = req.query as { limit?: string; offset?: string };
     const limit = Math.min(parseInt(query.limit ?? "50"), 100);

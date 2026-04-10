@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
+import { sanitizeHtml } from "../services/sanitize";
 
 // Génère un slug depuis un titre
 function slugify(title: string): string {
@@ -91,9 +92,9 @@ export default async function wikiRoutes(app: FastifyInstance) {
 
     const page = await db.wikiPage.create({
       data: {
-        title,
+        title: sanitizeHtml(title),
         slug,
-        body: content ?? "",
+        body: content ? sanitizeHtml(content) : "",
         contentType: contentType ?? "tiptap",
         creator: { connect: { id: req.currentUserId } },
         ...(projectId ? { project: { connect: { id: projectId } } } : {}),
@@ -131,12 +132,12 @@ export default async function wikiRoutes(app: FastifyInstance) {
 
     const data: Record<string, unknown> = {};
     if (body.data.title !== undefined) {
-      data.title = body.data.title;
+      data.title = sanitizeHtml(body.data.title);
       const baseSlug = slugify(body.data.title);
       data.slug = await uniqueSlug(baseSlug, parseInt(id));
     }
     if (body.data.body !== undefined) {
-      data.body = body.data.body ?? "";
+      data.body = body.data.body ? sanitizeHtml(body.data.body) : "";
     }
 
     const page = await db.wikiPage.update({
@@ -183,9 +184,9 @@ export default async function wikiRoutes(app: FastifyInstance) {
 
     const page = await db.wikiPage.create({
       data: {
-        title,
+        title: sanitizeHtml(title),
         slug,
-        body: content.toString("utf-8"),
+        body: sanitizeHtml(content.toString("utf-8")),
         contentType: "markdown",
         creator: { connect: { id: req.currentUserId } },
       },
