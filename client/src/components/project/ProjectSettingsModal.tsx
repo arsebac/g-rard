@@ -600,11 +600,6 @@ function TabWorkflow({ projectId }: { projectId: number }) {
         </button>
         {saved && <span className="text-xs text-green-600">Workflow saved.</span>}
       </div>
-
-      <p className="text-xs text-gray-400">
-        ⚠️ Transition validation in the Kanban will be enforced in a future version.
-        This configuration prepares the rules that will be enforced automatically.
-      </p>
     </div>
   );
 }
