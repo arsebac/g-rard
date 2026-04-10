@@ -15,6 +15,9 @@ vi.mock("../db", () => ({
       update: vi.fn(),
       delete: vi.fn(),
     },
+    workflowTransition: {
+      findMany: vi.fn(),
+    },
     activityLog: { create: vi.fn() },
   },
 }));
@@ -36,6 +39,7 @@ describe("Routes Tasks", () => {
 
   beforeAll(async () => {
     app = await createServer();
+    (db.workflowTransition.findMany as any).mockResolvedValue([]);
   });
 
   afterAll(async () => {

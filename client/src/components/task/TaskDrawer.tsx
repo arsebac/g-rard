@@ -323,6 +323,10 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
       queryClient.invalidateQueries({ queryKey: ["task", task.id] });
       queryClient.invalidateQueries({ queryKey: ["activity", task.id] });
     },
+    onError: (error: any) => {
+      const message = error.response?.data?.error || "Une erreur est survenue lors de la mise à jour.";
+      alert(message);
+    },
   });
 
   const update = (data: Partial<CreateTaskData>) => updateMutation.mutate(data);
