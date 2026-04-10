@@ -15,9 +15,10 @@ model User {
   avatarUrl    String?  @map("avatar_url") @db.VarChar(500)
   createdAt    DateTime @default(now()) @map("created_at")
 
-  createdProjects Project[]    @relation("ProjectCreator")
-  assignedTasks   Task[]       @relation("TaskAssignee")
-  createdTasks    Task[]       @relation("TaskCreator")
+  createdProjects Project[]       @relation("ProjectCreator")
+  projects        ProjectMember[]
+  assignedTasks   Task[]          @relation("TaskAssignee")
+  createdTasks    Task[]          @relation("TaskCreator")
   comments        Comment[]
   activityLogs    ActivityLog[]
   attachments     Attachment[]
@@ -34,11 +35,13 @@ model Project {
   description String?       @db.Text
   color       String        @default("#6366f1") @db.VarChar(7)
   status      ProjectStatus @default(actif)
+  isPublic    Boolean       @default(true) @map("is_public")
   createdBy   Int           @map("created_by")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
   creator             User                 @relation("ProjectCreator", fields: [createdBy], references: [id])
+  members             ProjectMember[]
   tasks               Task[]
   labels              Label[]
   wikiPages           WikiPage[]
@@ -47,6 +50,24 @@ model Project {
   workflowTransitions WorkflowTransition[]
 
   @@map("projects")
+}
+
+model ProjectMember {
+  projectId Int                @map("project_id")
+  userId    Int                @map("user_id")
+  role      ProjectMemberRole  @default(member)
+  createdAt DateTime           @default(now()) @map("created_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([projectId, userId])
+  @@map("project_members")
+}
+
+enum ProjectMemberRole {
+  admin
+  member
 }
 
 enum ProjectStatus {
