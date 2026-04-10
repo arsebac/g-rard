@@ -19,6 +19,8 @@ import searchRoutes from "./routes/search";
 import exportRoutes from "./routes/export";
 import ticketTypeRoutes from "./routes/ticketTypes";
 import taskLinkRoutes from "./routes/taskLinks";
+import projectColumnRoutes from "./routes/projectColumns";
+import workflowRoutes from "./routes/workflow";
 
 const app = Fastify({ logger: config.isDev });
 
@@ -66,6 +68,8 @@ async function start() {
   await app.register(exportRoutes);
   await app.register(ticketTypeRoutes);
   await app.register(taskLinkRoutes);
+  await app.register(projectColumnRoutes);
+  await app.register(workflowRoutes);
 
   // En production : servir le build Vite
   if (!config.isDev) {

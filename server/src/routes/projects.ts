@@ -4,6 +4,7 @@ import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { logActivity } from "../services/activity";
 import { generateUniqueKey } from "../services/projectKey";
+import { ensureDefaultColumns } from "./projectColumns";
 
 const createProjectSchema = z.object({
   name: z.string().min(1).max(255),
@@ -53,11 +54,15 @@ export default async function projectRoutes(app: FastifyInstance) {
 
   app.get("/api/projects/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    const projectId = parseInt(id);
+    await ensureDefaultColumns(projectId);
     const project = await db.project.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
       include: {
         creator: { select: { id: true, name: true, avatarUrl: true } },
         labels: true,
+        columns: { orderBy: { position: "asc" } },
+        workflowTransitions: true,
         _count: { select: { tasks: true } },
       },
     });

@@ -15,18 +15,25 @@ import { KanbanColumn } from "./KanbanColumn";
 import { TaskCard } from "./TaskCard";
 import { STATUSES, Status } from "@/lib/utils";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { ProjectColumn } from "@/api/projectColumns";
 
 interface KanbanBoardProps {
   tasks: Task[];
   projectId: number;
   onTaskClick: (task: Task) => void;
   onAddTask: (status: string) => void;
+  columns?: ProjectColumn[];
 }
 
-export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns }: KanbanBoardProps) {
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const [optimisticTasks, setOptimisticTasks] = useState<Task[] | null>(null);
   const queryClient = useQueryClient();
+
+  // Colonnes à afficher : ordre et visibilité depuis la config projet, sinon défaut
+  const visibleStatuses = columns && columns.length > 0
+    ? columns.filter((c) => c.visible).map((c) => c.statusKey)
+    : [...STATUSES];
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -46,7 +53,7 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask }: Kanban
 
   const displayedTasks = optimisticTasks ?? tasks;
 
-  const tasksByStatus = STATUSES.reduce<Record<string, Task[]>>((acc, status) => {
+  const tasksByStatus = visibleStatuses.reduce<Record<string, Task[]>>((acc, status) => {
     acc[status] = displayedTasks.filter((t) => t.status === status).sort((a, b) => a.position - b.position);
     return acc;
   }, {});
@@ -116,15 +123,20 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask }: Kanban
       onDragEnd={handleDragEnd}
     >
       <div className="flex gap-4 h-full overflow-x-auto pb-4">
-        {STATUSES.map((status) => (
-          <KanbanColumn
-            key={status}
-            status={status}
-            tasks={tasksByStatus[status]}
-            onTaskClick={onTaskClick}
-            onAddTask={onAddTask}
-          />
-        ))}
+        {visibleStatuses.map((status) => {
+          const colConfig = columns?.find((c) => c.statusKey === status);
+          return (
+            <KanbanColumn
+              key={status}
+              status={status}
+              label={colConfig?.label}
+              color={colConfig?.color}
+              tasks={tasksByStatus[status]}
+              onTaskClick={onTaskClick}
+              onAddTask={onAddTask}
+            />
+          );
+        })}
       </div>
 
       <DragOverlay>

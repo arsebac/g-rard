@@ -1,5 +1,7 @@
 import { api } from "./client";
 import { User } from "./auth";
+import { ProjectColumn } from "./projectColumns";
+import { WorkflowTransition } from "./workflow";
 
 export interface Project {
   id: number;
@@ -14,6 +16,8 @@ export interface Project {
   creator?: Pick<User, "id" | "name" | "avatarUrl">;
   _count?: { tasks: number };
   labels?: Label[];
+  columns?: ProjectColumn[];
+  workflowTransitions?: WorkflowTransition[];
 }
 
 export interface Label {
