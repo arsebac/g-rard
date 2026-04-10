@@ -13,10 +13,13 @@ const createTaskSchema = z.object({
   status: z.enum(["a_faire", "en_cours", "termine", "bloque"]).default("a_faire"),
   priority: z.enum(["basse", "normale", "haute", "urgente"]).default("normale"),
   assigneeId: z.number().optional().nullable(),
+  startDate: z.string().optional().nullable(),
+  endDate: z.string().optional().nullable(),
   dueDate: z.string().optional().nullable(),
   position: z.number().default(0),
   typeId: z.number().optional().nullable(),
   parentId: z.number().optional().nullable(),
+  sprintId: z.number().optional().nullable(),
 });
 
 const TASK_INCLUDE = {
@@ -25,6 +28,7 @@ const TASK_INCLUDE = {
   labels: { include: { label: true } },
   type: true,
   parent: { select: { id: true, number: true, title: true, project: { select: { key: true } } } },
+  sprint: true,
   _count: { select: { comments: true } },
 } as const;
 
@@ -33,6 +37,7 @@ const updateTaskSchema = createTaskSchema.partial();
 const moveTaskSchema = z.object({
   status: z.enum(["a_faire", "en_cours", "termine", "bloque"]),
   position: z.number(),
+  sprintId: z.number().optional().nullable(),
 });
 
 async function validateTransition(projectId: number, fromStatus: string, toStatus: string) {
@@ -58,6 +63,10 @@ export default async function taskRoutes(app: FastifyInstance) {
       typeId?: string;
       dueDateFrom?: string;
       dueDateTo?: string;
+      startDateFrom?: string;
+      startDateTo?: string;
+      endDateFrom?: string;
+      endDateTo?: string;
     };
 
     const project = await db.project.findUnique({ where: { id: parseInt(projectId) }, select: { key: true } });
@@ -74,6 +83,18 @@ export default async function taskRoutes(app: FastifyInstance) {
           dueDate: {
             ...(query.dueDateFrom && { gte: new Date(query.dueDateFrom) }),
             ...(query.dueDateTo && { lte: new Date(query.dueDateTo) }),
+          },
+        }),
+        ...((query.startDateFrom || query.startDateTo) && {
+          startDate: {
+            ...(query.startDateFrom && { gte: new Date(query.startDateFrom) }),
+            ...(query.startDateTo && { lte: new Date(query.startDateTo) }),
+          },
+        }),
+        ...((query.endDateFrom || query.endDateTo) && {
+          endDate: {
+            ...(query.endDateFrom && { gte: new Date(query.endDateFrom) }),
+            ...(query.endDateTo && { lte: new Date(query.endDateTo) }),
           },
         }),
       },
@@ -99,7 +120,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     });
     const position = (lastTask?.position ?? 0) + 1000;
 
-    const { dueDate, title, description, ...rest } = body.data;
+    const { dueDate, startDate, endDate, title, description, ...rest } = body.data;
     const number = await nextTaskNumber(parseInt(projectId));
     const task = await db.task.create({
       data: {
@@ -112,6 +133,8 @@ export default async function taskRoutes(app: FastifyInstance) {
         position,
         number,
         dueDate: dueDate ? new Date(dueDate) : null,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
       },
       include: TASK_INCLUDE,
     });
@@ -187,7 +210,7 @@ export default async function taskRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
     }
 
-    const { dueDate, title, description, ...rest } = body.data;
+    const { dueDate, startDate, endDate, title, description, ...rest } = body.data;
 
     // Validation du workflow si le statut change
     if (rest.status && rest.status !== old.status) {
@@ -205,6 +228,8 @@ export default async function taskRoutes(app: FastifyInstance) {
         ...(description !== undefined && { description: description ? sanitizeHtml(description) : null }),
         ...(rest.status && { status: rest.status as TaskStatus }),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
+        ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
+        ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
       },
       include: TASK_INCLUDE,
     });
@@ -225,6 +250,12 @@ export default async function taskRoutes(app: FastifyInstance) {
     }
     if (old?.dueDate?.toISOString() !== task.dueDate?.toISOString()) {
       logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "due_date_changed", oldValue: { dueDate: old?.dueDate }, newValue: { dueDate: task.dueDate } }));
+    }
+    if (old?.startDate?.toISOString() !== task.startDate?.toISOString()) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "start_date_changed", oldValue: { startDate: old?.startDate }, newValue: { startDate: task.startDate } }));
+    }
+    if (old?.endDate?.toISOString() !== task.endDate?.toISOString()) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "end_date_changed", oldValue: { endDate: old?.endDate }, newValue: { endDate: task.endDate } }));
     }
     if (old?.description !== task.description) {
       logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "description_changed", newValue: {} }));
@@ -264,7 +295,11 @@ export default async function taskRoutes(app: FastifyInstance) {
 
     const task = await db.task.update({
       where: { id: parseInt(id) },
-      data: { status: body.data.status as TaskStatus, position: body.data.position },
+      data: { 
+        status: body.data.status as TaskStatus, 
+        position: body.data.position,
+        ...(body.data.sprintId !== undefined && { sprintId: body.data.sprintId }),
+      },
     });
 
     if (old?.status !== task.status) {
