@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, requireProjectMember, getProjectAccess } from "../plugins/auth";
 
 // Types par défaut créés automatiquement pour chaque nouveau projet
 const DEFAULT_TYPES = [
@@ -30,8 +30,10 @@ const typeSchema = z.object({
 
 export default async function ticketTypeRoutes(app: FastifyInstance) {
   // GET /api/projects/:id/ticket-types
-  app.get("/api/projects/:id/ticket-types", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:id/ticket-types", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
+    if (isNaN(projectId)) return reply.status(400).send({ error: "ID invalide" });
+
     await ensureDefaults(projectId);
     const types = await db.ticketType.findMany({
       where: { projectId },
@@ -41,8 +43,10 @@ export default async function ticketTypeRoutes(app: FastifyInstance) {
   });
 
   // POST /api/projects/:id/ticket-types
-  app.post("/api/projects/:id/ticket-types", { preHandler: requireAuth }, async (req, reply) => {
+  app.post("/api/projects/:id/ticket-types", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
+    if (isNaN(projectId)) return reply.status(400).send({ error: "ID invalide" });
+
     const body = typeSchema.safeParse(req.body);
     if (!body.success) return reply.status(400).send({ error: "Données invalides" });
 
@@ -55,6 +59,14 @@ export default async function ticketTypeRoutes(app: FastifyInstance) {
   // PATCH /api/ticket-types/:id
   app.patch("/api/ticket-types/:id", { preHandler: requireAuth }, async (req, reply) => {
     const id = parseInt((req.params as any).id);
+    if (isNaN(id)) return reply.status(400).send({ error: "ID invalide" });
+
+    const existing = await db.ticketType.findUnique({ where: { id } });
+    if (!existing) return reply.status(404).send({ error: "Type introuvable" });
+
+    const access = await getProjectAccess(req.currentUserId, existing.projectId);
+    if (!access) return reply.status(403).send({ error: "Accès refusé" });
+
     const body = typeSchema.partial().safeParse(req.body);
     if (!body.success) return reply.status(400).send({ error: "Données invalides" });
 
@@ -65,6 +77,14 @@ export default async function ticketTypeRoutes(app: FastifyInstance) {
   // DELETE /api/ticket-types/:id
   app.delete("/api/ticket-types/:id", { preHandler: requireAuth }, async (req, reply) => {
     const id = parseInt((req.params as any).id);
+    if (isNaN(id)) return reply.status(400).send({ error: "ID invalide" });
+
+    const existing = await db.ticketType.findUnique({ where: { id } });
+    if (!existing) return reply.status(404).send({ error: "Type introuvable" });
+
+    const access = await getProjectAccess(req.currentUserId, existing.projectId);
+    if (!access) return reply.status(403).send({ error: "Accès refusé" });
+
     // Détacher les tâches avant suppression
     await db.task.updateMany({ where: { typeId: id }, data: { typeId: null } });
     await db.ticketType.delete({ where: { id } });
@@ -72,9 +92,13 @@ export default async function ticketTypeRoutes(app: FastifyInstance) {
   });
 
   // PATCH /api/projects/:id/ticket-types/reorder
-  app.patch("/api/projects/:id/ticket-types/reorder", { preHandler: requireAuth }, async (req, reply) => {
+  app.patch("/api/projects/:id/ticket-types/reorder", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
+    if (isNaN(projectId)) return reply.status(400).send({ error: "ID invalide" });
+
     const { order } = req.body as { order: number[] };
+    if (!Array.isArray(order)) return reply.status(400).send({ error: "Données invalides" });
+
     await Promise.all(
       order.map((typeId, position) =>
         db.ticketType.update({ where: { id: typeId, projectId }, data: { position } })

@@ -62,5 +62,12 @@ export const storageService = {
    */
   getAbsolutePath(relativePath: string): string {
     return path.resolve(config.uploadDir, relativePath);
+  },
+
+  /**
+   * Retourne un stream de lecture pour un fichier stocké
+   */
+  getStream(relativePath: string): NodeJS.ReadableStream {
+    return fs.createReadStream(path.resolve(config.uploadDir, relativePath));
   }
 };

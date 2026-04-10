@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import bcrypt from "bcrypt";
 import { db } from "../db";
+import { requireAuth } from "../plugins/auth";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -70,12 +71,9 @@ export default async function authRoutes(app: FastifyInstance) {
     return reply.send({ ok: true });
   });
 
-  app.get("/api/auth/me", async (req, reply) => {
-    if (!req.session.userId) {
-      return reply.status(401).send({ error: "Non authentifié" });
-    }
+  app.get("/api/auth/me", { preHandler: requireAuth }, async (req, reply) => {
     const user = await db.user.findUnique({
-      where: { id: req.session.userId },
+      where: { id: req.currentUserId },
       select: { id: true, name: true, email: true, avatarUrl: true },
     });
     if (!user) {

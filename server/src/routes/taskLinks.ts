@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, getProjectAccess } from "../plugins/auth";
 import { TaskLinkType } from "@prisma/client";
 
 const LINK_TYPES = [
@@ -32,6 +32,9 @@ export default async function taskLinkRoutes(app: FastifyInstance) {
   // GET /api/tasks/:id/links
   app.get("/api/tasks/:id/links", { preHandler: requireAuth }, async (req, reply) => {
     const taskId = parseInt((req.params as any).id);
+
+    const task = await db.task.findUnique({ where: { id: taskId } });
+    if (!task) return reply.status(404).send({ error: "Tâche introuvable" });
 
     const [from, to] = await Promise.all([
       db.taskLink.findMany({
@@ -87,6 +90,16 @@ export default async function taskLinkRoutes(app: FastifyInstance) {
   // DELETE /api/task-links/:id
   app.delete("/api/task-links/:id", { preHandler: requireAuth }, async (req, reply) => {
     const id = parseInt((req.params as any).id);
+
+    const link = await db.taskLink.findUnique({ where: { id } });
+    if (!link) return reply.status(404).send({ error: "Lien introuvable" });
+
+    const sourceTask = await db.task.findUnique({ where: { id: link.sourceId } });
+    if (sourceTask) {
+      const access = await getProjectAccess(req.currentUserId, sourceTask.projectId);
+      if (!access) return reply.status(403).send({ error: "Accès refusé" });
+    }
+
     await db.taskLink.delete({ where: { id } });
     return reply.send({ ok: true });
   });

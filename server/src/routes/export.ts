@@ -1,6 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, requireProjectMember } from "../plugins/auth";
 
 function escapeCsv(val: unknown): string {
   if (val === null || val === undefined) return "";
@@ -30,17 +30,19 @@ const PRIORITY_LABELS: Record<string, string> = {
 };
 
 export default async function exportRoutes(app: FastifyInstance) {
-  app.get("/api/projects/:id/export/csv", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:id/export/csv", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    const projectId = parseInt(id);
+    if (isNaN(projectId)) return reply.status(400).send({ error: "ID de projet invalide" });
 
     const project = await db.project.findUnique({
-      where: { id: parseInt(id) },
+      where: { id: projectId },
       select: { name: true, key: true },
     });
     if (!project) return reply.status(404).send({ error: "Projet introuvable" });
 
     const tasks = await db.task.findMany({
-      where: { projectId: parseInt(id) },
+      where: { projectId },
       include: {
         assignee: { select: { name: true } },
         creator: { select: { name: true } },
