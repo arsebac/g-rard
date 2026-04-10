@@ -106,7 +106,8 @@ export default async function attachmentRoutes(app: FastifyInstance) {
       if (!access) return reply.status(403).send({ error: "Accès refusé" });
     }
 
-    return reply.sendFile(attachment.storedPath, storageService.getAbsolutePath(""));
+    reply.header("Content-Disposition", `attachment; filename="${attachment.filename}"`);
+    return reply.send(storageService.getStream(attachment.storedPath));
   });
 
   // DELETE /api/attachments/:id — supprimer un fichier
