@@ -46,6 +46,7 @@ export const tasksApi = {
       status?: string;
       assigneeId?: number;
       labelId?: number;
+      typeId?: number;
       dueDateFrom?: string;
       dueDateTo?: string;
     }
@@ -54,6 +55,7 @@ export const tasksApi = {
     if (filters?.status) params.set("status", filters.status);
     if (filters?.assigneeId) params.set("assigneeId", String(filters.assigneeId));
     if (filters?.labelId) params.set("labelId", String(filters.labelId));
+    if (filters?.typeId) params.set("typeId", String(filters.typeId));
     if (filters?.dueDateFrom) params.set("dueDateFrom", filters.dueDateFrom);
     if (filters?.dueDateTo) params.set("dueDateTo", filters.dueDateTo);
     const qs = params.toString();

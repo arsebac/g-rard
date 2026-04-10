@@ -5,10 +5,12 @@ import React from "react";
 import { projectsApi } from "@/api/projects";
 import { tasksApi, Task } from "@/api/tasks";
 import { usersApi } from "@/api/users";
+import { ticketTypesApi, TicketType } from "@/api/ticketTypes";
 import { AppShell } from "@/components/layout/AppShell";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
 import { TaskListView } from "@/components/task/TaskListView";
+import { EpicBacklogView } from "@/components/task/EpicBacklogView";
 import { TaskDrawer } from "@/components/task/TaskDrawer";
 import { TaskForm } from "@/components/task/TaskForm";
 import {
@@ -115,13 +117,13 @@ function UserAvatar({
 
 // ─── View tabs ────────────────────────────────────────────────────────────────
 
-type ViewMode = "kanban" | "list" | "all" | "versions";
+type ViewMode = "kanban" | "list" | "backlog" | "versions";
 
 const VIEWS: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
-  { id: "kanban",    label: "Tableau",          icon: <LayoutGrid size={14} /> },
-  { id: "list",      label: "Liste",             icon: <List size={14} /> },
-  { id: "all",       label: "Tous les tickets",  icon: <Layers size={14} /> },
-  { id: "versions",  label: "Versions",          icon: <GitBranch size={14} /> },
+  { id: "kanban",   label: "Tableau",  icon: <LayoutGrid size={14} /> },
+  { id: "list",     label: "Liste",    icon: <List size={14} /> },
+  { id: "backlog",  label: "Backlog",  icon: <Layers size={14} /> },
+  { id: "versions", label: "Versions", icon: <GitBranch size={14} /> },
 ];
 
 // ─── Page principale ──────────────────────────────────────────────────────────
@@ -130,9 +132,10 @@ interface FilterState {
   search: string;
   assigneeId: number | null;
   labelId: number | null;
+  typeId: number | null;
 }
 
-const EMPTY_FILTERS: FilterState = { search: "", assigneeId: null, labelId: null };
+const EMPTY_FILTERS: FilterState = { search: "", assigneeId: null, labelId: null, typeId: null };
 
 export function ProjectPage() {
   const { projectId } = useParams({ from: "/projects/$projectId" });
@@ -155,12 +158,24 @@ export function ProjectPage() {
     queryFn: usersApi.list,
   });
 
+  const { data: ticketTypes = [] } = useQuery({
+    queryKey: ["ticketTypes", id],
+    queryFn: () => ticketTypesApi.list(id),
+  });
+
+  const isBacklog = viewMode === "backlog";
+
   const { data: rawTasks = [], isLoading } = useQuery({
-    queryKey: ["tasks", id, { labelId: filters.labelId, assigneeId: filters.assigneeId }],
+    queryKey: ["tasks", id, {
+      labelId: filters.labelId,
+      assigneeId: filters.assigneeId,
+      typeId: isBacklog ? null : filters.typeId,
+    }],
     queryFn: () =>
       tasksApi.list(id, {
         ...(filters.labelId ? { labelId: filters.labelId } : {}),
         ...(filters.assigneeId ? { assigneeId: filters.assigneeId } : {}),
+        ...(!isBacklog && filters.typeId ? { typeId: filters.typeId } : {}),
       }),
   });
 
@@ -290,7 +305,39 @@ export function ProjectPage() {
             />
           )}
 
-          {(filters.search || filters.assigneeId !== null || filters.labelId !== null) && (
+          {/* Filtre par type de ticket — masqué en mode backlog */}
+          {!isBacklog && ticketTypes.length > 0 && (
+            <>
+              <div className="w-px h-5 bg-gray-200" />
+              <div className="flex items-center gap-1">
+                {ticketTypes.map((type: TicketType) => (
+                  <button
+                    key={type.id}
+                    onClick={() =>
+                      setFilters((f) => ({
+                        ...f,
+                        typeId: f.typeId === type.id ? null : type.id,
+                      }))
+                    }
+                    className={`text-xs px-2 py-1 rounded-lg font-medium border transition-colors ${
+                      filters.typeId === type.id
+                        ? "border-transparent"
+                        : "border-gray-200 text-gray-500 hover:border-gray-300 hover:text-gray-700"
+                    }`}
+                    style={
+                      filters.typeId === type.id
+                        ? { backgroundColor: type.color + "20", color: type.color, borderColor: type.color + "40" }
+                        : {}
+                    }
+                  >
+                    {type.name}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+
+          {(filters.search || filters.assigneeId !== null || filters.labelId !== null || filters.typeId !== null) && (
             <>
               <div className="w-px h-5 bg-gray-200" />
               <button onClick={() => setFilters(EMPTY_FILTERS)} className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1">
@@ -312,8 +359,10 @@ export function ProjectPage() {
               onAddTask={handleAddTask}
               columns={project.columns}
             />
-          ) : viewMode === "list" || viewMode === "all" ? (
+          ) : viewMode === "list" ? (
             <TaskListView tasks={tasks} onTaskClick={setSelectedTask} />
+          ) : viewMode === "backlog" ? (
+            <EpicBacklogView tasks={tasks} onTaskClick={setSelectedTask} />
           ) : (
             <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
               <GitBranch size={32} className="opacity-30" />
