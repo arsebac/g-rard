@@ -1,0 +1,306 @@
+{
+  "common": {
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "create": "Create",
+    "creating": "Creating…",
+    "edit": "Edit",
+    "delete": "Delete",
+    "add": "Add",
+    "loading": "Loading…",
+    "close": "Close",
+    "confirm": "Confirm",
+    "reset": "Reset",
+    "search": "Search",
+    "none": "None",
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "error": "Error"
+  },
+
+  "auth": {
+    "subtitle": "Home project management",
+    "signIn": "Sign in",
+    "register": "Register",
+    "firstName": "First name",
+    "email": "Email",
+    "password": "Password",
+    "passwordHint": "Minimum 6 characters",
+    "signInButton": "Sign in",
+    "createAccountButton": "Create account",
+    "quickAccess": "Quick access — test account",
+    "signOut": "Sign out"
+  },
+
+  "dashboard": {
+    "title": "Projects",
+    "projectCount_one": "{{count}} project in progress",
+    "projectCount_other": "{{count}} projects in progress",
+    "newProject": "New project",
+    "loading": "Loading...",
+    "taskCount_one": "{{count}} task",
+    "taskCount_other": "{{count}} tasks",
+    "form": {
+      "title": "New project",
+      "projectName": "Project name *",
+      "key": "Key",
+      "descriptionPlaceholder": "Optional description...",
+      "color": "Color",
+      "namePlaceholder": "E.g. Kitchen, Bathroom...",
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating..."
+    }
+  },
+
+  "project": {
+    "settings": "Project settings",
+    "newTask": "New task (N)",
+    "create": "Create",
+    "searchPlaceholder": "Search a ticket…",
+    "allLabels": "All labels",
+    "labels": "Labels",
+    "reset": "Reset",
+    "versionsComingSoon": "Versions management coming soon.",
+    "views": {
+      "kanban": "Board",
+      "list": "List",
+      "backlog": "Backlog",
+      "versions": "Versions"
+    }
+  },
+
+  "settings": {
+    "title": "Project settings",
+    "tabs": {
+      "general": "General",
+      "labels": "Labels",
+      "types": "Ticket types",
+      "columns": "Columns",
+      "workflow": "Workflow"
+    },
+    "general": {
+      "projectName": "Project name",
+      "description": "Description",
+      "descriptionPlaceholder": "Project description…",
+      "color": "Color",
+      "projectKey": "Project key",
+      "projectKeyHint": "Ticket prefix (e.g. CUI-1). Cannot be changed after creation.",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Changes saved."
+    },
+    "labels": {
+      "description": "Labels allow you to categorize tickets in this project.",
+      "newLabel": "New label",
+      "editLabel": "Edit label",
+      "namePlaceholder": "Label name…",
+      "create": "Create",
+      "edit": "Edit",
+      "cancel": "Cancel"
+    },
+    "types": {
+      "description": "Types define the nature of tickets. Types marked as Epic can be parents of other tickets.",
+      "newType": "New type",
+      "editType": "Edit type",
+      "namePlaceholder": "Type name…",
+      "isEpic": "This type is an <strong>Epic</strong> (can be parent of other tickets)",
+      "create": "Create",
+      "edit": "Edit",
+      "cancel": "Cancel"
+    },
+    "columns": {
+      "description": "Customize the Kanban board columns: rename them, change their color, reorder them by drag and drop, or hide the ones you don't need.",
+      "hint": "Click on the name to rename it. Click on the color dot to change the color. The order here is the display order in the Kanban.",
+      "hideColumn": "Hide this column",
+      "showColumn": "Show this column"
+    },
+    "workflow": {
+      "description": "Define which transitions are allowed between statuses. A checked box means the ticket can move from the <strong>row</strong> column to the <strong>column</strong> column.",
+      "noWorkflow": "No workflow configured — all transitions are currently allowed. Save to lock the rules.",
+      "fromTo": "From ↓ / To →",
+      "sameStatus": "Same status",
+      "allowedTransitions": "Allowed transitions",
+      "noTransitions": "No transitions allowed.",
+      "saveWorkflow": "Save workflow",
+      "saving": "Saving…",
+      "saved": "Workflow saved.",
+      "allowAll": "Allow all",
+      "hint": "⚠️ Transition validation in the Kanban will be enforced in a future version. This configuration prepares the rules that will be enforced automatically."
+    }
+  },
+
+  "kanban": {
+    "addTask": "Add a task",
+    "noTasks": "No tasks"
+  },
+
+  "task": {
+    "new": "New task",
+    "titlePlaceholder": "Task title",
+    "descriptionPlaceholder": "Add a description…",
+    "description": "Description",
+    "type": "Type",
+    "parent": "Parent (Epic / Story)",
+    "noParent": "No parent",
+    "parentNone": "None",
+    "status": "Status",
+    "priority": "Priority",
+    "assignedTo": "Assigned to",
+    "nobody": "Nobody",
+    "unassigned": "Unassigned",
+    "dueDate": "Due date",
+    "attachments": "Attachments",
+    "links": "Links",
+    "addLink": "Add",
+    "linkButton": "Link",
+    "searchTicketPlaceholder": "Search a ticket…",
+    "noTicketFound": "No ticket found",
+    "noLinks": "No links",
+    "deleteTask": "Delete task",
+    "save": "Save",
+    "cancel": "Cancel",
+    "descriptionOptional": "Description (optional)",
+    "create": "Create",
+    "creating": "Creating...",
+    "noTasksInProject": "No tasks in this project",
+    "listHeaders": {
+      "title": "Title",
+      "priority": "Priority",
+      "assignedTo": "Assigned to",
+      "dueDate": "Due date"
+    }
+  },
+
+  "epic": {
+    "noEpic": "No Epic",
+    "noTickets": "No tickets"
+  },
+
+  "ticket": {
+    "loading": "Loading {{ref}}…",
+    "notFound": "Ticket <strong>{{ref}}</strong> not found.",
+    "backToDashboard": "Back to dashboard"
+  },
+
+  "activity": {
+    "comments": "Comments",
+    "history": "History",
+    "noComments": "No comments",
+    "noEvents": "No events",
+    "addCommentPlaceholder": "Add a comment… (Enter to send, Shift+Enter for a new line)",
+    "send": "Send",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edited": "edited",
+    "events": {
+      "task_created": "created this task",
+      "title_changed": "changed the title",
+      "status_changed": "changed the status",
+      "priority_changed": "changed the priority",
+      "assignee_assigned": "assigned the task to {{name}}",
+      "assignee_removed": "removed the assignee",
+      "dueDate_set": "set the due date to {{date}}",
+      "dueDate_removed": "removed the due date",
+      "description_changed": "updated the description",
+      "type_changed": "changed the ticket type",
+      "type_removed": "removed the ticket type",
+      "parent_set": "set parent ticket #{{id}}",
+      "parent_removed": "removed the parent ticket",
+      "comment_added": "added a comment",
+      "comment_deleted": "deleted a comment"
+    }
+  },
+
+  "wiki": {
+    "sidebarTitle": "Wiki",
+    "importMarkdown": "Import Markdown",
+    "newPage": "New page",
+    "loading": "Loading…",
+    "noPages": "No pages yet.",
+    "welcome": {
+      "title": "Welcome to the wiki",
+      "description": "This space allows you to document your projects. Select a page from the sidebar or create a new one.",
+      "createFirst": "Create the first page"
+    },
+    "newPageModal": {
+      "title": "New page",
+      "titleLabel": "Title *",
+      "titlePlaceholder": "Page title…",
+      "parentLabel": "Parent page",
+      "parentNone": "— None (root) —",
+      "cancel": "Cancel",
+      "create": "Create",
+      "creating": "Creating…"
+    },
+    "page": {
+      "loading": "Loading…",
+      "lastModified": "Last modified {{date}}",
+      "lastModifiedBy": "Last modified {{date}} by {{author}}",
+      "clickToEditTitle": "Click to edit the title",
+      "switchToEdit": "Switch to edit",
+      "switchToPreview": "Switch to preview",
+      "exportMarkdown": "Export as Markdown",
+      "deletePage": "Delete this page",
+      "confirmDelete": "Delete page \"{{title}}\"?",
+      "cancel": "Cancel",
+      "contentPlaceholder": "Write the content of this page…",
+      "subpages": "Subpages"
+    }
+  },
+
+  "search": {
+    "placeholder": "Search a task…",
+    "noResults": "No results for « {{query}} »",
+    "typeMore": "Type at least 2 characters…",
+    "shortcut": "/",
+    "footer": {
+      "navigate": "navigate",
+      "open": "open",
+      "close": "close"
+    }
+  },
+
+  "attachments": {
+    "loadingFiles": "Loading files...",
+    "addFile": "Add a file",
+    "uploading": "Uploading...",
+    "download": "Download",
+    "delete": "Delete",
+    "confirmDelete": "Delete this file?"
+  },
+
+  "statuses": {
+    "a_faire": "To do",
+    "en_cours": "In progress",
+    "termine": "Done",
+    "bloque": "Blocked"
+  },
+
+  "priorities": {
+    "basse": "Low",
+    "normale": "Normal",
+    "haute": "High",
+    "urgente": "Urgent"
+  },
+
+  "linkTypes": {
+    "blocks": "Blocks",
+    "is_blocked_by": "Is blocked by",
+    "relates_to": "Relates to",
+    "duplicates": "Duplicates",
+    "is_duplicated_by": "Is duplicated by",
+    "causes": "Causes",
+    "is_caused_by": "Is caused by"
+  },
+
+  "sidebar": {
+    "dashboard": "Dashboard",
+    "wiki": "Wiki",
+    "projects": "Projects",
+    "newProject": "New project",
+    "search": "Search…"
+  }
+}

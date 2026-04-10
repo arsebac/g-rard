@@ -48,21 +48,21 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive("heading", { level: 1 })}
         onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-        title="Titre 1"
+        title="Heading 1"
       >
         <span className="font-bold text-xs leading-none">H1</span>
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive("heading", { level: 2 })}
         onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-        title="Titre 2"
+        title="Heading 2"
       >
         <span className="font-bold text-xs leading-none">H2</span>
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive("heading", { level: 3 })}
         onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-        title="Titre 3"
+        title="Heading 3"
       >
         <span className="font-bold text-xs leading-none">H3</span>
       </ToolbarButton>
@@ -73,35 +73,35 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive("bold")}
         onClick={() => editor.chain().focus().toggleBold().run()}
-        title="Gras (Ctrl+B)"
+        title="Bold (Ctrl+B)"
       >
         <span className="font-bold text-sm leading-none">B</span>
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive("italic")}
         onClick={() => editor.chain().focus().toggleItalic().run()}
-        title="Italique (Ctrl+I)"
+        title="Italic (Ctrl+I)"
       >
         <span className="italic text-sm leading-none">I</span>
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive("underline")}
         onClick={() => editor.chain().focus().toggleUnderline().run()}
-        title="Souligné (Ctrl+U)"
+        title="Underline (Ctrl+U)"
       >
         <span className="underline text-sm leading-none">U</span>
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive("strike")}
         onClick={() => editor.chain().focus().toggleStrike().run()}
-        title="Barré"
+        title="Strikethrough"
       >
         <span className="line-through text-sm leading-none">S</span>
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive("code")}
         onClick={() => editor.chain().focus().toggleCode().run()}
-        title="Code inline"
+        title="Inline code"
       >
         <span className="font-mono text-xs leading-none">{"`"}</span>
       </ToolbarButton>
@@ -112,7 +112,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive("bulletList")}
         onClick={() => editor.chain().focus().toggleBulletList().run()}
-        title="Liste à puces"
+        title="Bullet list"
       >
         <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
           <circle cx="2" cy="4" r="1.5" />
@@ -126,7 +126,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive("orderedList")}
         onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        title="Liste numérotée"
+        title="Numbered list"
       >
         <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
           <text x="0" y="5" fontSize="5" fontFamily="monospace">1.</text>
@@ -140,7 +140,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive("blockquote")}
         onClick={() => editor.chain().focus().toggleBlockquote().run()}
-        title="Citation"
+        title="Quote"
       >
         <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
           <rect x="1" y="2" width="2.5" height="12" rx="1" />
@@ -152,7 +152,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive("codeBlock")}
         onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-        title="Bloc de code"
+        title="Code block"
       >
         <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
           <path d="M5.5 4L2 8l3.5 4-.8.8L.5 8l4.2-4.8.8.8zm5 0l.8-.8L15.5 8l-4.2 4.8-.8-.8L14 8l-3.5-4z" />
@@ -165,7 +165,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive({ textAlign: "left" })}
         onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        title="Aligner à gauche"
+        title="Align left"
       >
         <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
           <rect x="1" y="3" width="14" height="2" rx="1" />
@@ -176,7 +176,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={editor.isActive({ textAlign: "center" })}
         onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        title="Centrer"
+        title="Center"
       >
         <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
           <rect x="1" y="3" width="14" height="2" rx="1" />
@@ -187,11 +187,11 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       <Divider />
 
-      {/* Règle / reset */}
+      {/* Rule / reset */}
       <ToolbarButton
         active={false}
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
-        title="Séparateur horizontal"
+        title="Horizontal rule"
       >
         <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
           <rect x="1" y="7" width="14" height="2" rx="1" />
@@ -200,7 +200,7 @@ function Toolbar({ editor }: { editor: Editor }) {
       <ToolbarButton
         active={false}
         onClick={() => editor.chain().focus().clearNodes().unsetAllMarks().run()}
-        title="Effacer la mise en forme"
+        title="Clear formatting"
       >
         <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
           <path d="M12.5 2L14 3.5 6 11.5 2 12l.5-4L12.5 2zM2 14h12v1.5H2z" opacity=".6" />
@@ -210,7 +210,7 @@ function Toolbar({ editor }: { editor: Editor }) {
   );
 }
 
-// ─── Composant principal ──────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 interface RichTextEditorProps {
   defaultValue: string;
@@ -229,7 +229,7 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
       StarterKit,
       Underline,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
-      Placeholder.configure({ placeholder: placeholder ?? "Ajouter une description…" }),
+      Placeholder.configure({ placeholder: placeholder ?? "Add a description…" }),
       Link.configure({ openOnClick: false }),
       TaskRefExtension,
     ],
@@ -242,7 +242,7 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
     },
   });
 
-  // sync si la tâche change
+  // sync when the task changes
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
       editor.commands.setContent(defaultValue || "");
@@ -296,13 +296,13 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
             onClick={commit}
             className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 text-white text-xs font-medium rounded-md transition-colors"
           >
-            <Check size={12} /> Enregistrer
+            <Check size={12} /> Save
           </button>
           <button
             onClick={cancel}
             className="flex items-center gap-1 px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-600 text-xs font-medium rounded-md transition-colors"
           >
-            <X size={12} /> Annuler
+            <X size={12} /> Cancel
           </button>
         </div>
       )}

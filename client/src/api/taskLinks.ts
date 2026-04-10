@@ -8,13 +8,13 @@ export type LinkType =
   | "causes" | "is_caused_by";
 
 export const LINK_TYPE_LABELS: Record<LinkType, string> = {
-  blocks:           "Bloque",
-  is_blocked_by:    "Est bloqué par",
-  relates_to:       "Est lié à",
-  duplicates:       "Duplique",
-  is_duplicated_by: "Est dupliqué par",
-  causes:           "Est la cause de",
-  is_caused_by:     "Est causé par",
+  blocks:           "Blocks",
+  is_blocked_by:    "Is blocked by",
+  relates_to:       "Relates to",
+  duplicates:       "Duplicates",
+  is_duplicated_by: "Is duplicated by",
+  causes:           "Causes",
+  is_caused_by:     "Is caused by",
 };
 
 export const LINK_TYPES: LinkType[] = [
