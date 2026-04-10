@@ -69,7 +69,12 @@ export default async function userRoutes(app: FastifyInstance) {
 
   // POST /api/users/me/avatar — upload d'avatar
   app.post("/api/users/me/avatar", { preHandler: requireAuth }, async (req, reply) => {
-    const data = await req.file();
+    let data: Awaited<ReturnType<typeof req.file>> | undefined;
+    try {
+      data = await req.file();
+    } catch {
+      return reply.status(400).send({ error: "Fichier requis" });
+    }
     if (!data) return reply.status(400).send({ error: "Fichier requis" });
 
     // Supprimer l'ancien avatar si nécessaire
