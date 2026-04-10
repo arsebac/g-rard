@@ -30,7 +30,7 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns 
   const [optimisticTasks, setOptimisticTasks] = useState<Task[] | null>(null);
   const queryClient = useQueryClient();
 
-  // Colonnes à afficher : ordre et visibilité depuis la config projet, sinon défaut
+  // Visible columns: order and visibility from project config, fallback to defaults
   const visibleStatuses = columns && columns.length > 0
     ? columns.filter((c) => c.visible).map((c) => c.statusKey)
     : [...STATUSES];

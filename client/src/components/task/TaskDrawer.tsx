@@ -70,10 +70,10 @@ function EditableTitle({ value, onSave }: { value: string; onSave: (v: string) =
         />
         <div className="flex items-center gap-2">
           <button onClick={commit} disabled={!draft.trim()} className="flex items-center gap-1 px-2.5 py-1 bg-green-500 hover:bg-green-600 disabled:opacity-40 text-white text-xs font-medium rounded-md transition-colors">
-            <Check size={12} /> Enregistrer
+            <Check size={12} /> Save
           </button>
           <button onClick={cancel} className="flex items-center gap-1 px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-600 text-xs font-medium rounded-md transition-colors">
-            <X size={12} /> Annuler
+            <X size={12} /> Cancel
           </button>
         </div>
       </div>
@@ -183,14 +183,14 @@ function TaskLinksPanel({ taskId, projectId }: { taskId: number; projectId: numb
     <div>
       <div className="flex items-center justify-between mb-2">
         <p className="text-xs font-medium text-gray-400 uppercase tracking-wide flex items-center gap-1">
-          <Link2 size={12} /> Liens
+          <Link2 size={12} /> Links
         </p>
         <button
           onClick={() => setAdding(!adding)}
           className="text-xs text-indigo-600 hover:text-indigo-700 flex items-center gap-0.5"
         >
           <Plus size={12} />
-          Ajouter
+          Add
         </button>
       </div>
 
@@ -213,7 +213,7 @@ function TaskLinksPanel({ taskId, projectId }: { taskId: number; projectId: numb
               type="text"
               value={search}
               onChange={(e) => { setSearch(e.target.value); setSelectedTaskId(null); }}
-              placeholder="Rechercher un ticket…"
+              placeholder="Search a ticket…"
               className="w-full pl-6 pr-2 py-1.5 text-xs border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-400"
             />
           </div>
@@ -221,7 +221,7 @@ function TaskLinksPanel({ taskId, projectId }: { taskId: number; projectId: numb
           {search && (
             <div className="max-h-32 overflow-y-auto border border-gray-200 rounded-md bg-white">
               {filtered.length === 0 ? (
-                <p className="text-xs text-gray-400 p-2">Aucun ticket trouvé</p>
+                <p className="text-xs text-gray-400 p-2">No ticket found</p>
               ) : filtered.slice(0, 8).map((t) => (
                 <button
                   key={t.id}
@@ -241,13 +241,13 @@ function TaskLinksPanel({ taskId, projectId }: { taskId: number; projectId: numb
               disabled={!selectedTaskId || addLink.isPending}
               className="flex-1 py-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white rounded-md transition-colors"
             >
-              {addLink.isPending ? "…" : "Lier"}
+              {addLink.isPending ? "…" : "Link"}
             </button>
             <button
               onClick={() => { setAdding(false); setSearch(""); setSelectedTaskId(null); }}
               className="flex-1 py-1.5 text-xs border border-gray-200 hover:bg-gray-50 rounded-md transition-colors"
             >
-              Annuler
+              Cancel
             </button>
           </div>
         </div>
@@ -255,7 +255,7 @@ function TaskLinksPanel({ taskId, projectId }: { taskId: number; projectId: numb
 
       {/* Existing links */}
       {grouped.length === 0 && !adding && (
-        <p className="text-xs text-gray-400">Aucun lien</p>
+        <p className="text-xs text-gray-400">No links</p>
       )}
       {grouped.map(({ linkType, links: group }) => (
         <div key={linkType} className="mb-2">
@@ -300,7 +300,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
     queryKey: ["ticket-types", task.projectId],
     queryFn: () => ticketTypesApi.list(task.projectId),
   });
-  // Épics disponibles pour ce projet (tickets de type isEpic)
+  // Available Epics for this project (tickets with isEpic type)
   const { data: allTasks = [] } = useQuery({
     queryKey: ["tasks", task.projectId],
     queryFn: () => tasksApi.list(task.projectId),
@@ -381,7 +381,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
             )}
           </div>
           <div className="flex items-center gap-1">
-            <button onClick={() => deleteMutation.mutate()} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors" title="Supprimer la tâche">
+            <button onClick={() => deleteMutation.mutate()} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors" title="Delete task">
               <Trash2 size={15} />
             </button>
             <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg transition-colors">
@@ -393,7 +393,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
         {/* Body */}
         <div className="flex flex-1 overflow-hidden">
 
-          {/* Left — titre + description + liens + activité */}
+          {/* Left — title + description + links + activity */}
           <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5 min-w-0">
             <EditableTitle value={fullTask.title} onSave={(title) => update({ title })} />
 
@@ -403,7 +403,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                 key={fullTask.id}
                 defaultValue={fullTask.description ?? ""}
                 onSave={(description) => update({ description })}
-                placeholder="Ajouter une description…"
+                placeholder="Add a description…"
                 onTaskRefClick={async (ref) => {
                   const [key, num] = ref.split("-");
                   if (!key || !num) return;
@@ -459,7 +459,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               </div>
             )}
 
-            {/* Ticket parent (Epic/Story) — masqué si le ticket est lui-même un Epic */}
+            {/* Parent ticket (Epic/Story) — hidden if the ticket is itself an Epic */}
             {!isEpic && (
               <div>
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
@@ -470,7 +470,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                   onChange={(e) => update({ parentId: e.target.value ? parseInt(e.target.value) : null })}
                   className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors"
                 >
-                  <option value="">Aucun parent</option>
+                  <option value="">No parent</option>
                   {epics.map((e) => (
                     <option key={e.id} value={e.id}>
                       {taskRef(e.projectKey, e.number)} {e.title}
@@ -490,7 +490,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
 
             {/* Statut */}
             <SelectField<Task["status"]>
-              label="Statut"
+              label="Status"
               icon={<span className="w-2 h-2 rounded-full bg-current" />}
               value={fullTask.status}
               options={["a_faire", "en_cours", "termine", "bloque"]}
@@ -499,9 +499,9 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               onChange={(v) => update({ status: v })}
             />
 
-            {/* Priorité */}
+            {/* Priority */}
             <SelectField<Task["priority"]>
-              label="Priorité"
+              label="Priority"
               icon={<Flag size={14} />}
               value={fullTask.priority}
               options={["basse", "normale", "haute", "urgente"]}
@@ -510,9 +510,9 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               onChange={(v) => update({ priority: v })}
             />
 
-            {/* Assignée */}
+            {/* Assignee */}
             <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Assignée à</p>
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Assigned to</p>
               <div className="flex flex-col gap-1">
                 {users.map((u) => {
                   const isAssigned = fullTask.assigneeId === u.id;
@@ -530,7 +530,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                     </button>
                   );
                 })}
-                {!fullTask.assigneeId && <p className="text-xs text-gray-400 px-3">Non assignée</p>}
+                {!fullTask.assigneeId && <p className="text-xs text-gray-400 px-3">Unassigned</p>}
               </div>
             </div>
 
@@ -548,7 +548,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                         onClick={() => isActive ? removeLabel.mutate(label.id) : addLabel.mutate(label.id)}
                         className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium border transition-all ${isActive ? "opacity-100 shadow-sm scale-100" : "opacity-50 hover:opacity-75"}`}
                         style={{ backgroundColor: label.color + "25", color: label.color, borderColor: label.color + "60" }}
-                        title={isActive ? "Retirer ce label" : "Ajouter ce label"}
+                        title={isActive ? "Remove this label" : "Add this label"}
                       >
                         {isActive && <Check size={10} />}
                         {label.name}
@@ -559,9 +559,9 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               </div>
             )}
 
-            {/* Échéance */}
+            {/* Due date */}
             <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Échéance</p>
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Due date</p>
               <div className="relative">
                 <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
@@ -573,10 +573,10 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               </div>
             </div>
 
-            {/* Pièces jointes */}
+            {/* Attachments */}
             <div>
               <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
-                <Paperclip size={12} /> Pièces jointes
+                <Paperclip size={12} /> Attachments
               </p>
               <AttachmentList entityType="task" entityId={fullTask.id} />
             </div>

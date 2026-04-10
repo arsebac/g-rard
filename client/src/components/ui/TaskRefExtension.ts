@@ -9,7 +9,7 @@ declare module "@tiptap/core" {
 }
 
 /**
- * Mark Tiptap qui reconnaît les références de tickets (ex: CUI-5)
+ * Tiptap mark that recognizes ticket references (e.g. CUI-5)
  * et les rend comme des liens cliquables.
  */
 export const TaskRefExtension = Mark.create({
@@ -55,7 +55,7 @@ export const TaskRefExtension = Mark.create({
   },
 
   addInputRules() {
-    // Déclenche quand on tape "CUI-5 " (espace après la ref)
+    // Fires when typing "CUI-5 " (space after the ref)
     return [
       new InputRule({
         find: /([A-Z]{2,5}-\d+)\s$/,
@@ -64,7 +64,7 @@ export const TaskRefExtension = Mark.create({
           const { tr } = state;
           const markFrom = range.from;
           const markTo = range.from + ref.length;
-          // Le texte est déjà dans le document, on ajoute juste le mark
+          // The text is already in the document, just apply the mark
           tr.addMark(markFrom, markTo, this.type.create({ ref }));
           tr.removeStoredMark(this.type);
         },

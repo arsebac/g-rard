@@ -20,7 +20,7 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
   if (tasks.length === 0) {
     return (
       <div className="flex items-center justify-center h-48 text-sm text-gray-400">
-        Aucune tâche dans ce projet
+        No tasks in this project
       </div>
     );
   }
@@ -41,10 +41,10 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
               <thead>
                 <tr className="border-b border-gray-100 text-xs text-gray-400 font-medium uppercase tracking-wide">
                   <th className="text-left px-4 py-2.5 w-8">#</th>
-                  <th className="text-left px-4 py-2.5">Titre</th>
-                  <th className="text-left px-4 py-2.5 w-28">Priorité</th>
-                  <th className="text-left px-4 py-2.5 w-32">Assignée</th>
-                  <th className="text-left px-4 py-2.5 w-28">Échéance</th>
+                  <th className="text-left px-4 py-2.5">Title</th>
+                  <th className="text-left px-4 py-2.5 w-28">Priority</th>
+                  <th className="text-left px-4 py-2.5 w-32">Assigned to</th>
+                  <th className="text-left px-4 py-2.5 w-28">Due date</th>
                   <th className="text-left px-4 py-2.5 w-16"></th>
                 </tr>
               </thead>
@@ -82,7 +82,7 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
                         </div>
                       </td>
 
-                      {/* Priorité */}
+                      {/* Priority */}
                       <td className="px-4 py-3">
                         <span className={`text-xs font-medium ${PRIORITY_COLORS[task.priority]}`}>
                           {task.priority === "urgente" && (
@@ -92,7 +92,7 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
                         </span>
                       </td>
 
-                      {/* Assignée */}
+                      {/* Assignee */}
                       <td className="px-4 py-3">
                         {task.assignee ? (
                           <div className="flex items-center gap-1.5">
@@ -106,7 +106,7 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
                         )}
                       </td>
 
-                      {/* Échéance */}
+                      {/* Due date */}
                       <td className="px-4 py-3">
                         {dueDate ? (
                           <span

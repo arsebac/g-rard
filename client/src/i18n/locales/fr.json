@@ -1,0 +1,306 @@
+{
+  "common": {
+    "save": "Enregistrer",
+    "saving": "Enregistrement…",
+    "cancel": "Annuler",
+    "create": "Créer",
+    "creating": "Création…",
+    "edit": "Modifier",
+    "delete": "Supprimer",
+    "add": "Ajouter",
+    "loading": "Chargement…",
+    "close": "Fermer",
+    "confirm": "Confirmer",
+    "reset": "Réinitialiser",
+    "search": "Rechercher",
+    "none": "Aucun",
+    "yes": "Oui",
+    "no": "Non",
+    "ok": "OK",
+    "error": "Erreur"
+  },
+
+  "auth": {
+    "subtitle": "Gestion de projets maison",
+    "signIn": "Connexion",
+    "register": "Inscription",
+    "firstName": "Prénom",
+    "email": "Email",
+    "password": "Mot de passe",
+    "passwordHint": "6 caractères minimum",
+    "signInButton": "Se connecter",
+    "createAccountButton": "Créer mon compte",
+    "quickAccess": "Accès rapide — compte test",
+    "signOut": "Déconnexion"
+  },
+
+  "dashboard": {
+    "title": "Projets",
+    "projectCount_one": "{{count}} projet en cours",
+    "projectCount_other": "{{count}} projets en cours",
+    "newProject": "Nouveau projet",
+    "loading": "Chargement...",
+    "taskCount_one": "{{count}} tâche",
+    "taskCount_other": "{{count}} tâches",
+    "form": {
+      "title": "Nouveau projet",
+      "projectName": "Nom du projet *",
+      "key": "Clé",
+      "descriptionPlaceholder": "Description optionnelle...",
+      "color": "Couleur",
+      "namePlaceholder": "Ex: Cuisine, Salle de bain...",
+      "cancel": "Annuler",
+      "create": "Créer",
+      "creating": "Création..."
+    }
+  },
+
+  "project": {
+    "settings": "Paramètres du projet",
+    "newTask": "Nouvelle tâche (N)",
+    "create": "Créer",
+    "searchPlaceholder": "Rechercher un ticket…",
+    "allLabels": "Tous les labels",
+    "labels": "Labels",
+    "reset": "Réinitialiser",
+    "versionsComingSoon": "La gestion des versions arrive bientôt.",
+    "views": {
+      "kanban": "Tableau",
+      "list": "Liste",
+      "backlog": "Backlog",
+      "versions": "Versions"
+    }
+  },
+
+  "settings": {
+    "title": "Paramètres du projet",
+    "tabs": {
+      "general": "Général",
+      "labels": "Labels",
+      "types": "Types de tickets",
+      "columns": "Colonnes",
+      "workflow": "Workflow"
+    },
+    "general": {
+      "projectName": "Nom du projet",
+      "description": "Description",
+      "descriptionPlaceholder": "Description du projet…",
+      "color": "Couleur",
+      "projectKey": "Clé projet",
+      "projectKeyHint": "Préfixe des tickets (ex: CUI-1). Non modifiable après création.",
+      "save": "Enregistrer",
+      "saving": "Enregistrement…",
+      "saved": "Modifications enregistrées."
+    },
+    "labels": {
+      "description": "Les labels permettent de catégoriser les tickets de ce projet.",
+      "newLabel": "Nouveau label",
+      "editLabel": "Modifier le label",
+      "namePlaceholder": "Nom du label…",
+      "create": "Créer",
+      "edit": "Modifier",
+      "cancel": "Annuler"
+    },
+    "types": {
+      "description": "Les types définissent la nature des tickets. Les types marqués Epic peuvent être parents d'autres tickets.",
+      "newType": "Nouveau type",
+      "editType": "Modifier le type",
+      "namePlaceholder": "Nom du type…",
+      "isEpic": "Ce type est un <strong>Epic</strong> (peut être parent d'autres tickets)",
+      "create": "Créer",
+      "edit": "Modifier",
+      "cancel": "Annuler"
+    },
+    "columns": {
+      "description": "Personnalisez les colonnes du tableau Kanban : renommez-les, changez leur couleur, réorganisez-les par glisser-déposer, ou masquez celles dont vous n'avez pas besoin.",
+      "hint": "Cliquez sur le nom pour le renommer. Cliquez sur la pastille couleur pour changer la couleur. L'ordre ici est l'ordre d'affichage dans le Kanban.",
+      "hideColumn": "Masquer cette colonne",
+      "showColumn": "Afficher cette colonne"
+    },
+    "workflow": {
+      "description": "Définissez quelles transitions sont autorisées entre les statuts. Une case cochée signifie que le ticket peut passer de la colonne <strong>ligne</strong> vers la colonne <strong>colonne</strong>.",
+      "noWorkflow": "Aucun workflow configuré — toutes les transitions sont actuellement autorisées. Enregistrez pour figer les règles.",
+      "fromTo": "De ↓ / Vers →",
+      "sameStatus": "Même statut",
+      "allowedTransitions": "Transitions autorisées",
+      "noTransitions": "Aucune transition autorisée.",
+      "saveWorkflow": "Enregistrer le workflow",
+      "saving": "Enregistrement…",
+      "saved": "Workflow enregistré.",
+      "allowAll": "Tout autoriser",
+      "hint": "⚠️ La validation des transitions dans le Kanban sera appliquée dans une prochaine version. Cette configuration prépare les règles qui seront enforced automatiquement."
+    }
+  },
+
+  "kanban": {
+    "addTask": "Ajouter une tâche",
+    "noTasks": "Aucune tâche"
+  },
+
+  "task": {
+    "new": "Nouvelle tâche",
+    "titlePlaceholder": "Titre de la tâche",
+    "descriptionPlaceholder": "Ajouter une description…",
+    "description": "Description",
+    "type": "Type",
+    "parent": "Parent (Epic / Story)",
+    "noParent": "Aucun parent",
+    "parentNone": "Aucun",
+    "status": "Statut",
+    "priority": "Priorité",
+    "assignedTo": "Assignée à",
+    "nobody": "Personne",
+    "unassigned": "Non assignée",
+    "dueDate": "Échéance",
+    "attachments": "Pièces jointes",
+    "links": "Liens",
+    "addLink": "Ajouter",
+    "linkButton": "Lier",
+    "searchTicketPlaceholder": "Rechercher un ticket…",
+    "noTicketFound": "Aucun ticket trouvé",
+    "noLinks": "Aucun lien",
+    "deleteTask": "Supprimer la tâche",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "descriptionOptional": "Description (optionnel)",
+    "create": "Créer",
+    "creating": "Création...",
+    "noTasksInProject": "Aucune tâche dans ce projet",
+    "listHeaders": {
+      "title": "Titre",
+      "priority": "Priorité",
+      "assignedTo": "Assignée",
+      "dueDate": "Échéance"
+    }
+  },
+
+  "epic": {
+    "noEpic": "Sans Epic",
+    "noTickets": "Aucun ticket"
+  },
+
+  "ticket": {
+    "loading": "Chargement de {{ref}}…",
+    "notFound": "Ticket <strong>{{ref}}</strong> introuvable.",
+    "backToDashboard": "Retour au dashboard"
+  },
+
+  "activity": {
+    "comments": "Commentaires",
+    "history": "Historique",
+    "noComments": "Aucun commentaire",
+    "noEvents": "Aucun événement",
+    "addCommentPlaceholder": "Ajouter un commentaire… (Entrée pour envoyer, Shift+Entrée pour sauter une ligne)",
+    "send": "Envoyer",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "edited": "modifié",
+    "events": {
+      "task_created": "a créé cette tâche",
+      "title_changed": "a modifié le titre",
+      "status_changed": "a changé le statut",
+      "priority_changed": "a changé la priorité",
+      "assignee_assigned": "a assigné la tâche à {{name}}",
+      "assignee_removed": "a retiré l'assignation",
+      "dueDate_set": "a défini l'échéance au {{date}}",
+      "dueDate_removed": "a supprimé la date d'échéance",
+      "description_changed": "a modifié la description",
+      "type_changed": "a changé le type de ticket",
+      "type_removed": "a retiré le type de ticket",
+      "parent_set": "a défini un ticket parent #{{id}}",
+      "parent_removed": "a retiré le ticket parent",
+      "comment_added": "a ajouté un commentaire",
+      "comment_deleted": "a supprimé un commentaire"
+    }
+  },
+
+  "wiki": {
+    "sidebarTitle": "Wiki",
+    "importMarkdown": "Importer Markdown",
+    "newPage": "Nouvelle page",
+    "loading": "Chargement…",
+    "noPages": "Aucune page pour l'instant.",
+    "welcome": {
+      "title": "Bienvenue dans le wiki",
+      "description": "Cet espace vous permet de documenter vos projets. Sélectionnez une page dans la barre latérale ou créez-en une nouvelle.",
+      "createFirst": "Créer la première page"
+    },
+    "newPageModal": {
+      "title": "Nouvelle page",
+      "titleLabel": "Titre *",
+      "titlePlaceholder": "Titre de la page…",
+      "parentLabel": "Page parente",
+      "parentNone": "— Aucune (racine) —",
+      "cancel": "Annuler",
+      "create": "Créer",
+      "creating": "Création…"
+    },
+    "page": {
+      "loading": "Chargement…",
+      "lastModified": "Modifié le {{date}}",
+      "lastModifiedBy": "Modifié le {{date}} par {{author}}",
+      "clickToEditTitle": "Cliquer pour modifier le titre",
+      "switchToEdit": "Passer en édition",
+      "switchToPreview": "Passer en aperçu",
+      "exportMarkdown": "Exporter en Markdown",
+      "deletePage": "Supprimer cette page",
+      "confirmDelete": "Supprimer la page « {{title}} » ?",
+      "cancel": "Annuler",
+      "contentPlaceholder": "Écrivez le contenu de cette page…",
+      "subpages": "Sous-pages"
+    }
+  },
+
+  "search": {
+    "placeholder": "Rechercher une tâche…",
+    "noResults": "Aucun résultat pour « {{query}} »",
+    "typeMore": "Tapez au moins 2 caractères…",
+    "shortcut": "/",
+    "footer": {
+      "navigate": "naviguer",
+      "open": "ouvrir",
+      "close": "fermer"
+    }
+  },
+
+  "attachments": {
+    "loadingFiles": "Chargement des fichiers...",
+    "addFile": "Ajouter un fichier",
+    "uploading": "Envoi en cours...",
+    "download": "Télécharger",
+    "delete": "Supprimer",
+    "confirmDelete": "Supprimer ce fichier ?"
+  },
+
+  "statuses": {
+    "a_faire": "À faire",
+    "en_cours": "En cours",
+    "termine": "Terminé",
+    "bloque": "Bloqué"
+  },
+
+  "priorities": {
+    "basse": "Basse",
+    "normale": "Normale",
+    "haute": "Haute",
+    "urgente": "Urgente"
+  },
+
+  "linkTypes": {
+    "blocks": "Bloque",
+    "is_blocked_by": "Est bloqué par",
+    "relates_to": "Est lié à",
+    "duplicates": "Duplique",
+    "is_duplicated_by": "Est dupliqué par",
+    "causes": "Est la cause de",
+    "is_caused_by": "Est causé par"
+  },
+
+  "sidebar": {
+    "dashboard": "Tableau de bord",
+    "wiki": "Wiki",
+    "projects": "Projets",
+    "newProject": "Nouveau projet",
+    "search": "Rechercher…"
+  }
+}

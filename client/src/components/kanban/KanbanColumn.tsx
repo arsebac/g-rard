@@ -38,7 +38,7 @@ export function KanbanColumn({ status, tasks, onTaskClick, onAddTask, label, col
         <button
           onClick={() => onAddTask(status)}
           className="text-gray-400 hover:text-indigo-600 transition-colors"
-          title="Ajouter une tâche"
+          title="Add a task"
         >
           <Plus size={16} />
         </button>
@@ -61,7 +61,7 @@ export function KanbanColumn({ status, tasks, onTaskClick, onAddTask, label, col
 
         {tasks.length === 0 && (
           <div className="flex items-center justify-center h-24 text-sm text-gray-300">
-            Aucune tâche
+            No tasks
           </div>
         )}
       </div>

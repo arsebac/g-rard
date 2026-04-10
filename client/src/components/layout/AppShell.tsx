@@ -85,14 +85,14 @@ export function AppShell({ children }: AppShellProps) {
         {/* Logo */}
         <div className="px-4 py-4 border-b border-gray-200">
           <h1 className="text-xl font-bold text-indigo-600 tracking-tight">Gérard</h1>
-          <p className="text-xs text-gray-400 mt-0.5">Gestion de projets maison</p>
+          <p className="text-xs text-gray-400 mt-0.5">Home project management</p>
           {/* Barre de recherche */}
           <button
             onClick={() => setShowSearch(true)}
             className="mt-3 w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
           >
             <Search size={13} />
-            <span className="flex-1 text-left">Rechercher…</span>
+            <span className="flex-1 text-left">Search…</span>
             <kbd className="text-xs px-1 py-0.5 bg-white border border-gray-200 rounded text-gray-400 font-mono">/</kbd>
           </button>
         </div>
@@ -111,7 +111,7 @@ export function AppShell({ children }: AppShellProps) {
             }
           >
             <LayoutDashboard size={16} />
-            Tableau de bord
+            Dashboard
           </Link>
 
           <Link
@@ -133,12 +133,12 @@ export function AppShell({ children }: AppShellProps) {
           <div className="mt-4">
             <div className="flex items-center justify-between px-3 mb-1">
               <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
-                Projets
+                Projects
               </span>
               <Link
                 to="/projects/new"
                 className="text-gray-400 hover:text-indigo-600 transition-colors"
-                title="Nouveau projet"
+                title="New project"
               >
                 <Plus size={14} />
               </Link>
@@ -198,7 +198,7 @@ export function AppShell({ children }: AppShellProps) {
           <button
             onClick={handleLogout}
             className="text-gray-400 hover:text-gray-600 transition-colors"
-            title="Déconnexion"
+            title="Sign out"
           >
             <LogOut size={16} />
           </button>
