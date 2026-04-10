@@ -6,7 +6,8 @@ import { usersApi } from "@/api/users";
 import { attachmentsApi } from "@/api/attachments";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
-import { BookOpen, LayoutDashboard, LogOut, Plus, Camera, Loader2, Menu, X } from "lucide-react";
+import { BookOpen, LayoutDashboard, LogOut, Plus, Camera, Loader2, Menu, X, Search } from "lucide-react";
+import { SearchModal } from "@/components/ui/SearchModal";
 
 import { useEffect, useState } from "react";
 
@@ -17,7 +18,22 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const { user, setUser } = useAuthStore();
+
+  // Raccourci clavier "/" pour ouvrir la recherche
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement).isContentEditable) return;
+      if (e.key === "/" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   // Close sidebar on route change (mobile)
   useEffect(() => {
@@ -70,6 +86,15 @@ export function AppShell({ children }: AppShellProps) {
         <div className="px-4 py-4 border-b border-gray-200">
           <h1 className="text-xl font-bold text-indigo-600 tracking-tight">Gérard</h1>
           <p className="text-xs text-gray-400 mt-0.5">Gestion de projets maison</p>
+          {/* Barre de recherche */}
+          <button
+            onClick={() => setShowSearch(true)}
+            className="mt-3 w-full flex items-center gap-2 px-3 py-1.5 text-sm text-gray-400 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors"
+          >
+            <Search size={13} />
+            <span className="flex-1 text-left">Rechercher…</span>
+            <kbd className="text-xs px-1 py-0.5 bg-white border border-gray-200 rounded text-gray-400 font-mono">/</kbd>
+          </button>
         </div>
 
         {/* Nav */}
@@ -190,6 +215,9 @@ export function AppShell({ children }: AppShellProps) {
 
       {/* Main */}
       <main className="flex-1 overflow-auto min-w-0 relative">{children}</main>
+
+      {/* Search modal */}
+      {showSearch && <SearchModal onClose={() => setShowSearch(false)} />}
     </div>
   );
 }
