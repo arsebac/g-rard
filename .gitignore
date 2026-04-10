@@ -4,3 +4,5 @@ dist/
 uploads/
 *.tsbuildinfo
 .DS_Store
+*.stackdump
+.claude/settings.local.json
