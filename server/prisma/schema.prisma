@@ -38,11 +38,13 @@ model Project {
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
-  creator     User         @relation("ProjectCreator", fields: [createdBy], references: [id])
-  tasks       Task[]
-  labels      Label[]
-  wikiPages   WikiPage[]
-  ticketTypes TicketType[]
+  creator             User                 @relation("ProjectCreator", fields: [createdBy], references: [id])
+  tasks               Task[]
+  labels              Label[]
+  wikiPages           WikiPage[]
+  ticketTypes         TicketType[]
+  columns             ProjectColumn[]
+  workflowTransitions WorkflowTransition[]
 
   @@map("projects")
 }
@@ -234,6 +236,33 @@ model TaskLink {
 
   @@unique([sourceId, targetId, linkType])
   @@map("task_links")
+}
+
+model ProjectColumn {
+  id        Int     @id @default(autoincrement())
+  projectId Int     @map("project_id")
+  statusKey String  @map("status_key") @db.VarChar(50)
+  label     String  @db.VarChar(100)
+  color     String  @default("#94a3b8") @db.VarChar(7)
+  position  Int     @default(0)
+  visible   Boolean @default(true)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, statusKey])
+  @@map("project_columns")
+}
+
+model WorkflowTransition {
+  id         Int    @id @default(autoincrement())
+  projectId  Int    @map("project_id")
+  fromStatus String @map("from_status") @db.VarChar(50)
+  toStatus   String @map("to_status") @db.VarChar(50)
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, fromStatus, toStatus])
+  @@map("workflow_transitions")
 }
 
 enum TaskLinkType {
