@@ -22,7 +22,7 @@ interface Props {
   onTaskClick: (task: Task) => void;
 }
 
-// ─── Ligne de tâche enfant ────────────────────────────────────────────────────
+// ─── Child task row ───────────────────────────────────────────────────────────
 
 function TaskRow({
   task,
@@ -46,7 +46,7 @@ function TaskRow({
         !isLast ? "border-b border-gray-100" : ""
       }`}
     >
-      {/* Référence */}
+      {/* Ref */}
       <td
         className={`${indent ? "pl-9" : "pl-4"} pr-2 py-2.5 text-xs font-mono text-gray-300 whitespace-nowrap w-24`}
       >
@@ -96,7 +96,7 @@ function TaskRow({
         </span>
       </td>
 
-      {/* Priorité */}
+      {/* Priority */}
       <td className="px-2 py-2.5 w-24">
         <span className={`text-xs font-medium ${PRIORITY_COLORS[task.priority]}`}>
           {task.priority === "urgente" && (
@@ -106,7 +106,7 @@ function TaskRow({
         </span>
       </td>
 
-      {/* Assignée */}
+      {/* Assignee */}
       <td className="px-2 py-2.5 w-32">
         {task.assignee ? (
           <div className="flex items-center gap-1.5">
@@ -122,7 +122,7 @@ function TaskRow({
         )}
       </td>
 
-      {/* Échéance */}
+      {/* Due date */}
       <td className="px-2 py-2.5 w-28 pr-4">
         {dueDate ? (
           <span
@@ -175,7 +175,7 @@ function EpicSection({
 
   return (
     <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      {/* En-tête */}
+      {/* Header */}
       <div
         className="flex items-center gap-3 px-4 py-3 select-none border-l-4"
         style={{ borderLeftColor: epic ? epicColor : "#e2e8f0" }}
@@ -215,7 +215,7 @@ function EpicSection({
           </>
         ) : (
           <span className="text-sm font-medium text-gray-500 flex-1">
-            Sans Epic
+            No Epic
           </span>
         )}
 
@@ -243,12 +243,12 @@ function EpicSection({
         </div>
       </div>
 
-      {/* Tâches enfants */}
+      {/* Child tasks */}
       {open && (
         <>
           {children.length === 0 ? (
             <div className="px-10 py-3 text-xs text-gray-400 italic border-t border-gray-50">
-              Aucun ticket
+              No tickets
             </div>
           ) : (
             <table className="w-full text-sm border-t border-gray-100">
@@ -271,7 +271,7 @@ function EpicSection({
   );
 }
 
-// ─── Composant principal ──────────────────────────────────────────────────────
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function EpicBacklogView({ tasks, onTaskClick }: Props) {
   const { epics, epicChildrenMap, orphans } = useMemo(() => {
@@ -299,7 +299,7 @@ export function EpicBacklogView({ tasks, onTaskClick }: Props) {
     return (
       <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
         <Layers size={32} className="opacity-30" />
-        <p className="text-sm">Aucune tâche dans ce projet</p>
+        <p className="text-sm">No tasks in this project</p>
       </div>
     );
   }
@@ -316,7 +316,7 @@ export function EpicBacklogView({ tasks, onTaskClick }: Props) {
         />
       ))}
 
-      {/* Section "Sans Epic" — orphelins et non-épics sans parent */}
+      {/* "No Epic" section — orphans and non-epics without a parent */}
       {orphans.length > 0 && (
         <EpicSection
           epic={null}
@@ -325,7 +325,7 @@ export function EpicBacklogView({ tasks, onTaskClick }: Props) {
         />
       )}
 
-      {/* Cas où il n'y a que des Epics (aucun enfant, aucun orphelin) */}
+      {/* Edge case: only Epics exist (no children, no orphans) */}
       {epics.length === 0 && orphans.length === 0 && tasks.length > 0 && (
         <EpicSection epic={null} children={tasks} onTaskClick={onTaskClick} />
       )}

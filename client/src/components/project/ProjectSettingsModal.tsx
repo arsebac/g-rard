@@ -20,7 +20,7 @@ import {
   ChevronRight, Save,
 } from "lucide-react";
 
-// ─── Palette couleurs ──────────────────────────────────────────────────────────
+// ─── Color palette ─────────────────────────────────────────────────────────────
 
 const COLORS = [
   "#ef4444","#f97316","#eab308","#22c55e",
@@ -44,7 +44,7 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
   );
 }
 
-// ─── Onglet Général ────────────────────────────────────────────────────────────
+// ─── General tab ───────────────────────────────────────────────────────────────
 
 function TabGeneral({ project }: { project: NonNullable<ReturnType<typeof useCurrentProject>["data"]> }) {
   const queryClient = useQueryClient();
@@ -70,7 +70,7 @@ function TabGeneral({ project }: { project: NonNullable<ReturnType<typeof useCur
   return (
     <div className="flex flex-col gap-6 max-w-lg">
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-1.5">Nom du projet</label>
+        <label className="text-sm font-medium text-gray-700 block mb-1.5">Project name</label>
         <input
           type="text"
           value={form.name}
@@ -86,12 +86,12 @@ function TabGeneral({ project }: { project: NonNullable<ReturnType<typeof useCur
           onChange={(e) => setForm({ ...form, description: e.target.value })}
           rows={3}
           className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          placeholder="Description du projet…"
+          placeholder="Project description…"
         />
       </div>
 
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-2">Couleur</label>
+        <label className="text-sm font-medium text-gray-700 block mb-2">Color</label>
         <div className="flex items-center gap-3">
           <span className="w-9 h-9 rounded-lg flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
             style={{ backgroundColor: form.color }}>
@@ -102,8 +102,8 @@ function TabGeneral({ project }: { project: NonNullable<ReturnType<typeof useCur
       </div>
 
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-1">Clé projet</label>
-        <p className="text-xs text-gray-400 mb-1.5">Préfixe des tickets (ex: CUI-1). Non modifiable après création.</p>
+        <label className="text-sm font-medium text-gray-700 block mb-1">Project key</label>
+        <p className="text-xs text-gray-400 mb-1.5">Ticket prefix (e.g. CUI-1). Cannot be changed after creation.</p>
         <input
           type="text"
           value={form.key}
@@ -119,15 +119,15 @@ function TabGeneral({ project }: { project: NonNullable<ReturnType<typeof useCur
           className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Save size={14} />
-          {save.isPending ? "Enregistrement…" : "Enregistrer"}
+          {save.isPending ? "Saving…" : "Save"}
         </button>
-        {save.isSuccess && <p className="text-xs text-green-600 mt-2">Modifications enregistrées.</p>}
+        {save.isSuccess && <p className="text-xs text-green-600 mt-2">Changes saved.</p>}
       </div>
     </div>
   );
 }
 
-// ─── Onglet Labels ─────────────────────────────────────────────────────────────
+// ─── Labels tab ────────────────────────────────────────────────────────────────
 
 function TabLabels({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
@@ -150,7 +150,7 @@ function TabLabels({ projectId }: { projectId: number }) {
 
   return (
     <div className="flex flex-col gap-5 max-w-lg">
-      <p className="text-sm text-gray-500">Les labels permettent de catégoriser les tickets de ce projet.</p>
+      <p className="text-sm text-gray-500">Labels allow you to categorize tickets in this project.</p>
 
       {labels.length > 0 && (
         <div className="flex flex-col gap-1">
@@ -173,26 +173,26 @@ function TabLabels({ projectId }: { projectId: number }) {
       )}
 
       <div className="border border-gray-200 rounded-xl p-4 bg-white">
-        <p className="text-sm font-medium text-gray-700 mb-3">{editId !== null ? "Modifier le label" : "Nouveau label"}</p>
+        <p className="text-sm font-medium text-gray-700 mb-3">{editId !== null ? "Edit label" : "New label"}</p>
         <input
           type="text" value={name} onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") cancel(); }}
-          placeholder="Nom du label…"
+          placeholder="Label name…"
           className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400"
         />
         <div className="mb-3"><ColorPicker value={color} onChange={setColor} /></div>
         <div className="flex gap-2">
           <button onClick={submit} disabled={!name.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-medium rounded-lg transition-colors">
-            <Check size={12} />{editId !== null ? "Modifier" : "Créer"}
+            <Check size={12} />{editId !== null ? "Edit" : "Create"}
           </button>
-          {editId !== null && <button onClick={cancel} className="text-xs text-gray-400 hover:text-gray-600 px-2">Annuler</button>}
+          {editId !== null && <button onClick={cancel} className="text-xs text-gray-400 hover:text-gray-600 px-2">Cancel</button>}
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Onglet Types de tickets ────────────────────────────────────────────────────
+// ─── Ticket types tab ──────────────────────────────────────────────────────────
 
 function TabTicketTypes({ projectId }: { projectId: number }) {
   const queryClient = useQueryClient();
@@ -214,7 +214,7 @@ function TabTicketTypes({ projectId }: { projectId: number }) {
 
   return (
     <div className="flex flex-col gap-5 max-w-lg">
-      <p className="text-sm text-gray-500">Les types définissent la nature des tickets. Les types marqués Epic peuvent être parents d'autres tickets.</p>
+      <p className="text-sm text-gray-500">Types define the nature of tickets. Types marked as Epic can be parents of other tickets.</p>
 
       {types.length > 0 && (
         <div className="flex flex-col gap-1">
@@ -237,30 +237,30 @@ function TabTicketTypes({ projectId }: { projectId: number }) {
       )}
 
       <div className="border border-gray-200 rounded-xl p-4 bg-white">
-        <p className="text-sm font-medium text-gray-700 mb-3">{editId !== null ? "Modifier le type" : "Nouveau type"}</p>
+        <p className="text-sm font-medium text-gray-700 mb-3">{editId !== null ? "Edit type" : "New type"}</p>
         <input
           type="text" value={name} onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") cancel(); }}
-          placeholder="Nom du type…"
+          placeholder="Type name…"
           className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-400"
         />
         <div className="mb-3"><ColorPicker value={color} onChange={setColor} /></div>
         <label className="flex items-center gap-2 text-sm text-gray-600 mb-3 cursor-pointer">
           <input type="checkbox" checked={isEpic} onChange={(e) => setIsEpic(e.target.checked)} className="rounded accent-purple-500" />
-          Ce type est un <span className="font-semibold text-purple-600">Epic</span> (peut être parent d'autres tickets)
+          This type is an <span className="font-semibold text-purple-600">Epic</span> (can be parent of other tickets)
         </label>
         <div className="flex gap-2">
           <button onClick={submit} disabled={!name.trim()} className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-medium rounded-lg transition-colors">
-            <Check size={12} />{editId !== null ? "Modifier" : "Créer"}
+            <Check size={12} />{editId !== null ? "Edit" : "Create"}
           </button>
-          {editId !== null && <button onClick={cancel} className="text-xs text-gray-400 hover:text-gray-600 px-2">Annuler</button>}
+          {editId !== null && <button onClick={cancel} className="text-xs text-gray-400 hover:text-gray-600 px-2">Cancel</button>}
         </div>
       </div>
     </div>
   );
 }
 
-// ─── Onglet Colonnes ────────────────────────────────────────────────────────────
+// ─── Columns tab ───────────────────────────────────────────────────────────────
 
 function SortableColumnRow({
   col,
@@ -347,7 +347,7 @@ function SortableColumnRow({
       <button
         onClick={() => onUpdate(col.statusKey, { visible: !col.visible })}
         className={`transition-colors ${col.visible ? "text-gray-400 hover:text-gray-600" : "text-gray-200 hover:text-gray-400"}`}
-        title={col.visible ? "Masquer cette colonne" : "Afficher cette colonne"}
+        title={col.visible ? "Hide this column" : "Show this column"}
       >
         {col.visible ? <Eye size={15} /> : <EyeOff size={15} />}
       </button>
@@ -397,7 +397,7 @@ function TabColumns({ projectId }: { projectId: number }) {
   return (
     <div className="flex flex-col gap-4 max-w-lg">
       <p className="text-sm text-gray-500">
-        Personnalisez les colonnes du tableau Kanban : renommez-les, changez leur couleur, réorganisez-les par glisser-déposer, ou masquez celles dont vous n'avez pas besoin.
+        Customize the Kanban board columns: rename them, change their color, reorder them by drag and drop, or hide the ones you don't need.
       </p>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
@@ -411,19 +411,19 @@ function TabColumns({ projectId }: { projectId: number }) {
       </DndContext>
 
       <p className="text-xs text-gray-400">
-        Cliquez sur le nom pour le renommer. Cliquez sur la pastille couleur pour changer la couleur. L'ordre ici est l'ordre d'affichage dans le Kanban.
+        Click on the name to rename it. Click on the color dot to change the color. The order here is the display order in the Kanban.
       </p>
     </div>
   );
 }
 
-// ─── Onglet Workflow ────────────────────────────────────────────────────────────
+// ─── Workflow tab ──────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
-  a_faire: "À faire",
-  en_cours: "En cours",
-  termine: "Terminé",
-  bloque: "Bloqué",
+  a_faire: "To do",
+  en_cours: "In progress",
+  termine: "Done",
+  bloque: "Blocked",
 };
 
 const ALL_STATUSES = ["a_faire", "en_cours", "termine", "bloque"];
@@ -458,7 +458,7 @@ function TabWorkflow({ projectId }: { projectId: number }) {
       m[from] = {};
       statuses.forEach((to) => {
         if (from === to) { m[from][to] = false; return; }
-        // Si non configuré → tout autorisé (true par défaut)
+        // If not configured → all transitions allowed (true by default)
         m[from][to] = isConfigured
           ? transitions.some((t) => t.fromStatus === from && t.toStatus === to)
           : true;
@@ -509,13 +509,13 @@ function TabWorkflow({ projectId }: { projectId: number }) {
     <div className="flex flex-col gap-5">
       <div>
         <p className="text-sm text-gray-500 mb-1">
-          Définissez quelles transitions sont autorisées entre les statuts.
-          Une case cochée signifie que le ticket peut passer de la colonne <strong>ligne</strong> vers la colonne <strong>colonne</strong>.
+          Define which transitions are allowed between statuses.
+          A checked box means the ticket can move from the <strong>row</strong> column to the <strong>column</strong> column.
         </p>
         {!configured && (
           <div className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-3 py-2">
-            Aucun workflow configuré — toutes les transitions sont actuellement autorisées.
-            Enregistrez pour figer les règles.
+            No workflow configured — all transitions are currently allowed.
+            Save to lock the rules.
           </div>
         )}
       </div>
@@ -525,7 +525,7 @@ function TabWorkflow({ projectId }: { projectId: number }) {
         <table className="text-sm border-collapse">
           <thead>
             <tr>
-              <th className="text-left p-2 text-xs text-gray-400 font-medium w-28">De ↓ / Vers →</th>
+              <th className="text-left p-2 text-xs text-gray-400 font-medium w-28">From ↓ / To →</th>
               {statuses.map((to) => (
                 <th key={to} className="p-2 text-center min-w-[90px]">
                   <span className="text-xs font-medium text-gray-700 block">{colLabel(to)}</span>
@@ -543,7 +543,7 @@ function TabWorkflow({ projectId }: { projectId: number }) {
                   return (
                     <td key={to} className="p-2 text-center">
                       {isSelf ? (
-                        <span className="inline-block w-5 h-5 rounded bg-gray-100" title="Même statut" />
+                        <span className="inline-block w-5 h-5 rounded bg-gray-100" title="Same status" />
                       ) : (
                         <button
                           onClick={() => toggle(from, to)}
@@ -565,9 +565,9 @@ function TabWorkflow({ projectId }: { projectId: number }) {
         </table>
       </div>
 
-      {/* Résumé des transitions autorisées */}
+      {/* Allowed transitions summary */}
       <div className="bg-gray-50 rounded-xl border border-gray-200 p-4">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Transitions autorisées</p>
+        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Allowed transitions</p>
         <div className="flex flex-col gap-1">
           {statuses.flatMap((from) =>
             statuses
@@ -581,7 +581,7 @@ function TabWorkflow({ projectId }: { projectId: number }) {
               ))
           )}
           {statuses.every((from) => statuses.filter((to) => from !== to && matrix[from]?.[to]).length === 0) && (
-            <p className="text-xs text-gray-400">Aucune transition autorisée.</p>
+            <p className="text-xs text-gray-400">No transitions allowed.</p>
           )}
         </div>
       </div>
@@ -593,17 +593,17 @@ function TabWorkflow({ projectId }: { projectId: number }) {
           className="flex items-center gap-2 px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-sm font-medium rounded-lg transition-colors"
         >
           <Save size={14} />
-          {save.isPending ? "Enregistrement…" : "Enregistrer le workflow"}
+          {save.isPending ? "Saving…" : "Save workflow"}
         </button>
         <button onClick={resetAll} className="text-sm text-gray-400 hover:text-gray-600 underline underline-offset-2">
-          Tout autoriser
+          Allow all
         </button>
-        {saved && <span className="text-xs text-green-600">Workflow enregistré.</span>}
+        {saved && <span className="text-xs text-green-600">Workflow saved.</span>}
       </div>
 
       <p className="text-xs text-gray-400">
-        ⚠️ La validation des transitions dans le Kanban sera appliquée dans une prochaine version.
-        Cette configuration prépare les règles qui seront enforced automatiquement.
+        ⚠️ Transition validation in the Kanban will be enforced in a future version.
+        This configuration prepares the rules that will be enforced automatically.
       </p>
     </div>
   );
@@ -614,11 +614,11 @@ function TabWorkflow({ projectId }: { projectId: number }) {
 type Tab = "general" | "labels" | "types" | "columns" | "workflow";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
-  { id: "general",  label: "Général",           icon: <Settings size={15} /> },
-  { id: "labels",   label: "Labels",             icon: <Tag size={15} /> },
-  { id: "types",    label: "Types de tickets",   icon: <Layers size={15} /> },
-  { id: "columns",  label: "Colonnes",           icon: <LayoutGrid size={15} /> },
-  { id: "workflow", label: "Workflow",           icon: <GitMerge size={15} /> },
+  { id: "general",  label: "General",        icon: <Settings size={15} /> },
+  { id: "labels",   label: "Labels",         icon: <Tag size={15} /> },
+  { id: "types",    label: "Ticket types",   icon: <Layers size={15} /> },
+  { id: "columns",  label: "Columns",        icon: <LayoutGrid size={15} /> },
+  { id: "workflow", label: "Workflow",       icon: <GitMerge size={15} /> },
 ];
 
 // ─── Hook helper ──────────────────────────────────────────────────────────────
@@ -627,7 +627,7 @@ function useCurrentProject(projectId: number) {
   return useQuery({ queryKey: ["project", projectId], queryFn: () => projectsApi.get(projectId) });
 }
 
-// ─── Modal principale ──────────────────────────────────────────────────────────
+// ─── Main modal ────────────────────────────────────────────────────────────────
 
 interface ProjectSettingsModalProps {
   projectId: number;
@@ -639,7 +639,7 @@ export function ProjectSettingsModal({ projectId, onClose, initialTab = "general
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const { data: project } = useCurrentProject(projectId);
 
-  // Fermer sur Escape
+  // Close on Escape
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     document.addEventListener("keydown", onKey);
@@ -666,7 +666,7 @@ export function ProjectSettingsModal({ projectId, onClose, initialTab = "general
               </span>
             )}
             <div>
-              <h2 className="text-base font-semibold text-gray-900">Paramètres du projet</h2>
+              <h2 className="text-base font-semibold text-gray-900">Project settings</h2>
               {project && <p className="text-xs text-gray-400">{project.name}</p>}
             </div>
           </div>

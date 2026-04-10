@@ -6,7 +6,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { TaskDrawer } from "@/components/task/TaskDrawer";
 import { ArrowLeft } from "lucide-react";
 
-/** Page accessible via /tickets/CUI-4 — ouvre directement la modale du ticket */
+/** Page accessible via /tickets/CUI-4 — opens the ticket drawer directly */
 export function TicketPage() {
   const { ref } = useParams({ from: "/tickets/$ref" });
   const navigate = useNavigate();
@@ -23,7 +23,7 @@ export function TicketPage() {
     return (
       <AppShell>
         <div className="flex items-center justify-center h-full text-sm text-gray-400">
-          Chargement de {ref}…
+          Loading {ref}…
         </div>
       </AppShell>
     );
@@ -33,12 +33,12 @@ export function TicketPage() {
     return (
       <AppShell>
         <div className="flex flex-col items-center justify-center h-full gap-3">
-          <p className="text-sm text-gray-500">Ticket <span className="font-mono font-bold">{ref}</span> introuvable.</p>
+          <p className="text-sm text-gray-500">Ticket <span className="font-mono font-bold">{ref}</span> not found.</p>
           <button
             onClick={() => navigate({ to: "/" })}
             className="flex items-center gap-1 text-sm text-indigo-600 hover:underline"
           >
-            <ArrowLeft size={14} /> Retour au dashboard
+            <ArrowLeft size={14} /> Back to dashboard
           </button>
         </div>
       </AppShell>
@@ -51,7 +51,7 @@ export function TicketPage() {
       <TaskDrawer
         task={task}
         onClose={() => {
-          // Retourner au projet d'origine
+          // Navigate back to the source project
           navigate({ to: "/projects/$projectId", params: { projectId: String(task.projectId) } });
         }}
       />
