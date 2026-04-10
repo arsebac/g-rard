@@ -24,6 +24,12 @@ export default async function userRoutes(app: FastifyInstance) {
 
   app.patch("/api/users/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    
+    // Protection IDOR : seul l'utilisateur lui-même peut se modifier
+    if (req.currentUserId !== parseInt(id)) {
+      return reply.status(403).send({ error: "Accès refusé" });
+    }
+
     const body = updateUserSchema.safeParse(req.body);
     if (!body.success) {
       return reply.status(400).send({ error: "Données invalides" });

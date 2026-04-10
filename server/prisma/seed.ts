@@ -38,14 +38,29 @@ async function main() {
   // Projet de démonstration
   const project = await prisma.project.upsert({
     where: { id: 1 },
-    update: { key: "CUI" },
+    update: { key: "CUI", isPublic: true },
     create: {
       name: "Cuisine",
       key: "CUI",
       description: "Rénovation complète de la cuisine",
       color: "#f59e0b",
       createdBy: user1.id,
+      isPublic: true,
     },
+  });
+
+  // Ajouter l'utilisateur 1 comme membre admin du projet
+  await prisma.projectMember.upsert({
+    where: { projectId_userId: { projectId: project.id, userId: user1.id } },
+    update: { role: "admin" },
+    create: { projectId: project.id, userId: user1.id, role: "admin" },
+  });
+
+  // Ajouter l'utilisateur 2 comme membre simple du projet
+  await prisma.projectMember.upsert({
+    where: { projectId_userId: { projectId: project.id, userId: user2.id } },
+    update: { role: "member" },
+    create: { projectId: project.id, userId: user2.id, role: "member" },
   });
 
   // Labels de démonstration
