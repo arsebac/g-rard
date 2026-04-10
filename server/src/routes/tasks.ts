@@ -35,6 +35,19 @@ const moveTaskSchema = z.object({
   position: z.number(),
 });
 
+async function validateTransition(projectId: number, fromStatus: string, toStatus: string) {
+  if (fromStatus === toStatus) return true;
+
+  const transitions = await db.workflowTransition.findMany({
+    where: { projectId },
+  });
+
+  // Si aucune transition définie, tout est autorisé
+  if (transitions.length === 0) return true;
+
+  return transitions.some((t) => t.fromStatus === fromStatus && t.toStatus === toStatus);
+}
+
 export default async function taskRoutes(app: FastifyInstance) {
   app.get("/api/projects/:projectId/tasks", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const { projectId } = req.params as { projectId: string };
@@ -176,6 +189,14 @@ export default async function taskRoutes(app: FastifyInstance) {
 
     const { dueDate, title, description, ...rest } = body.data;
 
+    // Validation du workflow si le statut change
+    if (rest.status && rest.status !== old.status) {
+      const allowed = await validateTransition(old.projectId, old.status, rest.status);
+      if (!allowed) {
+        return reply.status(400).send({ error: `Transition non autorisée de ${old.status} vers ${rest.status}` });
+      }
+    }
+
     const task = await db.task.update({
       where: { id: parseInt(id) },
       data: {
@@ -231,6 +252,14 @@ export default async function taskRoutes(app: FastifyInstance) {
     const body = moveTaskSchema.safeParse(req.body);
     if (!body.success) {
       return reply.status(400).send({ error: "Données invalides" });
+    }
+
+    // Validation du workflow si le statut change
+    if (body.data.status !== old.status) {
+      const allowed = await validateTransition(old.projectId, old.status, body.data.status);
+      if (!allowed) {
+        return reply.status(400).send({ error: `Transition non autorisée de ${old.status} vers ${body.data.status}` });
+      }
     }
 
     const task = await db.task.update({

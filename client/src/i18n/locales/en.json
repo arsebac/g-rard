@@ -127,8 +127,7 @@
       "saveWorkflow": "Save workflow",
       "saving": "Saving…",
       "saved": "Workflow saved.",
-      "allowAll": "Allow all",
-      "hint": "⚠️ Transition validation in the Kanban will be enforced in a future version. This configuration prepares the rules that will be enforced automatically."
+      "allowAll": "Allow all"
     }
   },
 

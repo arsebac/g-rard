@@ -127,8 +127,7 @@
       "saveWorkflow": "Enregistrer le workflow",
       "saving": "Enregistrement…",
       "saved": "Workflow enregistré.",
-      "allowAll": "Tout autoriser",
-      "hint": "⚠️ La validation des transitions dans le Kanban sera appliquée dans une prochaine version. Cette configuration prépare les règles qui seront enforced automatiquement."
+      "allowAll": "Tout autoriser"
     }
   },
 
