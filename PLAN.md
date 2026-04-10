@@ -72,6 +72,39 @@ task_labels                            -- many-to-many
   label_id      INT FK -> labels.id
   PRIMARY KEY (task_id, label_id)
 
+-- Phase 6 --
+
+ticket_types                           -- types personnalisés par projet
+  id            INT PK AUTO_INCREMENT
+  project_id    INT FK -> projects.id
+  name          VARCHAR(100)           -- "Bug", "Story", "Task", "Epic"
+  icon          VARCHAR(50)            -- nom d'icône Lucide (bug, bookmark, check-square, layers…)
+  color         VARCHAR(7)             -- couleur hex
+  is_epic       BOOLEAN DEFAULT FALSE  -- si TRUE, peut être parent de tout autre type
+  position      INT                    -- ordre d'affichage
+  created_at    DATETIME
+
+-- tasks : ajout de deux colonnes (Phase 6)
+--   type_id     INT FK -> ticket_types.id NULL
+--   parent_id   INT FK -> tasks.id NULL   -- Epic ou Story parent
+
+task_links                             -- liens directionnels entre tickets (Phase 6)
+  id            INT PK AUTO_INCREMENT
+  source_id     INT FK -> tasks.id     -- ticket qui porte le lien
+  target_id     INT FK -> tasks.id     -- ticket ciblé
+  link_type     ENUM(
+                  'blocks',            -- source bloque target
+                  'is_blocked_by',     -- source est bloqué par target
+                  'relates_to',        -- relation générique (symétrique)
+                  'duplicates',        -- source est doublon de target
+                  'is_duplicated_by',  -- target est doublon de source
+                  'causes',            -- source cause target
+                  'is_caused_by'       -- source est causé par target
+                )
+  created_by    INT FK -> users.id
+  created_at    DATETIME
+  UNIQUE (source_id, target_id, link_type)
+
 comments
   id            INT PK AUTO_INCREMENT
   task_id       INT FK -> tasks.id
@@ -191,6 +224,32 @@ PATCH  /api/users/:id
 PATCH  /api/users/:id/password
 ```
 
+### Types de tickets (Phase 6)
+```
+GET    /api/projects/:id/ticket-types
+POST   /api/projects/:id/ticket-types
+PATCH  /api/ticket-types/:id
+DELETE /api/ticket-types/:id
+PATCH  /api/projects/:id/ticket-types/reorder
+```
+
+### Liens entre tickets (Phase 6)
+```
+GET    /api/tasks/:id/links
+POST   /api/tasks/:id/links         -- { targetId, linkType }
+DELETE /api/task-links/:id
+```
+
+### Recherche (Phase 4)
+```
+GET    /api/search?q=...&projectId=...&status=...&assigneeId=...&labelId=...&dateFrom=...&dateTo=...
+```
+
+### Export (Phase 4)
+```
+GET    /api/projects/:id/export/csv
+```
+
 ---
 
 ## Structure des dossiers
@@ -204,6 +263,8 @@ gerard/
 │   ├── tsconfig.json
 │   ├── prisma/
 │   │   ├── schema.prisma
+│   │   ├── migrations/
+│   │   │   └── 20260410000000_fulltext_search/  -- Phase 4
 │   │   └── seed.ts
 │   └── src/
 │       ├── index.ts
@@ -218,12 +279,14 @@ gerard/
 │       │   ├── tasks.ts
 │       │   ├── comments.ts
 │       │   ├── labels.ts
-│       │   ├── attachments.ts        -- à faire (Phase 3)
+│       │   ├── attachments.ts
 │       │   ├── wiki.ts
-│       │   └── users.ts
+│       │   ├── users.ts
+│       │   ├── search.ts             -- Phase 4
+│       │   └── export.ts             -- Phase 4
 │       ├── services/
 │       │   ├── activity.ts
-│       │   └── storage.ts            -- à faire (Phase 3)
+│       │   └── storage.ts
 │       └── schemas/
 │           └── *.ts
 │
@@ -234,10 +297,13 @@ gerard/
 │       ├── main.tsx
 │       ├── router.tsx
 │       ├── api/
+│       │   ├── tasks.ts
+│       │   └── search.ts             -- Phase 4
 │       ├── components/
 │       │   ├── ui/
 │       │   │   ├── RichTextEditor.tsx
-│       │   │   └── TaskRefExtension.ts
+│       │   │   ├── TaskRefExtension.ts
+│       │   │   └── SearchModal.tsx   -- Phase 4
 │       │   ├── kanban/
 │       │   │   ├── KanbanBoard.tsx
 │       │   │   ├── KanbanColumn.tsx
@@ -253,6 +319,7 @@ gerard/
 │       │   ├── LoginPage.tsx
 │       │   ├── DashboardPage.tsx
 │       │   ├── ProjectPage.tsx
+│       │   ├── BacklogPage.tsx       -- Phase 6 (vue Epic)
 │       │   ├── TicketPage.tsx
 │       │   └── WikiPage.tsx
 │       └── lib/
@@ -331,24 +398,25 @@ gerard/
 
 ---
 
-### Phase 4 — Recherche & export ⭐⭐
+### Phase 4 — Recherche & export ✅ Complète
 **Objectif : confort d'utilisation**
 
-- [ ] Recherche fulltext sur les tâches (index FULLTEXT MariaDB)
-- [ ] Panneau de filtres avancés (labels, assignée, plage de dates)
-- [ ] Export projet CSV/PDF
-- [ ] Raccourcis clavier (`N` = nouvelle tâche, etc.)
+- [x] Recherche fulltext sur les tâches (index FULLTEXT MariaDB + fallback LIKE)
+- [x] Panneau de filtres avancés (labels, assignée, plage de dates)
+- [x] Export projet CSV (téléchargement direct, BOM UTF-8 pour Excel)
+- [x] Raccourcis clavier (`N` = nouvelle tâche, `/` = recherche globale)
 
 ---
 
-### Phase 5 — Serveur MCP ⭐⭐⭐
+### Phase 5 — Serveur MCP ✅ Complète
 **Objectif : piloter Gérard depuis Claude Code**
 
-- [ ] Package `mcp/` dans le monorepo
-- [ ] Outils MCP : `list_projects`, `create_task`, `update_task`, `move_task`, `search_tasks`
-- [ ] Outils MCP : `list_wiki_pages`, `get_wiki_page`, `create_wiki_page`
-- [ ] Outils MCP : `get_activity`
-- [ ] Configuration dans `.claude/settings.json`
+- [x] Package `mcp/` dans le monorepo (TypeScript, `@modelcontextprotocol/sdk`)
+- [x] Outils MCP : `list_projects`, `list_tasks`, `get_task`, `create_task`, `update_task`, `move_task`, `search_tasks`
+- [x] Outils MCP : `list_wiki_pages`, `get_wiki_page`, `create_wiki_page`
+- [x] Outils MCP : `get_activity`
+- [x] Auth API key côté serveur (`GERARD_API_KEY` header `x-api-key`)
+- [x] Configuration dans `.claude/settings.json`
 
 #### Exemple d'usage
 ```
@@ -362,6 +430,20 @@ gerard/
 
 ---
 
+### Phase 6 — Personnalisation du board
+**Objectif : hiérarchie Epic/Story, types de tickets personnalisés, liens entre tickets**
+
+- [ ] Types de tickets configurables par projet (Bug, Story, Task, Epic…)
+- [ ] Hiérarchie parent/enfant : Epic → Story → Task/Bug
+- [ ] Vue Backlog groupée par Epic avec barre de progression
+- [ ] Liens entre tickets (style Jira) : blocks, is blocked by, relates to, duplicates, is duplicated by, causes, is caused by
+- [ ] UI : section "Liens" dans le TaskDrawer (ajout, suppression, navigation)
+- [ ] UI : sélecteur de type de ticket à la création / édition
+- [ ] UI : gestion des types de tickets dans les paramètres projet
+- [ ] Affichage du ticket parent (Epic/Story) sur les cartes kanban
+
+---
+
 ## Variables d'environnement
 
 ```env
@@ -370,6 +452,7 @@ SESSION_SECRET=<random-32-chars>
 UPLOAD_DIR=/app/uploads
 PORT=3000
 NODE_ENV=development
+GERARD_API_KEY=<random-32-chars>   # auth MCP server (Phase 5)
 ```
 
 ---
