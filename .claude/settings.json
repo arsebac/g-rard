@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "gerard": {
+      "command": "node",
+      "args": ["mcp/dist/index.js"],
+      "env": {
+        "GERARD_URL": "http://localhost:3000",
+        "GERARD_API_KEY": "94e0376c2cff9891ae1d9f720e19143c58d2b4b7aabd9b318cc705e77d7451f6"
+      }
+    }
+  }
+}
