@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { tasksApi, CreateTaskData } from "@/api/tasks";
 import { usersApi } from "@/api/users";
 import { ticketTypesApi } from "@/api/ticketTypes";
+import { sprintsApi } from "@/api/sprints";
 import { STATUS_LABELS, PRIORITY_LABELS, taskRef } from "@/lib/utils";
 import { X } from "lucide-react";
 
@@ -19,6 +20,10 @@ export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: Task
     queryKey: ["ticket-types", projectId],
     queryFn: () => ticketTypesApi.list(projectId),
   });
+  const { data: sprints = [] } = useQuery({
+    queryKey: ["sprints", projectId],
+    queryFn: () => sprintsApi.list(projectId),
+  });
   const { data: allTasks = [] } = useQuery({
     queryKey: ["tasks", projectId],
     queryFn: () => tasksApi.list(projectId),
@@ -30,9 +35,12 @@ export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: Task
     status: defaultStatus as CreateTaskData["status"],
     priority: "normale",
     assigneeId: null,
+    startDate: null,
+    endDate: null,
     dueDate: null,
     typeId: null,
     parentId: null,
+    sprintId: null,
   });
 
   const selectedType = ticketTypes.find((t) => t.id === form.typeId);
@@ -156,6 +164,27 @@ export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: Task
 
           <div className="grid grid-cols-2 gap-3">
             <div>
+              <label className="text-xs text-gray-500 block mb-1">Start date</label>
+              <input
+                type="date"
+                value={form.startDate ?? ""}
+                onChange={(e) => setForm({ ...form, startDate: e.target.value || null })}
+                className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-500 block mb-1">End date</label>
+              <input
+                type="date"
+                value={form.endDate ?? ""}
+                onChange={(e) => setForm({ ...form, endDate: e.target.value || null })}
+                className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
               <label className="text-xs text-gray-500 block mb-1">Assigned to</label>
               <select
                 value={form.assigneeId ?? ""}
@@ -177,6 +206,22 @@ export function TaskForm({ projectId, defaultStatus = "a_faire", onClose }: Task
                 className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-500 block mb-1">Sprint</label>
+            <select
+              value={form.sprintId ?? ""}
+              onChange={(e) => setForm({ ...form, sprintId: e.target.value ? parseInt(e.target.value) : null })}
+              className="w-full text-sm border border-gray-200 rounded-md px-2 py-1.5 bg-white"
+            >
+              <option value="">No sprint (Backlog)</option>
+              {sprints.filter(s => s.status !== "termine").map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.status === "actif" ? "(Active)" : ""}
+                </option>
+              ))}
+            </select>
           </div>
 
           <div>

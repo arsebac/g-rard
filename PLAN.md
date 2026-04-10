@@ -430,17 +430,30 @@ gerard/
 
 ---
 
-### Phase 6 — Personnalisation du board
+### Phase 6 — Personnalisation du board ✅ Complète
 **Objectif : hiérarchie Epic/Story, types de tickets personnalisés, liens entre tickets**
 
-- [ ] Types de tickets configurables par projet (Bug, Story, Task, Epic…)
-- [ ] Hiérarchie parent/enfant : Epic → Story → Task/Bug
-- [ ] Vue Backlog groupée par Epic avec barre de progression
-- [ ] Liens entre tickets (style Jira) : blocks, is blocked by, relates to, duplicates, is duplicated by, causes, is caused by
-- [ ] UI : section "Liens" dans le TaskDrawer (ajout, suppression, navigation)
-- [ ] UI : sélecteur de type de ticket à la création / édition
-- [ ] UI : gestion des types de tickets dans les paramètres projet
-- [ ] Affichage du ticket parent (Epic/Story) sur les cartes kanban
+- [x] Types de tickets configurables par projet (Bug, Story, Task, Epic…)
+- [x] Hiérarchie parent/enfant : Epic → Story → Task/Bug
+- [x] Vue Backlog groupée par Epic avec barre de progression
+- [x] Liens entre tickets (style Jira) : blocks, is blocked by, relates to, duplicates, is duplicated by, causes, is caused by
+- [x] UI : section "Liens" dans le TaskDrawer (ajout, suppression, navigation)
+- [x] UI : sélecteur de type de ticket à la création / édition
+- [x] UI : gestion des types de tickets dans les paramètres projet
+- [x] Affichage du ticket parent (Epic/Story) sur les cartes kanban
+
+---
+
+### Phase 7 — Agile (Sprints & Scrum)
+**Objectif : planifier le travail en cycles courts (sprints) avec un objectif précis**
+
+- [ ] Création de la table `sprints` (id, project_id, name, start_date, end_date, goal, status)
+- [ ] Ajout de la relation `tasks.sprint_id`
+- [ ] API : CRUD sprints par projet
+- [ ] UI : Création et édition de sprints dans la vue Backlog
+- [ ] UI : Glisser-déposer des tâches du Backlog vers un Sprint
+- [ ] UI : Démarrage et complétion de sprint (archivage des tâches terminées)
+- [ ] UI : Filtre par sprint sur le tableau Kanban
 
 ---
 

@@ -22,6 +22,7 @@ import ticketTypeRoutes from "./routes/ticketTypes";
 import taskLinkRoutes from "./routes/taskLinks";
 import projectColumnRoutes from "./routes/projectColumns";
 import workflowRoutes from "./routes/workflow";
+import sprintRoutes from "./routes/sprints";
 
 export async function createServer() {
   const app = Fastify({ 
@@ -93,6 +94,7 @@ export async function createServer() {
   await app.register(taskLinkRoutes);
   await app.register(projectColumnRoutes);
   await app.register(workflowRoutes);
+  await app.register(sprintRoutes);
 
   return app;
 }
