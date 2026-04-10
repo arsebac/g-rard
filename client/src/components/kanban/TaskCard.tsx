@@ -34,19 +34,32 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       onClick={() => onClick(task)}
       className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm cursor-pointer hover:shadow-md hover:border-indigo-200 transition-all select-none"
     >
-      {/* Labels */}
-      {task.labels && task.labels.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-2">
-          {task.labels.map(({ label }) => (
-            <span
-              key={label.id}
-              className="text-xs px-1.5 py-0.5 rounded-full font-medium"
-              style={{ backgroundColor: label.color + "30", color: label.color }}
-            >
-              {label.name}
-            </span>
-          ))}
-        </div>
+      {/* Type badge + Labels */}
+      <div className="flex flex-wrap items-center gap-1 mb-2">
+        {task.type && (
+          <span
+            className="text-xs px-1.5 py-0.5 rounded font-semibold"
+            style={{ backgroundColor: task.type.color + "20", color: task.type.color }}
+          >
+            {task.type.name}
+          </span>
+        )}
+        {task.labels && task.labels.map(({ label }) => (
+          <span
+            key={label.id}
+            className="text-xs px-1.5 py-0.5 rounded-full font-medium"
+            style={{ backgroundColor: label.color + "30", color: label.color }}
+          >
+            {label.name}
+          </span>
+        ))}
+      </div>
+
+      {/* Parent epic/story */}
+      {task.parent && (
+        <p className="text-xs text-gray-400 mb-1 truncate">
+          ↳ {task.parent.project.key ? `${task.parent.project.key}-${task.parent.number}` : `#${task.parent.number}`} {task.parent.title}
+        </p>
       )}
 
       {/* Title */}

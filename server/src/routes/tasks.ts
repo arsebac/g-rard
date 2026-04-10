@@ -14,7 +14,18 @@ const createTaskSchema = z.object({
   assigneeId: z.number().optional().nullable(),
   dueDate: z.string().optional().nullable(),
   position: z.number().default(0),
+  typeId: z.number().optional().nullable(),
+  parentId: z.number().optional().nullable(),
 });
+
+const TASK_INCLUDE = {
+  assignee: { select: { id: true, name: true, avatarUrl: true } },
+  creator: { select: { id: true, name: true, avatarUrl: true } },
+  labels: { include: { label: true } },
+  type: true,
+  parent: { select: { id: true, number: true, title: true, project: { select: { key: true } } } },
+  _count: { select: { comments: true } },
+} as const;
 
 const updateTaskSchema = createTaskSchema.partial();
 
@@ -26,7 +37,13 @@ const moveTaskSchema = z.object({
 export default async function taskRoutes(app: FastifyInstance) {
   app.get("/api/projects/:projectId/tasks", { preHandler: requireAuth }, async (req, reply) => {
     const { projectId } = req.params as { projectId: string };
-    const query = req.query as { status?: string; assigneeId?: string; labelId?: string };
+    const query = req.query as {
+      status?: string;
+      assigneeId?: string;
+      labelId?: string;
+      dueDateFrom?: string;
+      dueDateTo?: string;
+    };
 
     const project = await db.project.findUnique({ where: { id: parseInt(projectId) }, select: { key: true } });
     const tasks = await db.task.findMany({
@@ -37,13 +54,14 @@ export default async function taskRoutes(app: FastifyInstance) {
         ...(query.labelId && {
           labels: { some: { labelId: parseInt(query.labelId) } },
         }),
+        ...((query.dueDateFrom || query.dueDateTo) && {
+          dueDate: {
+            ...(query.dueDateFrom && { gte: new Date(query.dueDateFrom) }),
+            ...(query.dueDateTo && { lte: new Date(query.dueDateTo) }),
+          },
+        }),
       },
-      include: {
-        assignee: { select: { id: true, name: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, avatarUrl: true } },
-        labels: { include: { label: true } },
-        _count: { select: { comments: true } },
-      },
+      include: TASK_INCLUDE,
       orderBy: [{ status: "asc" }, { position: "asc" }],
     });
     // Injecter la clé du projet dans chaque tâche
@@ -77,11 +95,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         number,
         dueDate: dueDate ? new Date(dueDate) : null,
       },
-      include: {
-        assignee: { select: { id: true, name: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, avatarUrl: true } },
-        labels: { include: { label: true } },
-      },
+      include: TASK_INCLUDE,
     });
 
     await logActivity({
@@ -104,9 +118,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     const task = await db.task.findFirst({
       where: { projectId: project.id, number: parseInt(number) },
       include: {
-        assignee: { select: { id: true, name: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, avatarUrl: true } },
-        labels: { include: { label: true } },
+        ...TASK_INCLUDE,
         comments: {
           include: { author: { select: { id: true, name: true, avatarUrl: true } } },
           orderBy: { createdAt: "asc" },
@@ -122,9 +134,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     const task = await db.task.findUnique({
       where: { id: parseInt(id) },
       include: {
-        assignee: { select: { id: true, name: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, avatarUrl: true } },
-        labels: { include: { label: true } },
+        ...TASK_INCLUDE,
         comments: {
           include: { author: { select: { id: true, name: true, avatarUrl: true } } },
           orderBy: { createdAt: "asc" },
@@ -152,11 +162,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         ...(rest.status && { status: rest.status as TaskStatus }),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
       },
-      include: {
-        assignee: { select: { id: true, name: true, avatarUrl: true } },
-        creator: { select: { id: true, name: true, avatarUrl: true } },
-        labels: { include: { label: true } },
-      },
+      include: TASK_INCLUDE,
     });
 
     const logs: Promise<void>[] = [];

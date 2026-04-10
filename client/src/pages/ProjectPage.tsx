@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import React from "react";
 import { projectsApi } from "@/api/projects";
 import { labelsApi } from "@/api/labels";
 import { tasksApi, Task } from "@/api/tasks";
 import { usersApi } from "@/api/users";
+import { ticketTypesApi, TicketType } from "@/api/ticketTypes";
 import { AppShell } from "@/components/layout/AppShell";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { TaskListView } from "@/components/task/TaskListView";
@@ -21,7 +23,6 @@ import {
   Trash2,
   X,
   Download,
-  Paperclip,
   LayoutGrid,
   List,
   Layers,
@@ -141,6 +142,96 @@ function LabelManager({ projectId }: { projectId: number }) {
   );
 }
 
+// ─── Ticket type manager ──────────────────────────────────────────────────────
+
+const TYPE_COLORS = ["#6366f1","#8b5cf6","#22c55e","#ef4444","#f97316","#06b6d4","#eab308","#ec4899","#64748b","#0ea5e9"];
+
+function TicketTypeManager({ projectId }: { projectId: number }) {
+  const queryClient = useQueryClient();
+  const [editId, setEditId] = useState<number | null>(null);
+  const [name, setName] = useState("");
+  const [color, setColor] = useState(TYPE_COLORS[0]);
+  const [isEpic, setIsEpic] = useState(false);
+
+  const { data: types = [] } = useQuery({
+    queryKey: ["ticket-types", projectId],
+    queryFn: () => ticketTypesApi.list(projectId),
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["ticket-types", projectId] });
+
+  const createType = useMutation({
+    mutationFn: () => ticketTypesApi.create(projectId, { name: name.trim(), color, isEpic, position: types.length }),
+    onSuccess: () => { invalidate(); setName(""); setColor(TYPE_COLORS[0]); setIsEpic(false); },
+  });
+  const updateType = useMutation({
+    mutationFn: (id: number) => ticketTypesApi.update(id, { name: name.trim(), color, isEpic }),
+    onSuccess: () => { invalidate(); setEditId(null); setName(""); setColor(TYPE_COLORS[0]); setIsEpic(false); },
+  });
+  const deleteType = useMutation({
+    mutationFn: (id: number) => ticketTypesApi.delete(id),
+    onSuccess: invalidate,
+  });
+
+  const startEdit = (t: TicketType) => { setEditId(t.id); setName(t.name); setColor(t.color); setIsEpic(t.isEpic); };
+  const cancelEdit = () => { setEditId(null); setName(""); setColor(TYPE_COLORS[0]); setIsEpic(false); };
+  const submit = () => {
+    if (!name.trim()) return;
+    if (editId !== null) updateType.mutate(editId);
+    else createType.mutate();
+  };
+
+  return (
+    <div className="border-t border-gray-100 mt-3 pt-3">
+      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Types de tickets</p>
+      {types.length > 0 && (
+        <div className="flex flex-col gap-1 mb-2">
+          {types.map((type) => (
+            <div key={type.id} className="flex items-center gap-2 group">
+              <span className="w-3 h-3 rounded flex-shrink-0" style={{ backgroundColor: type.color }} />
+              <span className="flex-1 text-sm text-gray-700">{type.name}</span>
+              {type.isEpic && <span className="text-xs text-purple-500 font-medium">Epic</span>}
+              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button onClick={() => startEdit(type)} className="p-1 text-gray-400 hover:text-indigo-600 rounded"><Pencil size={11} /></button>
+                <button onClick={() => deleteType.mutate(type.id)} className="p-1 text-gray-400 hover:text-red-500 rounded"><Trash2 size={11} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="border-t border-gray-100 pt-2">
+        <p className="text-xs text-gray-400 mb-1.5">{editId !== null ? "Modifier" : "Nouveau type"}</p>
+        <input
+          type="text" value={name} onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") submit(); if (e.key === "Escape") cancelEdit(); }}
+          placeholder="Nom du type…"
+          className="w-full text-sm border border-gray-200 rounded-lg px-3 py-1.5 mb-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+        />
+        <div className="flex flex-wrap gap-1 mb-2">
+          {TYPE_COLORS.map((c) => (
+            <button key={c} onClick={() => setColor(c)}
+              className={`w-5 h-5 rounded transition-transform ${color === c ? "ring-2 ring-offset-1 ring-gray-400 scale-110" : "hover:scale-110"}`}
+              style={{ backgroundColor: c }}
+            />
+          ))}
+        </div>
+        <label className="flex items-center gap-2 text-xs text-gray-600 mb-2 cursor-pointer">
+          <input type="checkbox" checked={isEpic} onChange={(e) => setIsEpic(e.target.checked)} className="rounded" />
+          Ce type est un Epic (peut être parent d'autres tickets)
+        </label>
+        <div className="flex items-center gap-2">
+          <button onClick={submit} disabled={!name.trim()}
+            className="flex items-center gap-1 px-3 py-1 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-xs font-medium rounded-lg transition-colors">
+            <Check size={11} />
+            {editId !== null ? "Modifier" : "Créer"}
+          </button>
+          {editId !== null && <button onClick={cancelEdit} className="text-xs text-gray-400 hover:text-gray-600">Annuler</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Config popover ───────────────────────────────────────────────────────────
 
 function ConfigPopover({ projectId, onExport }: { projectId: number; onExport: () => void }) {
@@ -176,6 +267,8 @@ function ConfigPopover({ projectId, onExport }: { projectId: number; onExport: (
 
           <LabelManager projectId={projectId} />
 
+          <TicketTypeManager projectId={projectId} />
+
           <div className="border-t border-gray-100 mt-3 pt-3">
             <button
               onClick={() => { onExport(); setOpen(false); }}
@@ -183,12 +276,6 @@ function ConfigPopover({ projectId, onExport }: { projectId: number; onExport: (
             >
               <Download size={14} />
               Exporter en CSV
-            </button>
-            <button
-              className="flex items-center gap-2 w-full text-sm text-gray-600 hover:text-indigo-600 py-1.5 rounded-lg transition-colors"
-            >
-              <Paperclip size={14} />
-              Documents du projet
             </button>
           </div>
         </div>
