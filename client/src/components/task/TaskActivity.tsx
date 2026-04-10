@@ -33,6 +33,8 @@ const ACTION_ICONS: Record<string, string> = {
   assignee_changed: "👤",
   due_date_changed: "📅",
   description_changed: "📝",
+  type_changed: "🏷️",
+  parent_changed: "🔗",
   comment_added: "💬",
   comment_deleted: "🗑️",
 };
@@ -91,6 +93,22 @@ function formatAction(log: ActivityLog, users: { id: number; name: string }[]): 
       );
     case "description_changed":
       return <span>a modifié la description</span>;
+    case "type_changed":
+      return (
+        <span>
+          {next.typeId
+            ? <span>a changé le type de ticket</span>
+            : <span>a retiré le type de ticket</span>}
+        </span>
+      );
+    case "parent_changed":
+      return (
+        <span>
+          {next.parentId
+            ? <span>a défini un ticket parent <span className="font-medium text-gray-800">#{String(next.parentId)}</span></span>
+            : <span>a retiré le ticket parent</span>}
+        </span>
+      );
     case "comment_added":
       return <span>a ajouté un commentaire</span>;
     case "comment_deleted":

@@ -42,6 +42,7 @@ export default async function taskRoutes(app: FastifyInstance) {
       status?: string;
       assigneeId?: string;
       labelId?: string;
+      typeId?: string;
       dueDateFrom?: string;
       dueDateTo?: string;
     };
@@ -55,6 +56,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         ...(query.labelId && {
           labels: { some: { labelId: parseInt(query.labelId) } },
         }),
+        ...(query.typeId && { typeId: parseInt(query.typeId) }),
         ...((query.dueDateFrom || query.dueDateTo) && {
           dueDate: {
             ...(query.dueDateFrom && { gte: new Date(query.dueDateFrom) }),
@@ -205,6 +207,12 @@ export default async function taskRoutes(app: FastifyInstance) {
     }
     if (old?.description !== task.description) {
       logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "description_changed", newValue: {} }));
+    }
+    if (old?.typeId !== task.typeId) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "type_changed", oldValue: { typeId: old?.typeId }, newValue: { typeId: task.typeId } }));
+    }
+    if (old?.parentId !== task.parentId) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "parent_changed", oldValue: { parentId: old?.parentId }, newValue: { parentId: task.parentId } }));
     }
 
     await Promise.all(logs);
