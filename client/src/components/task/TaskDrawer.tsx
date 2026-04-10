@@ -5,6 +5,7 @@ import { usersApi } from "@/api/users";
 import { projectsApi } from "@/api/projects";
 import { labelsApi } from "@/api/labels";
 import { ticketTypesApi } from "@/api/ticketTypes";
+import { sprintsApi } from "@/api/sprints";
 import { taskLinksApi, LINK_TYPES, LINK_TYPE_LABELS, LinkType } from "@/api/taskLinks";
 import {
   STATUS_LABELS,
@@ -300,6 +301,10 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
     queryKey: ["ticket-types", task.projectId],
     queryFn: () => ticketTypesApi.list(task.projectId),
   });
+  const { data: sprints = [] } = useQuery({
+    queryKey: ["sprints", task.projectId],
+    queryFn: () => sprintsApi.list(task.projectId),
+  });
   // Available Epics for this project (tickets with isEpic type)
   const { data: allTasks = [] } = useQuery({
     queryKey: ["tasks", task.projectId],
@@ -503,6 +508,25 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               onChange={(v) => update({ status: v })}
             />
 
+            {/* Sprint */}
+            <div>
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <Calendar size={12} /> Sprint
+              </p>
+              <select
+                value={fullTask.sprintId ?? ""}
+                onChange={(e) => update({ sprintId: e.target.value ? parseInt(e.target.value) : null })}
+                className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors"
+              >
+                <option value="">No sprint (Backlog)</option>
+                {sprints.filter(s => s.status !== "termine").map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name} {s.status === "actif" ? "(Active)" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             {/* Priority */}
             <SelectField<Task["priority"]>
               label="Priority"
@@ -563,11 +587,38 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               </div>
             )}
 
+            {/* Timeline */}
+            <div>
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+                <Calendar size={12} /> Timeline (Start & End)
+              </p>
+              <div className="flex flex-col gap-2">
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400 pointer-events-none">IN</span>
+                  <input
+                    type="date"
+                    value={fullTask.startDate ? fullTask.startDate.slice(0, 10) : ""}
+                    onChange={(e) => update({ startDate: e.target.value || null })}
+                    className="w-full text-xs border border-gray-200 rounded-lg pl-8 pr-3 py-2 bg-white hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors"
+                  />
+                </div>
+                <div className="relative">
+                  <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-gray-400 pointer-events-none">OUT</span>
+                  <input
+                    type="date"
+                    value={fullTask.endDate ? fullTask.endDate.slice(0, 10) : ""}
+                    onChange={(e) => update({ endDate: e.target.value || null })}
+                    className="w-full text-xs border border-gray-200 rounded-lg pl-8 pr-3 py-2 bg-white hover:border-indigo-300 focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
             {/* Due date */}
             <div>
-              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Due date</p>
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-1.5">Deadline (Due date)</p>
               <div className="relative">
-                <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <Flag size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                 <input
                   type="date"
                   value={fullTask.dueDate ? fullTask.dueDate.slice(0, 10) : ""}

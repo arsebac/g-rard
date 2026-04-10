@@ -10,12 +10,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
 import { TaskListView } from "@/components/task/TaskListView";
+import { RoadmapView } from "@/components/task/RoadmapView";
 import { EpicBacklogView } from "@/components/task/EpicBacklogView";
+import { SprintBacklogView } from "@/components/task/SprintBacklogView";
 import { TaskDrawer } from "@/components/task/TaskDrawer";
 import { TaskForm } from "@/components/task/TaskForm";
 import {
   Plus, Settings, Search, Tag, ChevronDown, X,
-  LayoutGrid, List, Layers, GitBranch,
+  LayoutGrid, List, Layers, GitBranch, Calendar,
 } from "lucide-react";
 
 // ─── Label dropdown filter ────────────────────────────────────────────────────
@@ -86,6 +88,71 @@ function LabelDropdown({
   );
 }
 
+function SprintDropdown({
+  projectId,
+  value,
+  onChange,
+}: {
+  projectId: number;
+  value: number | null;
+  onChange: (id: number | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const { data: sprints = [] } = useQuery({
+    queryKey: ["sprints", projectId],
+    queryFn: () => sprintsApi.list(projectId),
+  });
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    if (open) document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const selected = sprints.find((s) => s.id === value);
+
+  return (
+    <div className="relative" ref={ref}>
+      <button
+        onClick={() => setOpen(!open)}
+        className={`flex items-center gap-1.5 text-sm border px-3 py-1.5 rounded-lg transition-colors ${
+          value !== null
+            ? "bg-indigo-50 border-indigo-300 text-indigo-700"
+            : "text-gray-500 hover:text-gray-700 border-gray-200 hover:border-gray-300"
+        }`}
+      >
+        <Calendar size={13} />
+        {selected ? selected.name : "Sprints"}
+        <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open && (
+        <div className="absolute left-0 top-full mt-1.5 z-20 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 overflow-hidden">
+          <button
+            onClick={() => { onChange(null); setOpen(false); }}
+            className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors ${value === null ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`}
+          >
+            All sprints
+          </button>
+          {sprints.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => { onChange(s.id); setOpen(false); }}
+              className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors ${value === s.id ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`}
+            >
+              <div className={`w-2 h-2 rounded-full ${s.status === "actif" ? "bg-green-500" : "bg-gray-400"}`} />
+              {s.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── User avatar pill ─────────────────────────────────────────────────────────
 
 function UserAvatar({
@@ -117,12 +184,14 @@ function UserAvatar({
 
 // ─── View tabs ────────────────────────────────────────────────────────────────
 
-type ViewMode = "kanban" | "list" | "backlog" | "versions";
+type ViewMode = "kanban" | "list" | "backlog" | "sprints" | "roadmap" | "versions";
 
 const VIEWS: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
   { id: "kanban",   label: "Board",    icon: <LayoutGrid size={14} /> },
   { id: "list",     label: "List",     icon: <List size={14} /> },
+  { id: "roadmap",  label: "Roadmap",  icon: <Calendar size={14} /> },
   { id: "backlog",  label: "Backlog",  icon: <Layers size={14} /> },
+  { id: "sprints",  label: "Sprints",  icon: <Calendar size={14} /> },
   { id: "versions", label: "Versions", icon: <GitBranch size={14} /> },
 ];
 
@@ -133,9 +202,10 @@ interface FilterState {
   assigneeId: number | null;
   labelId: number | null;
   typeId: number | null;
+  sprintId: number | null;
 }
 
-const EMPTY_FILTERS: FilterState = { search: "", assigneeId: null, labelId: null, typeId: null };
+const EMPTY_FILTERS: FilterState = { search: "", assigneeId: null, labelId: null, typeId: null, sprintId: null };
 
 export function ProjectPage() {
   const { projectId } = useParams({ from: "/projects/$projectId" });
@@ -163,19 +233,21 @@ export function ProjectPage() {
     queryFn: () => ticketTypesApi.list(id),
   });
 
-  const isBacklog = viewMode === "backlog";
+  const isBacklog = viewMode === "backlog" || viewMode === "sprints";
 
   const { data: rawTasks = [], isLoading } = useQuery({
     queryKey: ["tasks", id, {
       labelId: filters.labelId,
       assigneeId: filters.assigneeId,
       typeId: isBacklog ? null : filters.typeId,
+      sprintId: filters.sprintId,
     }],
     queryFn: () =>
       tasksApi.list(id, {
         ...(filters.labelId ? { labelId: filters.labelId } : {}),
         ...(filters.assigneeId ? { assigneeId: filters.assigneeId } : {}),
         ...(!isBacklog && filters.typeId ? { typeId: filters.typeId } : {}),
+        ...(filters.sprintId !== null ? { sprintId: filters.sprintId } : {}),
       }),
   });
 
@@ -305,6 +377,13 @@ export function ProjectPage() {
             />
           )}
 
+          <div className="w-px h-5 bg-gray-200" />
+          <SprintDropdown
+            projectId={id}
+            value={filters.sprintId}
+            onChange={(sprintId) => setFilters((f) => ({ ...f, sprintId }))}
+          />
+
           {/* Ticket type filter — hidden in backlog mode */}
           {!isBacklog && ticketTypes.length > 0 && (
             <>
@@ -337,7 +416,7 @@ export function ProjectPage() {
             </>
           )}
 
-          {(filters.search || filters.assigneeId !== null || filters.labelId !== null || filters.typeId !== null) && (
+          {(filters.search || filters.assigneeId !== null || filters.labelId !== null || filters.typeId !== null || filters.sprintId !== null) && (
             <>
               <div className="w-px h-5 bg-gray-200" />
               <button onClick={() => setFilters(EMPTY_FILTERS)} className="text-xs text-gray-400 hover:text-red-500 transition-colors flex items-center gap-1">
@@ -361,8 +440,12 @@ export function ProjectPage() {
             />
           ) : viewMode === "list" ? (
             <TaskListView tasks={tasks} onTaskClick={setSelectedTask} />
+          ) : viewMode === "roadmap" ? (
+            <RoadmapView tasks={tasks} onTaskClick={setSelectedTask} />
           ) : viewMode === "backlog" ? (
             <EpicBacklogView tasks={tasks} onTaskClick={setSelectedTask} />
+          ) : viewMode === "sprints" ? (
+            <SprintBacklogView projectId={id} tasks={tasks} onTaskClick={setSelectedTask} />
           ) : (
             <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
               <GitBranch size={32} className="opacity-30" />

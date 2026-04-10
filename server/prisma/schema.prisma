@@ -48,6 +48,7 @@ model Project {
   ticketTypes         TicketType[]
   columns             ProjectColumn[]
   workflowTransitions WorkflowTransition[]
+  sprints             Sprint[]
 
   @@map("projects")
 }
@@ -97,10 +98,13 @@ model Task {
   priority    TaskPriority @default(normale)
   assigneeId  Int?         @map("assignee_id")
   createdBy   Int          @map("created_by")
+  startDate   DateTime?    @map("start_date") @db.Date
+  endDate     DateTime?    @map("end_date") @db.Date
   dueDate     DateTime?    @map("due_date") @db.Date
   position    Int          @default(0)
   typeId      Int?         @map("type_id")
   parentId    Int?         @map("parent_id")
+  sprintId    Int?         @map("sprint_id")
   createdAt   DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
@@ -110,6 +114,7 @@ model Task {
   type       TicketType?  @relation(fields: [typeId], references: [id], onDelete: SetNull)
   parent     Task?        @relation("TaskChildren", fields: [parentId], references: [id], onDelete: SetNull)
   children   Task[]       @relation("TaskChildren")
+  sprint     Sprint?      @relation(fields: [sprintId], references: [id], onDelete: SetNull)
   labels     TaskLabel[]
   comments   Comment[]
   linksFrom  TaskLink[]   @relation("LinkSource")
@@ -258,6 +263,30 @@ model TaskLink {
   @@unique([sourceId, targetId, linkType])
   @@map("task_links")
 }
+
+model Sprint {
+  id        Int          @id @default(autoincrement())
+  projectId Int          @map("project_id")
+  name      String       @db.VarChar(255)
+  goal      String?      @db.Text
+  startDate DateTime?    @map("start_date")
+  endDate   DateTime?    @map("end_date")
+  status    SprintStatus @default(futur)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks   Task[]
+
+  @@map("sprints")
+}
+
+enum SprintStatus {
+  futur
+  actif
+  termine   @map("terminé")
+}
+
 
 model ProjectColumn {
   id        Int     @id @default(autoincrement())
