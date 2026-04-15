@@ -444,16 +444,16 @@ gerard/
 
 ---
 
-### Phase 7 — Agile (Sprints & Scrum)
+### Phase 7 — Agile (Sprints & Scrum) ✅ Complète
 **Objectif : planifier le travail en cycles courts (sprints) avec un objectif précis**
 
-- [ ] Création de la table `sprints` (id, project_id, name, start_date, end_date, goal, status)
-- [ ] Ajout de la relation `tasks.sprint_id`
-- [ ] API : CRUD sprints par projet
-- [ ] UI : Création et édition de sprints dans la vue Backlog
-- [ ] UI : Glisser-déposer des tâches du Backlog vers un Sprint
-- [ ] UI : Démarrage et complétion de sprint (archivage des tâches terminées)
-- [ ] UI : Filtre par sprint sur le tableau Kanban
+- [x] Création de la table `sprints` (id, project_id, name, start_date, end_date, goal, status)
+- [x] Ajout de la relation `tasks.sprint_id`
+- [x] API : CRUD sprints par projet
+- [x] UI : Création et édition de sprints dans la vue Backlog
+- [x] UI : Glisser-déposer des tâches du Backlog vers un Sprint
+- [x] UI : Démarrage et complétion de sprint (archivage des tâches terminées)
+- [x] UI : Filtre par sprint sur le tableau Kanban
 
 ---
 

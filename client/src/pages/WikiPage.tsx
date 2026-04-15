@@ -162,10 +162,11 @@ function NewPageModal({ pages, onClose, onCreate }: NewPageModalProps) {
 
 function getBreadcrumbs(pages: WikiPageSummary[], currentId: number): WikiPageSummary[] {
   const breadcrumbs: WikiPageSummary[] = [];
-  let current = pages.find((p) => p.id === currentId);
+  let current: WikiPageSummary | undefined = pages.find((p) => p.id === currentId);
   while (current) {
     breadcrumbs.unshift(current);
-    current = pages.find((p) => p.id === current.parentId);
+    const parentId = current.parentId;
+    current = parentId ? pages.find((p) => p.id === parentId) : undefined;
   }
   return breadcrumbs;
 }
