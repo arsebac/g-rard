@@ -1,37 +1,18 @@
 services:
-  db:
-    image: mariadb:11
-    container_name: gerard-db
-    restart: unless-stopped
-    environment:
-      MARIADB_ROOT_PASSWORD: rootpassword
-      MARIADB_DATABASE: gerard
-      MARIADB_USER: gerard
-      MARIADB_PASSWORD: gerard_password
-    ports:
-      - "3306:3306"
-    volumes:
-      - gerard_data:/var/lib/mysql
-    healthcheck:
-      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   app:
-    # Use the image built by GitHub Actions for easy pull on Raspberry Pi
-    # Replace 'arsebac' with your GitHub username
-    image: ghcr.io/arsebac/g-rard:latest
+    # Using the 'main' tag which matches your GitHub branch push
+    image: ghcr.io/arsebac/g-rard:main
     build:
       context: .
       dockerfile: Dockerfile
     container_name: gerard-app
     restart: unless-stopped
-    depends_on:
-      db:
-        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
-      DATABASE_URL: mysql://gerard:gerard_password@db:3306/gerard
+      # Update these with your actual host MariaDB credentials
+      # 'host.docker.internal' refers to your Raspberry Pi host
+      DATABASE_URL: mysql://gerard:gerard_password@host.docker.internal:3306/gerard
       SESSION_SECRET: changeme_use_a_random_32_char_string
       UPLOAD_DIR: /app/uploads
       PORT: 3000
@@ -48,5 +29,4 @@ services:
       start_period: 40s
 
 volumes:
-  gerard_data:
   gerard_uploads:
