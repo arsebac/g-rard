@@ -40,11 +40,13 @@ export async function createServer() {
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "blob:"],
         connectSrc: ["'self'"],
+        upgradeInsecureRequests: null, // Disable automatic HTTPS upgrade
       },
     },
     crossOriginResourcePolicy: { policy: "cross-origin" },
-    crossOriginOpenerPolicy: false, // Disable to avoid "untrustworthy origin" warnings on HTTP
+    crossOriginOpenerPolicy: false,
     originAgentCluster: false,
+    hsts: false, // Disable HSTS to prevent browser from forcing HTTPS
   });
 
   // 2. Rate Limiting (disabled in test to avoid 429 errors)
@@ -93,6 +95,11 @@ export async function createServer() {
       code: error.code,
       details: (error as any).details || undefined,
     });
+  });
+
+  // Health check endpoint (public)
+  app.get("/api/health", async () => {
+    return { status: "ok", timestamp: new Date().toISOString() };
   });
 
   // API Routes
