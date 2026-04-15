@@ -18,8 +18,8 @@ declare module "fastify" {
 }
 
 /**
- * Vérifie si un utilisateur a accès à un projet spécifique.
- * Retourne le rôle de l'utilisateur si accès, ou null.
+ * Checks if a user has access to a specific project.
+ * Returns the user's role if they have access, or null.
  */
 export async function getProjectAccess(userId: number, projectId: number) {
   const project = await db.project.findUnique({
@@ -34,7 +34,7 @@ export async function getProjectAccess(userId: number, projectId: number) {
   const member = project.members[0];
   if (member) return member.role;
   
-  // Si le projet est public, tout utilisateur connecté a au moins le rôle de membre
+  // If the project is public, any logged-in user has at least the member role
   if (project.isPublic) {
     return "member" as ProjectMemberRole;
   }
@@ -43,8 +43,8 @@ export async function getProjectAccess(userId: number, projectId: number) {
 }
 
 /**
- * Middleware pour exiger d'être membre (ou admin) d'un projet.
- * Le projectId doit être présent dans req.params.projectId.
+ * Middleware to require membership (or admin status) in a project.
+ * The projectId must be present in req.params.projectId or req.params.id.
  */
 export const requireProjectMember = async (req: FastifyRequest, reply: FastifyReply) => {
   const projectIdStr = (req.params as any).projectId || (req.params as any).id;
@@ -59,7 +59,7 @@ export const requireProjectMember = async (req: FastifyRequest, reply: FastifyRe
   });
 
   if (!project) {
-    return reply.status(404).send({ error: "Projet introuvable" });
+    return reply.status(404).send({ error: "Project not found" });
   }
 
   const member = project.members[0];
@@ -73,26 +73,26 @@ export const requireProjectMember = async (req: FastifyRequest, reply: FastifyRe
     return;
   }
 
-  return reply.status(403).send({ error: "Accès refusé au projet" });
+  return reply.status(403).send({ error: "Access denied to project" });
 };
 
 /**
- * Middleware pour exiger d'être ADMIN d'un projet.
+ * Middleware to require ADMIN status in a project.
  */
 export const requireProjectAdmin = async (req: FastifyRequest, reply: FastifyReply) => {
   await requireProjectMember(req, reply);
   if (reply.sent) return;
 
   if (req.projectRole !== "admin") {
-    return reply.status(403).send({ error: "Droits administrateur requis pour ce projet" });
+    return reply.status(403).send({ error: "Administrator rights required for this project" });
   }
 };
 
 export const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
-  // Support API key authentication (pour le serveur MCP)
+  // Support API key authentication (for the MCP server)
   const apiKey = req.headers["x-api-key"];
   if (apiKey && config.apiKey && apiKey === config.apiKey) {
-    // Utiliser le premier utilisateur admin comme acteur pour les requêtes MCP
+    // Use the first admin user as the actor for MCP requests
     const firstUser = await db.user.findFirst({ orderBy: { id: "asc" } });
     if (firstUser) {
       req.currentUserId = firstUser.id;
@@ -101,7 +101,7 @@ export const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
   }
 
   if (!req.session.userId) {
-    reply.status(401).send({ error: "Non authentifié" });
+    reply.status(401).send({ error: "Not authenticated" });
   } else {
     req.currentUserId = req.session.userId;
   }

@@ -41,6 +41,7 @@ interface Task {
   projectKey?: string | null;
   assignee?: { id: number; name: string } | null;
   labels?: { label: { name: string; color: string } }[];
+  comments?: Comment[];
 }
 
 interface WikiPage {
@@ -55,6 +56,21 @@ interface WikiPage {
   updatedAt: string;
 }
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  avatarUrl: string | null;
+}
+
+interface Comment {
+  id: number;
+  taskId: number;
+  body: string;
+  createdAt: string;
+  author: { id: number; name: string };
+}
+
 interface ActivityLog {
   id: number;
   entityType: string;
@@ -64,6 +80,34 @@ interface ActivityLog {
   newValue: string | null;
   createdAt: string;
   actor: { id: number; name: string };
+}
+
+interface Sprint {
+  id: number;
+  projectId: number;
+  name: string;
+  goal: string | null;
+  status: "futur" | "actif" | "termine";
+  startDate: string | null;
+  endDate: string | null;
+  _count?: { tasks: number };
+}
+
+interface Label {
+  id: number;
+  projectId: number;
+  name: string;
+  color: string;
+}
+
+interface Attachment {
+  id: number;
+  entityType: string;
+  entityId: number;
+  filename: string;
+  mimeType: string;
+  createdAt: string;
+  uploader: { id: number; name: string };
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -233,6 +277,160 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
         },
         required: ["title", "body"],
+      },
+    },
+    {
+      name: "update_wiki_page",
+      description: "Modifie une page wiki existante",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "ID de la page wiki" },
+          title: { type: "string", description: "Nouveau titre" },
+          body: { type: "string", description: "Nouveau contenu" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "delete_wiki_page",
+      description: "Supprime une page wiki",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "ID de la page wiki" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "list_sprints",
+      description: "Liste les sprints d'un projet",
+      inputSchema: {
+        type: "object",
+        properties: {
+          projectId: { type: "number", description: "ID du projet" },
+        },
+        required: ["projectId"],
+      },
+    },
+    {
+      name: "create_sprint",
+      description: "Crée un nouveau sprint",
+      inputSchema: {
+        type: "object",
+        properties: {
+          projectId: { type: "number", description: "ID du projet" },
+          name: { type: "string", description: "Nom du sprint" },
+          goal: { type: "string", description: "Objectif du sprint" },
+          startDate: { type: "string", description: "YYYY-MM-DD" },
+          endDate: { type: "string", description: "YYYY-MM-DD" },
+        },
+        required: ["projectId", "name"],
+      },
+    },
+    {
+      name: "update_sprint",
+      description: "Modifie un sprint existant",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "ID du sprint" },
+          name: { type: "string" },
+          goal: { type: "string" },
+          status: { type: "string", enum: ["futur", "actif", "termine"] },
+          startDate: { type: "string" },
+          endDate: { type: "string" },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "list_comments",
+      description: "Liste les commentaires d'une tâche",
+      inputSchema: {
+        type: "object",
+        properties: {
+          taskId: { type: "number", description: "ID de la tâche" },
+        },
+        required: ["taskId"],
+      },
+    },
+    {
+      name: "add_comment",
+      description: "Ajoute un commentaire à une tâche",
+      inputSchema: {
+        type: "object",
+        properties: {
+          taskId: { type: "number", description: "ID de la tâche" },
+          body: { type: "string", description: "Contenu du commentaire" },
+        },
+        required: ["taskId", "body"],
+      },
+    },
+    {
+      name: "list_users",
+      description: "Liste les utilisateurs de Gérard (pour assignation)",
+      inputSchema: { type: "object", properties: {}, required: [] },
+    },
+    {
+      name: "list_labels",
+      description: "Liste les labels disponibles pour un projet",
+      inputSchema: {
+        type: "object",
+        properties: {
+          projectId: { type: "number", description: "ID du projet" },
+        },
+        required: ["projectId"],
+      },
+    },
+    {
+      name: "create_label",
+      description: "Crée un nouveau label dans un projet",
+      inputSchema: {
+        type: "object",
+        properties: {
+          projectId: { type: "number", description: "ID du projet" },
+          name: { type: "string", description: "Nom du label" },
+          color: { type: "string", description: "Couleur hex (ex: #FF0000)" },
+        },
+        required: ["projectId", "name", "color"],
+      },
+    },
+    {
+      name: "add_label_to_task",
+      description: "Assigne un label à une tâche",
+      inputSchema: {
+        type: "object",
+        properties: {
+          taskId: { type: "number", description: "ID de la tâche" },
+          labelId: { type: "number", description: "ID du label" },
+        },
+        required: ["taskId", "labelId"],
+      },
+    },
+    {
+      name: "remove_label_from_task",
+      description: "Retire un label d'une tâche",
+      inputSchema: {
+        type: "object",
+        properties: {
+          taskId: { type: "number", description: "ID de la tâche" },
+          labelId: { type: "number", description: "ID du label" },
+        },
+        required: ["taskId", "labelId"],
+      },
+    },
+    {
+      name: "list_attachments",
+      description: "Liste les fichiers joints d'une tâche, d'un projet ou d'une page wiki",
+      inputSchema: {
+        type: "object",
+        properties: {
+          entityType: { type: "string", enum: ["task", "project", "wiki_page"] },
+          entityId: { type: "number", description: "ID de l'entité" },
+        },
+        required: ["entityType", "entityId"],
       },
     },
     {
@@ -414,6 +612,168 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         return ok({ id: page.id, title: page.title, slug: page.slug });
       }
 
+      case "update_wiki_page": {
+        const { id, ...body } = z
+          .object({
+            id: z.number(),
+            title: z.string().optional(),
+            body: z.string().optional(),
+          })
+          .parse(args);
+
+        const page = await api.patch<WikiPage>(`/api/wiki/pages/${id}`, body);
+        return ok({ id: page.id, title: page.title, slug: page.slug });
+      }
+
+      case "delete_wiki_page": {
+        const { id } = z.object({ id: z.number() }).parse(args);
+        await api.delete(`/api/wiki/pages/${id}`);
+        return ok({ success: true });
+      }
+
+      // ── Sprints ───────────────────────────────────────────────────────────
+      case "list_sprints": {
+        const { projectId } = z.object({ projectId: z.number() }).parse(args);
+        const sprints = await api.get<Sprint[]>(`/api/projects/${projectId}/sprints`);
+        return ok(
+          sprints.map((s) => ({
+            id: s.id,
+            name: s.name,
+            status: s.status,
+            goal: s.goal,
+            taskCount: s._count?.tasks ?? 0,
+          }))
+        );
+      }
+
+      case "create_sprint": {
+        const { projectId, ...body } = z
+          .object({
+            projectId: z.number(),
+            name: z.string().min(1),
+            goal: z.string().optional(),
+            startDate: z.string().optional(),
+            endDate: z.string().optional(),
+          })
+          .parse(args);
+
+        const sprint = await api.post<Sprint>(`/api/projects/${projectId}/sprints`, body);
+        return ok(sprint);
+      }
+
+      case "update_sprint": {
+        const { id, ...body } = z
+          .object({
+            id: z.number(),
+            name: z.string().optional(),
+            goal: z.string().optional(),
+            status: z.enum(["futur", "actif", "termine"]).optional(),
+            startDate: z.string().optional(),
+            endDate: z.string().optional(),
+          })
+          .parse(args);
+
+        const sprint = await api.patch<Sprint>(`/api/sprints/${id}`, body);
+        return ok(sprint);
+      }
+
+      // ── Comments ──────────────────────────────────────────────────────────
+      case "list_comments": {
+        const { taskId } = z.object({ taskId: z.number() }).parse(args);
+        const comments = await api.get<Comment[]>(`/api/tasks/${taskId}/comments`);
+        return ok(
+          comments.map((c) => ({
+            id: c.id,
+            author: c.author.name,
+            body: c.body,
+            createdAt: c.createdAt,
+          }))
+        );
+      }
+
+      case "add_comment": {
+        const { taskId, body } = z
+          .object({ taskId: z.number(), body: z.string().min(1) })
+          .parse(args);
+
+        const comment = await api.post<Comment>(`/api/tasks/${taskId}/comments`, { body });
+        return ok({ id: comment.id, author: comment.author.name, createdAt: comment.createdAt });
+      }
+
+      // ── Users ─────────────────────────────────────────────────────────────
+      case "list_users": {
+        const users = await api.get<User[]>("/api/users");
+        return ok(
+          users.map((u) => ({
+            id: u.id,
+            name: u.name,
+            email: u.email,
+          }))
+        );
+      }
+
+      // ── Labels ────────────────────────────────────────────────────────────
+      case "list_labels": {
+        const { projectId } = z.object({ projectId: z.number() }).parse(args);
+        const labels = await api.get<Label[]>(`/api/projects/${projectId}/labels`);
+        return ok(labels);
+      }
+
+      case "create_label": {
+        const { projectId, ...body } = z
+          .object({
+            projectId: z.number(),
+            name: z.string().min(1),
+            color: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+          })
+          .parse(args);
+
+        const label = await api.post<Label>(`/api/projects/${projectId}/labels`, body);
+        return ok(label);
+      }
+
+      case "add_label_to_task": {
+        const { taskId, labelId } = z
+          .object({ taskId: z.number(), labelId: z.number() })
+          .parse(args);
+
+        await api.post(`/api/tasks/${taskId}/labels/${labelId}`, {});
+        return ok({ success: true });
+      }
+
+      case "remove_label_from_task": {
+        const { taskId, labelId } = z
+          .object({ taskId: z.number(), labelId: z.number() })
+          .parse(args);
+
+        await api.delete(`/api/tasks/${taskId}/labels/${labelId}`);
+        return ok({ success: true });
+      }
+
+      // ── Attachments ───────────────────────────────────────────────────────
+      case "list_attachments": {
+        const { entityType, entityId } = z
+          .object({
+            entityType: z.enum(["task", "project", "wiki_page"]),
+            entityId: z.number(),
+          })
+          .parse(args);
+
+        const attachments = await api.get<Attachment[]>(
+          `/api/attachments?entityType=${entityType}&entityId=${entityId}`
+        );
+        return ok(
+          attachments.map((a) => ({
+            id: a.id,
+            filename: a.filename,
+            mimeType: a.mimeType,
+            uploadedBy: a.uploader.name,
+            createdAt: a.createdAt,
+            downloadUrl: `/api/attachments/${a.id}/download`,
+          }))
+        );
+      }
+
       // ── Activity ──────────────────────────────────────────────────────────
       case "get_activity": {
         const { entityType, entityId, limit } = z
@@ -457,11 +817,17 @@ function formatTask(t: Task) {
     id: t.id,
     ref: t.projectKey ? `${t.projectKey}-${t.number}` : null,
     title: t.title,
+    description: t.description,
     status: t.status,
     priority: t.priority,
     assignee: t.assignee?.name ?? null,
     dueDate: t.dueDate,
     labels: t.labels?.map((l) => l.label.name) ?? [],
+    comments: t.comments?.map((c) => ({
+      author: c.author.name,
+      body: c.body,
+      createdAt: c.createdAt,
+    })) ?? [],
   };
 }
 
