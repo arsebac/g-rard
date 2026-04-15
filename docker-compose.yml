@@ -1,6 +1,5 @@
 services:
   app:
-    # Using the 'main' tag which matches your GitHub branch push
     image: ghcr.io/arsebac/g-rard:main
     build:
       context: .
@@ -9,9 +8,9 @@ services:
     restart: unless-stopped
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    networks:
+      - proxy
     environment:
-      # Update these with your actual host MariaDB credentials
-      # 'host.docker.internal' refers to your Raspberry Pi host
       DATABASE_URL: mysql://gerard:gerard_password@host.docker.internal:3306/gerard
       SESSION_SECRET: changeme_use_a_random_32_char_string
       UPLOAD_DIR: /app/uploads
@@ -21,12 +20,21 @@ services:
       - "3000:3000"
     volumes:
       - gerard_uploads:/app/uploads
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gerard.rule=Host(`gerard.local`)"
+      - "traefik.http.routers.gerard.entrypoints=web"
+      - "traefik.http.services.gerard.loadbalancer.server.port=3000"
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/auth/me"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
+
+networks:
+  proxy:
+    external: true
 
 volumes:
   gerard_uploads:
