@@ -26,11 +26,11 @@ import sprintRoutes from "./routes/sprints";
 
 export async function createServer() {
   const app = Fastify({ 
-    logger: false, // Désactivé en test pour la clarté
+    logger: config.isDev,
     bodyLimit: 10 * 1024 * 1024,
   });
 
-  // 1. Headers de sécurité
+  // 1. Security Headers
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
@@ -45,7 +45,7 @@ export async function createServer() {
     crossOriginResourcePolicy: { policy: "cross-origin" },
   });
 
-  // 2. Rate Limiting (désactivé en test pour éviter les 429)
+  // 2. Rate Limiting (disabled in test to avoid 429 errors)
   if (process.env.NODE_ENV !== "test") {
     await app.register(rateLimit, {
       max: 1000,
@@ -79,7 +79,21 @@ export async function createServer() {
   await app.register(authPlugin);
   await app.register(multipartPlugin);
 
-  // Routes API
+  // Global error handler
+  app.setErrorHandler((error, request, reply) => {
+    const statusCode = error.statusCode || 500;
+    const isClientError = statusCode >= 400 && statusCode < 500;
+
+    request.log.error(error);
+
+    reply.status(statusCode).send({
+      error: isClientError ? error.message : "An internal server error occurred",
+      code: error.code,
+      details: (error as any).details || undefined,
+    });
+  });
+
+  // API Routes
   await app.register(authRoutes);
   await app.register(projectRoutes);
   await app.register(taskRoutes);

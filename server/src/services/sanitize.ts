@@ -5,8 +5,8 @@ const window = new JSDOM("").window;
 const purify = DOMPurify(window as any);
 
 /**
- * Nettoie le HTML pour éviter les injections XSS.
- * Autorise les balises courantes de mise en forme (WYSIWYG).
+ * Sanitizes HTML to prevent XSS injections.
+ * Allows common formatting tags (WYSIWYG).
  */
 export function sanitizeHtml(html: string): string {
   return purify.sanitize(html, {

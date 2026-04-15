@@ -6,12 +6,12 @@ import { createServer } from "./app";
 async function start() {
   const app = await createServer();
 
-  // Créer le dossier uploads si nécessaire
+  // Create uploads folder if necessary
   if (!fs.existsSync(config.uploadDir)) {
     fs.mkdirSync(config.uploadDir, { recursive: true });
   }
 
-  // En production : servir le build Vite
+  // In production: serve Vite build
   if (!config.isDev) {
     const staticPlugin = await import("@fastify/static");
     const clientDist = path.join(__dirname, "../../client/dist");
@@ -22,7 +22,7 @@ async function start() {
   }
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
-  console.log(`Gérard démarre sur http://localhost:${config.port}`);
+  console.log(`Gérard starting on http://localhost:${config.port}`);
 }
 
 start().catch((err) => {

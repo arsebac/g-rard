@@ -21,6 +21,9 @@ services:
       retries: 5
 
   app:
+    # Use the image built by GitHub Actions for easy pull on Raspberry Pi
+    # Replace 'arsebac' with your GitHub username
+    image: ghcr.io/arsebac/g-rard:latest
     build:
       context: .
       dockerfile: Dockerfile
@@ -39,6 +42,12 @@ services:
       - "3000:3000"
     volumes:
       - gerard_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/auth/me"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
 volumes:
   gerard_data:

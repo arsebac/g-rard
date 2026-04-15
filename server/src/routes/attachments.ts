@@ -5,7 +5,7 @@ import { storageService } from "../services/storage";
 import { AttachmentType } from "@prisma/client";
 
 /**
- * Récupère le projectId associé à une entité.
+ * Retrieves the projectId associated with an entity.
  */
 async function getProjectIdForEntity(type: AttachmentType, id: number): Promise<number | null> {
   if (type === "project") return id;
@@ -21,17 +21,17 @@ async function getProjectIdForEntity(type: AttachmentType, id: number): Promise<
 }
 
 export default async function attachmentRoutes(app: FastifyInstance) {
-  // GET /api/attachments — liste des pièces jointes pour une entité
+  // GET /api/attachments — list of attachments for an entity
   app.get("/api/attachments", { preHandler: requireAuth }, async (req, reply) => {
     const { entityType, entityId } = req.query as { entityType: AttachmentType; entityId: string };
     if (!entityType || !entityId) {
-      return reply.status(400).send({ error: "entityType et entityId sont requis" });
+      return reply.status(400).send({ error: "entityType and entityId are required" });
     }
 
     const projectId = await getProjectIdForEntity(entityType, parseInt(entityId));
     if (projectId) {
       const access = await getProjectAccess(req.currentUserId, projectId);
-      if (!access) return reply.status(403).send({ error: "Accès refusé" });
+      if (!access) return reply.status(403).send({ error: "Access denied" });
     }
 
     const attachments = await db.attachment.findMany({
@@ -48,24 +48,24 @@ export default async function attachmentRoutes(app: FastifyInstance) {
     return reply.send(attachments);
   });
 
-  // POST /api/attachments — upload d'un fichier
+  // POST /api/attachments — file upload
   app.post("/api/attachments", { preHandler: requireAuth }, async (req, reply) => {
     const data = await req.file();
     if (!data) {
-      return reply.status(400).send({ error: "Aucun fichier fourni" });
+      return reply.status(400).send({ error: "No file provided" });
     }
 
     const entityType = (data.fields.entityType as any)?.value as AttachmentType;
     const entityId = parseInt((data.fields.entityId as any)?.value);
 
     if (!entityType || isNaN(entityId)) {
-      return reply.status(400).send({ error: "entityType et entityId sont requis" });
+      return reply.status(400).send({ error: "entityType and entityId are required" });
     }
 
     const projectId = await getProjectIdForEntity(entityType, entityId);
     if (projectId) {
       const access = await getProjectAccess(req.currentUserId, projectId);
-      if (!access) return reply.status(403).send({ error: "Accès refusé au projet" });
+      if (!access) return reply.status(403).send({ error: "Access denied to project" });
     }
 
     try {
@@ -86,42 +86,42 @@ export default async function attachmentRoutes(app: FastifyInstance) {
       return reply.status(201).send(attachment);
     } catch (err: any) {
       app.log.error(err);
-      return reply.status(500).send({ error: err.message || "Erreur lors de la sauvegarde du fichier" });
+      return reply.status(500).send({ error: err.message || "Error while saving the file" });
     }
   });
 
-  // GET /api/attachments/:id/download — télécharger un fichier
+  // GET /api/attachments/:id/download — download a file
   app.get("/api/attachments/:id/download", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const attachment = await db.attachment.findUnique({ where: { id: parseInt(id) } });
 
     if (!attachment) {
-      return reply.status(404).send({ error: "Fichier introuvable" });
+      return reply.status(404).send({ error: "File not found" });
     }
 
-    // Vérification accès projet
+    // Project access verification
     const projectId = await getProjectIdForEntity(attachment.entityType, attachment.entityId);
     if (projectId) {
       const access = await getProjectAccess(req.currentUserId, projectId);
-      if (!access) return reply.status(403).send({ error: "Accès refusé" });
+      if (!access) return reply.status(403).send({ error: "Access denied" });
     }
 
     reply.header("Content-Disposition", `attachment; filename="${attachment.filename}"`);
     return reply.send(storageService.getStream(attachment.storedPath));
   });
 
-  // DELETE /api/attachments/:id — supprimer un fichier
+  // DELETE /api/attachments/:id — delete a file
   app.delete("/api/attachments/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const attachment = await db.attachment.findUnique({ where: { id: parseInt(id) } });
 
     if (!attachment) {
-      return reply.status(404).send({ error: "Fichier introuvable" });
+      return reply.status(404).send({ error: "File not found" });
     }
 
-    // Protection IDOR : seul l'uploadeur peut supprimer
+    // IDOR Protection: only the uploader can delete
     if (attachment.uploadedBy !== req.currentUserId) {
-      return reply.status(403).send({ error: "Vous n'avez pas l'autorisation de supprimer ce fichier" });
+      return reply.status(403).send({ error: "You are not authorized to delete this file" });
     }
 
     await storageService.deleteFile(attachment.storedPath);
