@@ -40,7 +40,7 @@ export default async function projectRoutes(app: FastifyInstance) {
   app.post("/api/projects", { preHandler: requireAuth }, async (req, reply) => {
     const body = createProjectSchema.safeParse(req.body);
     if (!body.success) {
-      return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
+      return reply.status(400).send({ error: "Invalid data", details: body.error.flatten() });
     }
 
     const key = body.data.key ?? await generateUniqueKey(body.data.name);
@@ -80,7 +80,7 @@ export default async function projectRoutes(app: FastifyInstance) {
         _count: { select: { tasks: true } },
       },
     });
-    if (!project) return reply.status(404).send({ error: "Projet introuvable" });
+    if (!project) return reply.status(404).send({ error: "Project not found" });
     return reply.send(project);
   });
 
@@ -88,7 +88,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const body = updateProjectSchema.safeParse(req.body);
     if (!body.success) {
-      return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
+      return reply.status(400).send({ error: "Invalid data", details: body.error.flatten() });
     }
 
     const project = await db.project.update({
