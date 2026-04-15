@@ -10,13 +10,13 @@ const ALLOWED_EXTENSIONS = [
 
 export const storageService = {
   /**
-   * Sauvegarde un fichier sur le disque dans un dossier structuré par date
+   * Saves a file to disk in a date-structured folder
    */
   async saveFile(stream: NodeJS.ReadableStream, filename: string): Promise<string> {
     const ext = path.extname(filename).toLowerCase();
     
     if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      throw new Error(`Extension de fichier non autorisée : ${ext}`);
+      throw new Error(`File extension not allowed: ${ext}`);
     }
 
     const today = new Date();
@@ -26,9 +26,9 @@ export const storageService = {
     const relativeDir = path.join(year, month);
     const absoluteDir = path.resolve(config.uploadDir, relativeDir);
 
-    // Sécurité supplémentaire : s'assurer que le dossier réside bien dans uploadDir
+    // Extra security: ensure the folder resides within uploadDir
     if (!absoluteDir.startsWith(path.resolve(config.uploadDir))) {
-      throw new Error("Tentative de sortie du dossier de stockage autoris\u00E9.");
+      throw new Error("Attempt to exit authorized storage directory.");
     }
 
     if (!fs.existsSync(absoluteDir)) {
@@ -48,7 +48,7 @@ export const storageService = {
   },
 
   /**
-   * Supprime un fichier du disque
+   * Deletes a file from disk
    */
   async deleteFile(relativePath: string): Promise<void> {
     const absolutePath = path.resolve(config.uploadDir, relativePath);
@@ -58,14 +58,14 @@ export const storageService = {
   },
 
   /**
-   * Retourne le chemin absolu pour le téléchargement
+   * Returns the absolute path for downloading
    */
   getAbsolutePath(relativePath: string): string {
     return path.resolve(config.uploadDir, relativePath);
   },
 
   /**
-   * Retourne un stream de lecture pour un fichier stocké
+   * Returns a read stream for a stored file
    */
   getStream(relativePath: string): NodeJS.ReadableStream {
     return fs.createReadStream(path.resolve(config.uploadDir, relativePath));

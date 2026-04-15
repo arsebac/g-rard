@@ -10,7 +10,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
 import { TaskListView } from "@/components/task/TaskListView";
-import { RoadmapView } from "@/components/task/RoadmapView";
+// import { RoadmapView } from "@/components/task/RoadmapView"; // TODO: Implement RoadmapView
 import { EpicBacklogView } from "@/components/task/EpicBacklogView";
 import { SprintBacklogView } from "@/components/task/SprintBacklogView";
 import { TaskDrawer } from "@/components/task/TaskDrawer";
@@ -441,7 +441,10 @@ export function ProjectPage() {
           ) : viewMode === "list" ? (
             <TaskListView tasks={tasks} onTaskClick={setSelectedTask} />
           ) : viewMode === "roadmap" ? (
-            <RoadmapView tasks={tasks} onTaskClick={setSelectedTask} />
+            <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
+              <Calendar size={32} className="opacity-30" />
+              <p className="text-sm">Roadmap view coming soon (TODO).</p>
+            </div>
           ) : viewMode === "backlog" ? (
             <EpicBacklogView tasks={tasks} onTaskClick={setSelectedTask} />
           ) : viewMode === "sprints" ? (
