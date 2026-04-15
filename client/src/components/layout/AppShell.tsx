@@ -101,14 +101,9 @@ export function AppShell({ children }: AppShellProps) {
         <nav className="flex-1 overflow-y-auto py-3 px-2">
           <Link
             to="/"
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-gray-600 hover:bg-gray-100"
-              )
-            }
+            activeProps={{ className: "bg-indigo-50 text-indigo-700" }}
+            inactiveProps={{ className: "text-gray-600 hover:bg-gray-100" }}
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors"
           >
             <LayoutDashboard size={16} />
             Dashboard
@@ -116,14 +111,9 @@ export function AppShell({ children }: AppShellProps) {
 
           <Link
             to="/wiki"
-            className={({ isActive }) =>
-              cn(
-                "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-indigo-50 text-indigo-700"
-                  : "text-gray-600 hover:bg-gray-100"
-              )
-            }
+            activeProps={{ className: "bg-indigo-50 text-indigo-700" }}
+            inactiveProps={{ className: "text-gray-600 hover:bg-gray-100" }}
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors"
           >
             <BookOpen size={16} />
             Wiki
@@ -136,7 +126,7 @@ export function AppShell({ children }: AppShellProps) {
                 Projects
               </span>
               <Link
-                to="/projects/new"
+                to="/"
                 className="text-gray-400 hover:text-indigo-600 transition-colors"
                 title="New project"
               >
@@ -148,14 +138,9 @@ export function AppShell({ children }: AppShellProps) {
                 key={p.id}
                 to="/projects/$projectId"
                 params={{ projectId: String(p.id) }}
-                className={({ isActive }) =>
-                  cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors",
-                    isActive
-                      ? "bg-indigo-50 text-indigo-700 font-medium"
-                      : "text-gray-600 hover:bg-gray-100"
-                  )
-                }
+                activeProps={{ className: "bg-indigo-50 text-indigo-700 font-medium" }}
+                inactiveProps={{ className: "text-gray-600 hover:bg-gray-100" }}
+                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors"
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full flex-shrink-0"

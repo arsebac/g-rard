@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import { projectsApi } from "@/api/projects";
 import { tasksApi, Task } from "@/api/tasks";
+import { sprintsApi, Sprint } from "@/api/sprints";
 import { usersApi } from "@/api/users";
 import { ticketTypesApi, TicketType } from "@/api/ticketTypes";
 import { AppShell } from "@/components/layout/AppShell";
@@ -94,8 +95,8 @@ function SprintDropdown({
   onChange,
 }: {
   projectId: number;
-  value: number | null;
-  onChange: (id: number | null) => void;
+  value: number | null | undefined;
+  onChange: (id: number | null | undefined) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -112,32 +113,39 @@ function SprintDropdown({
     return () => document.removeEventListener("mousedown", handler);
   }, [open]);
 
-  const selected = sprints.find((s) => s.id === value);
+  const selected = sprints.find((s: Sprint) => s.id === value);
 
   return (
     <div className="relative" ref={ref}>
       <button
         onClick={() => setOpen(!open)}
         className={`flex items-center gap-1.5 text-sm border px-3 py-1.5 rounded-lg transition-colors ${
-          value !== null
+          value !== undefined
             ? "bg-indigo-50 border-indigo-300 text-indigo-700"
             : "text-gray-500 hover:text-gray-700 border-gray-200 hover:border-gray-300"
         }`}
       >
         <Calendar size={13} />
-        {selected ? selected.name : "Sprints"}
+        {value === undefined ? "Sprints" : value === null ? "Backlog" : selected ? selected.name : "Sprints"}
         <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {open && (
         <div className="absolute left-0 top-full mt-1.5 z-20 w-48 bg-white border border-gray-200 rounded-xl shadow-lg py-1 overflow-hidden">
           <button
-            onClick={() => { onChange(null); setOpen(false); }}
-            className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors ${value === null ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`}
+            onClick={() => { onChange(undefined); setOpen(false); }}
+            className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left transition-colors ${value === undefined ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`}
           >
             All sprints
           </button>
-          {sprints.map((s) => (
+          <button
+            onClick={() => { onChange(null); setOpen(false); }}
+            className={`flex items-center gap-2 w-full px-3 py-2 text-sm text-left border-b border-gray-100 transition-colors ${value === null ? "bg-indigo-50 text-indigo-700" : "text-gray-600 hover:bg-gray-50"}`}
+          >
+            <div className="w-2 h-2 rounded-full bg-gray-300" />
+            Backlog (No sprint)
+          </button>
+          {sprints.map((s: Sprint) => (
             <button
               key={s.id}
               onClick={() => { onChange(s.id); setOpen(false); }}
@@ -202,10 +210,10 @@ interface FilterState {
   assigneeId: number | null;
   labelId: number | null;
   typeId: number | null;
-  sprintId: number | null;
+  sprintId: number | null | undefined;
 }
 
-const EMPTY_FILTERS: FilterState = { search: "", assigneeId: null, labelId: null, typeId: null, sprintId: null };
+const EMPTY_FILTERS: FilterState = { search: "", assigneeId: null, labelId: null, typeId: null, sprintId: undefined };
 
 export function ProjectPage() {
   const { projectId } = useParams({ from: "/projects/$projectId" });
@@ -247,7 +255,7 @@ export function ProjectPage() {
         ...(filters.labelId ? { labelId: filters.labelId } : {}),
         ...(filters.assigneeId ? { assigneeId: filters.assigneeId } : {}),
         ...(!isBacklog && filters.typeId ? { typeId: filters.typeId } : {}),
-        ...(filters.sprintId !== null ? { sprintId: filters.sprintId } : {}),
+        ...(filters.sprintId !== undefined ? { sprintId: filters.sprintId } : {}),
       }),
   });
 

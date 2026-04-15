@@ -54,11 +54,6 @@ export function LoginPage() {
     }
   };
 
-  const switchMode = () => {
-    setMode(mode === "login" ? "register" : "login");
-    setError("");
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-gray-100">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
