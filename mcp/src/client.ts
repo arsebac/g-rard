@@ -5,12 +5,11 @@
 const BASE_URL = process.env.GERARD_URL ?? "http://localhost:3000";
 const API_KEY = process.env.GERARD_API_KEY;
 
-if (!API_KEY) {
-  console.error("Erreur : La variable d'environnement GERARD_API_KEY est requise.");
-  process.exit(1);
-}
-
 async function request<T>(method: string, path: string, body?: unknown): Promise<T> {
+  if (!API_KEY) {
+    throw new Error("La variable d'environnement GERARD_API_KEY est requise pour utiliser le serveur MCP.");
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
     headers: {
