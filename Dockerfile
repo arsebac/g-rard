@@ -1,5 +1,7 @@
 # Build stage
 FROM node:20-alpine AS builder
+# Install openssl for prisma
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 # Install dependencies first for better caching
@@ -20,6 +22,8 @@ RUN npm prune --omit=dev
 
 # Final production image
 FROM node:20-alpine AS prod
+# Install openssl for prisma
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
