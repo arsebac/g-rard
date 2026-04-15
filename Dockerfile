@@ -7,6 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 COPY server/package*.json ./server/
 COPY client/package*.json ./client/
+COPY mcp/package*.json ./mcp/
 
 # Install all dependencies
 RUN npm install
@@ -21,6 +22,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/package.json ./package.json
 COPY --from=deps /app/server/package.json ./server/package.json
 COPY --from=deps /app/client/package.json ./client/package.json
+COPY --from=deps /app/mcp/package.json ./mcp/package.json
 
 # Copy source code
 COPY . .
@@ -53,6 +55,11 @@ COPY --from=builder /app/server/prisma ./prisma
 # Copy client files
 WORKDIR /app/client
 COPY --from=builder /app/client/dist ./dist
+
+# Copy mcp files
+WORKDIR /app/mcp
+COPY --from=builder /app/mcp/dist ./dist
+COPY --from=builder /app/mcp/package.json ./package.json
 
 # Switch back to app root
 WORKDIR /app

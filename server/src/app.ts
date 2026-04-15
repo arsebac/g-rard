@@ -23,6 +23,7 @@ import taskLinkRoutes from "./routes/taskLinks";
 import projectColumnRoutes from "./routes/projectColumns";
 import workflowRoutes from "./routes/workflow";
 import sprintRoutes from "./routes/sprints";
+import mcpRoutes from "./routes/mcp";
 
 export async function createServer() {
   const app = Fastify({ 
@@ -58,8 +59,10 @@ export async function createServer() {
   }
 
   await app.register(cors, {
-    origin: true, // Allow all for local network usage
+    origin: true,
     credentials: true,
+    methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie"],
   });
 
   await app.register(cookie);
@@ -118,6 +121,7 @@ export async function createServer() {
   await app.register(projectColumnRoutes);
   await app.register(workflowRoutes);
   await app.register(sprintRoutes);
+  await app.register(mcpRoutes);
 
   return app;
 }

@@ -833,5 +833,9 @@ function formatTask(t: Task) {
 
 // ─── Start ────────────────────────────────────────────────────────────────────
 
-const transport = new StdioServerTransport();
-await server.connect(transport);
+export { server };
+
+if (import.meta.url.endsWith(process.argv[1]) || process.argv[1]?.endsWith('mcp/src/index.ts') || process.argv[1]?.endsWith('mcp/dist/index.js')) {
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+}
