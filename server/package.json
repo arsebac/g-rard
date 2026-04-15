@@ -26,7 +26,8 @@
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
     "jsdom": "^29.0.2",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "@gerard/mcp": "workspace:*"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

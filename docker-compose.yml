@@ -21,7 +21,8 @@ services:
       - gerard_uploads:/app/uploads
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.gerard.rule=Host(`gerard.local`)"
+      - "traefik.docker.network=proxy"
+      - "traefik.http.routers.gerard.rule=Host(`gerard.local`) || Host(`mcp.gerard.local`)"
       - "traefik.http.routers.gerard.entrypoints=web"
       - "traefik.http.services.gerard.loadbalancer.server.port=3000"
     healthcheck:
