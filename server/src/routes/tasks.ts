@@ -68,6 +68,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         startDateTo?: string;
         endDateFrom?: string;
         endDateTo?: string;
+        sprintId?: string;
       };
 
       const project = await db.project.findUnique({ where: { id: parseInt(projectId) }, select: { key: true } });
@@ -80,6 +81,7 @@ export default async function taskRoutes(app: FastifyInstance) {
             labels: { some: { labelId: parseInt(query.labelId) } },
           }),
           ...(query.typeId && { typeId: parseInt(query.typeId) }),
+          ...(query.sprintId && { sprintId: query.sprintId === "null" ? null : parseInt(query.sprintId) }),
           ...((query.dueDateFrom || query.dueDateTo) && {
             dueDate: {
               ...(query.dueDateFrom && { gte: new Date(query.dueDateFrom) }),

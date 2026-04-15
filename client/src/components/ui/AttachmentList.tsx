@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { attachmentsApi, AttachmentType, Attachment } from "@/api/attachments";
+import { attachmentsApi, AttachmentType } from "@/api/attachments";
 import { 
   FileIcon, 
   ImageIcon, 
