@@ -1,58 +1,66 @@
-# Build stage
-FROM node:20-alpine AS builder
-# Install openssl for prisma
+# Stage 1: Base & Dependencies
+FROM node:20-alpine AS deps
 RUN apk add --no-cache openssl
 WORKDIR /app
 
-# Install dependencies first for better caching
+# Copy root and workspace package files
 COPY package*.json ./
 COPY server/package*.json ./server/
 COPY client/package*.json ./client/
 
-# Install all dependencies (including dev)
+# Install all dependencies
 RUN npm install
 
-# Copy source and build
+# Stage 2: Build
+FROM node:20-alpine AS builder
+RUN apk add --no-cache openssl
+WORKDIR /app
+
+# Copy node_modules from deps
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/package.json ./package.json
+COPY --from=deps /app/server/package.json ./server/package.json
+COPY --from=deps /app/client/package.json ./client/package.json
+
+# Copy source code
 COPY . .
+
+# Generate Prisma and build
 RUN npx prisma generate --schema=./server/prisma/schema.prisma
 RUN npm run build
 
-# Prune dev dependencies for production
+# Prune dev dependencies
 RUN npm prune --omit=dev
 
-# Final production image
+# Stage 3: Production
 FROM node:20-alpine AS prod
-# Install openssl for prisma
 RUN apk add --no-cache openssl
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
-# Copy node_modules from builder
+# Copy only production node_modules
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 
-# Copy server files into server/ directory to match expected relative paths
+# Copy server files
 WORKDIR /app/server
 COPY --from=builder /app/server/dist ./dist
 COPY --from=builder /app/server/package.json ./package.json
 COPY --from=builder /app/server/prisma ./prisma
 
-# Copy client files into client/ directory
+# Copy client files
 WORKDIR /app/client
 COPY --from=builder /app/client/dist ./dist
 
 # Switch back to app root
 WORKDIR /app
 
-# Ensure the uploads directory exists and has correct permissions
+# Ensure uploads directory exists
 RUN mkdir -p /app/uploads && chown node:node /app/uploads
 
 EXPOSE 3000
-
-# Use non-root user for security
 USER node
 
-# Start from server directory to ensure correct resolution of dist
 CMD ["node", "server/dist/index.js"]
