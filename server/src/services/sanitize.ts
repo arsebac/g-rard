@@ -15,7 +15,6 @@ export function sanitizeHtml(html: string): string {
       "nl", "li", "b", "i", "strong", "em", "strike", "code", "hr", "br", "div",
       "table", "thead", "caption", "tbody", "tr", "th", "td", "pre", "span", "img"
     ],
-    ALLOWED_ATTR: ["href", "name", "target", "src", "alt", "class", "style"],
-    ALLOWED_SCHEMES: ["http", "https", "ftp", "mailto", "data"]
+    ALLOWED_ATTR: ["href", "name", "target", "src", "alt", "class", "style"]
   });
 }
