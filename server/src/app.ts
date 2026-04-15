@@ -30,7 +30,7 @@ export async function createServer() {
     bodyLimit: 10 * 1024 * 1024,
   });
 
-  // 1. Security Headers
+  // 1. Security Headers - Relaxed for local HTTP development
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
@@ -39,10 +39,12 @@ export async function createServer() {
         styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
         fontSrc: ["'self'", "https://fonts.gstatic.com"],
         imgSrc: ["'self'", "data:", "blob:"],
-        connectSrc: ["'self'", "http://localhost:5173", "ws://localhost:5173"],
+        connectSrc: ["'self'"],
       },
     },
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginOpenerPolicy: false, // Disable to avoid "untrustworthy origin" warnings on HTTP
+    originAgentCluster: false,
   });
 
   // 2. Rate Limiting (disabled in test to avoid 429 errors)
@@ -54,7 +56,7 @@ export async function createServer() {
   }
 
   await app.register(cors, {
-    origin: config.isDev ? "http://localhost:5173" : false,
+    origin: true, // Allow all for local network usage
     credentials: true,
   });
 
@@ -62,7 +64,7 @@ export async function createServer() {
   await app.register(session, {
     secret: config.sessionSecret,
     cookie: {
-      secure: !config.isDev && process.env.NODE_ENV !== "test",
+      secure: false, // Must be false for plain HTTP
       httpOnly: true,
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
