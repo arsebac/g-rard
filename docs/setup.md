@@ -64,3 +64,6 @@ Si vous souhaitez modifier le code, suivez ces étapes :
 
 - **Problème de connexion DB :** Vérifiez que `DATABASE_URL` utilise `db` comme hôte dans Docker, mais `localhost` si vous lancez le serveur Node.js hors Docker.
 - **Uploads :** Assurez-vous que le dossier spécifié dans `UPLOAD_DIR` possède les droits d'écriture pour l'utilisateur qui lance le serveur.
+- **Page blanche / Erreurs de connexion aux assets (HTTP vs HTTPS) :** Si vous déployez Gérard derrière un reverse proxy (comme Traefik) uniquement en HTTP (ex: `http://gerard.local`), le navigateur peut bloquer les assets si les headers de sécurité (Helmet) forcent l'upgrade en HTTPS.
+  - Gérard est configuré par défaut pour autoriser le HTTP local. 
+  - Si vous voyez des erreurs `net::ERR_CONNECTION_REFUSED` sur les fichiers `.js` ou `.css`, vérifiez que `upgradeInsecureRequests` est désactivé dans `server/src/app.ts` et videz le cache HSTS de votre navigateur pour le domaine concerné.
