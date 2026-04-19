@@ -4,7 +4,7 @@ import { Task } from "@/api/tasks";
 import { PRIORITY_COLORS, PRIORITY_LABELS, taskRef } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { MessageSquare, Calendar, AlertCircle } from "lucide-react";
+import { MessageSquare, Calendar, AlertCircle, Repeat } from "lucide-react";
 
 interface TaskCardProps {
   task: Task;
@@ -97,6 +97,13 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Recurring indicator */}
+          {task.recurringTaskId && (
+            <span className="text-indigo-400" title="Recurring task">
+              <Repeat size={11} />
+            </span>
+          )}
+
           {/* Comments count */}
           {(task._count?.comments ?? 0) > 0 && (
             <span className="flex items-center gap-1 text-xs text-gray-400">

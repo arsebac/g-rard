@@ -295,6 +295,29 @@
     "is_caused_by": "Is caused by"
   },
 
+  "recurring": {
+    "title": "Recurring Tasks",
+    "new": "New recurring task",
+    "edit": "Edit recurring task",
+    "deleteConfirm": "This will delete the template and cancel all future pending tasks.",
+    "recurringBadge": "Recurring",
+    "generatedCount_one": "{{count}} task generated",
+    "generatedCount_other": "{{count}} tasks generated",
+    "regenerate": "Update schedule",
+    "regenerating": "Updating...",
+    "types": {
+      "EVERY_N_WEEKS": "Every N weeks",
+      "MONTHLY_BEFORE_END": "N days before end of month",
+      "CUSTOM_DATES": "Specific dates"
+    },
+    "intervalWeeks": "Repeat every",
+    "intervalWeeksUnit": "weeks",
+    "daysBeforeEndOfMonth": "Days before end of month",
+    "customDates": "Dates",
+    "addDate": "Add a date",
+    "noRecurring": "No recurring tasks yet."
+  },
+
   "sidebar": {
     "dashboard": "Dashboard",
     "wiki": "Wiki",

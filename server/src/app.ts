@@ -23,6 +23,7 @@ import taskLinkRoutes from "./routes/taskLinks";
 import projectColumnRoutes from "./routes/projectColumns";
 import workflowRoutes from "./routes/workflow";
 import sprintRoutes from "./routes/sprints";
+import recurringTaskRoutes from "./routes/recurringTasks";
 import mcpRoutes from "./routes/mcp";
 
 export async function createServer() {
@@ -121,6 +122,7 @@ export async function createServer() {
   await app.register(projectColumnRoutes);
   await app.register(workflowRoutes);
   await app.register(sprintRoutes);
+  await app.register(recurringTaskRoutes);
   await app.register(mcpRoutes);
 
   return app;
