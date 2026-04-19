@@ -295,6 +295,29 @@
     "is_caused_by": "Est causé par"
   },
 
+  "recurring": {
+    "title": "Tâches récurrentes",
+    "new": "Nouvelle tâche récurrente",
+    "edit": "Modifier la tâche récurrente",
+    "deleteConfirm": "Cela supprimera le modèle et annulera toutes les tâches futures en attente.",
+    "recurringBadge": "Récurrente",
+    "generatedCount_one": "{{count}} tâche générée",
+    "generatedCount_other": "{{count}} tâches générées",
+    "regenerate": "Mettre à jour le calendrier",
+    "regenerating": "Mise à jour...",
+    "types": {
+      "EVERY_N_WEEKS": "Toutes les N semaines",
+      "MONTHLY_BEFORE_END": "N jours avant la fin du mois",
+      "CUSTOM_DATES": "Dates spécifiques"
+    },
+    "intervalWeeks": "Répéter toutes les",
+    "intervalWeeksUnit": "semaines",
+    "daysBeforeEndOfMonth": "Jours avant la fin du mois",
+    "customDates": "Dates",
+    "addDate": "Ajouter une date",
+    "noRecurring": "Aucune tâche récurrente pour le moment."
+  },
+
   "sidebar": {
     "dashboard": "Tableau de bord",
     "wiki": "Wiki",

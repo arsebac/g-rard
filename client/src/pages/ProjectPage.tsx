@@ -16,9 +16,10 @@ import { EpicBacklogView } from "@/components/task/EpicBacklogView";
 import { SprintBacklogView } from "@/components/task/SprintBacklogView";
 import { TaskDrawer } from "@/components/task/TaskDrawer";
 import { TaskForm } from "@/components/task/TaskForm";
+import { RecurringTasksView } from "@/components/recurring/RecurringTasksView";
 import {
   Plus, Settings, Search, Tag, ChevronDown, X,
-  LayoutGrid, List, Layers, GitBranch, Calendar,
+  LayoutGrid, List, Layers, GitBranch, Calendar, Repeat,
 } from "lucide-react";
 
 // ─── Label dropdown filter ────────────────────────────────────────────────────
@@ -192,15 +193,16 @@ function UserAvatar({
 
 // ─── View tabs ────────────────────────────────────────────────────────────────
 
-type ViewMode = "kanban" | "list" | "backlog" | "sprints" | "roadmap" | "versions";
+type ViewMode = "kanban" | "list" | "backlog" | "sprints" | "roadmap" | "versions" | "recurring";
 
 const VIEWS: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
-  { id: "kanban",   label: "Board",    icon: <LayoutGrid size={14} /> },
-  { id: "list",     label: "List",     icon: <List size={14} /> },
-  { id: "roadmap",  label: "Roadmap",  icon: <Calendar size={14} /> },
-  { id: "backlog",  label: "Backlog",  icon: <Layers size={14} /> },
-  { id: "sprints",  label: "Sprints",  icon: <Calendar size={14} /> },
-  { id: "versions", label: "Versions", icon: <GitBranch size={14} /> },
+  { id: "kanban",    label: "Board",     icon: <LayoutGrid size={14} /> },
+  { id: "list",      label: "List",      icon: <List size={14} /> },
+  { id: "roadmap",   label: "Roadmap",   icon: <Calendar size={14} /> },
+  { id: "backlog",   label: "Backlog",   icon: <Layers size={14} /> },
+  { id: "sprints",   label: "Sprints",   icon: <Calendar size={14} /> },
+  { id: "recurring", label: "Recurring", icon: <Repeat size={14} /> },
+  { id: "versions",  label: "Versions",  icon: <GitBranch size={14} /> },
 ];
 
 // ─── Main page ────────────────────────────────────────────────────────────────
@@ -307,14 +309,16 @@ export function ProjectPage() {
             </div>
 
             <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleAddTask("a_faire")}
-                className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors"
-                title="New task (N)"
-              >
-                <Plus size={14} />
-                Create
-              </button>
+              {viewMode !== "recurring" && (
+                <button
+                  onClick={() => handleAddTask("a_faire")}
+                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-1.5 rounded-lg transition-colors"
+                  title="New task (N)"
+                >
+                  <Plus size={14} />
+                  Create
+                </button>
+              )}
               <button
                 onClick={() => setShowSettings(true)}
                 className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-300 px-3 py-1.5 rounded-lg transition-colors"
@@ -457,6 +461,8 @@ export function ProjectPage() {
             <EpicBacklogView tasks={tasks} onTaskClick={setSelectedTask} />
           ) : viewMode === "sprints" ? (
             <SprintBacklogView projectId={id} tasks={tasks} onTaskClick={setSelectedTask} />
+          ) : viewMode === "recurring" ? (
+            <RecurringTasksView projectId={id} />
           ) : (
             <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
               <GitBranch size={32} className="opacity-30" />
