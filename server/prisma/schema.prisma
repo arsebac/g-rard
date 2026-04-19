@@ -23,8 +23,10 @@ model User {
   comments        Comment[]
   activityLogs    ActivityLog[]
   attachments     Attachment[]
-  wikiPages       WikiPage[]
-  taskLinks       TaskLink[]
+  wikiPages               WikiPage[]
+  taskLinks               TaskLink[]
+  recurringTasksCreated   RecurringTask[] @relation("RecurringTaskCreator")
+  recurringTasksAssigned  RecurringTask[] @relation("RecurringTaskAssignee")
 
   @@map("users")
 }
@@ -50,6 +52,7 @@ model Project {
   columns             ProjectColumn[]
   workflowTransitions WorkflowTransition[]
   sprints             Sprint[]
+  recurringTasks      RecurringTask[]
 
   @@map("projects")
 }
@@ -105,8 +108,9 @@ model Task {
   position    Int          @default(0)
   typeId      Int?         @map("type_id")
   parentId    Int?         @map("parent_id")
-  sprintId    Int?         @map("sprint_id")
-  createdAt   DateTime     @default(now()) @map("created_at")
+  sprintId        Int?         @map("sprint_id")
+  recurringTaskId Int?         @map("recurring_task_id")
+  createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 
   project    Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -115,11 +119,12 @@ model Task {
   type       TicketType?  @relation(fields: [typeId], references: [id], onDelete: SetNull)
   parent     Task?        @relation("TaskChildren", fields: [parentId], references: [id], onDelete: SetNull)
   children   Task[]       @relation("TaskChildren")
-  sprint     Sprint?      @relation(fields: [sprintId], references: [id], onDelete: SetNull)
-  labels     TaskLabel[]
-  comments   Comment[]
-  linksFrom  TaskLink[]   @relation("LinkSource")
-  linksTo    TaskLink[]   @relation("LinkTarget")
+  sprint         Sprint?        @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  recurringTask  RecurringTask? @relation(fields: [recurringTaskId], references: [id], onDelete: SetNull)
+  labels         TaskLabel[]
+  comments       Comment[]
+  linksFrom      TaskLink[]     @relation("LinkSource")
+  linksTo        TaskLink[]     @relation("LinkTarget")
 
   @@map("tasks")
 }
@@ -286,6 +291,36 @@ enum SprintStatus {
   futur
   actif
   termine   @map("terminé")
+}
+
+model RecurringTask {
+  id                   Int            @id @default(autoincrement())
+  projectId            Int            @map("project_id")
+  title                String         @db.VarChar(500)
+  description          String?        @db.Text
+  priority             TaskPriority   @default(normale)
+  assigneeId           Int?           @map("assignee_id")
+  typeId               Int?           @map("type_id")
+  recurrenceType       RecurrenceType @map("recurrence_type")
+  intervalWeeks        Int?           @map("interval_weeks")
+  daysBeforeEndOfMonth Int?           @map("days_before_end_of_month")
+  customDates          Json?          @map("custom_dates")
+  createdBy            Int            @map("created_by")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  project  Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator  User       @relation("RecurringTaskCreator", fields: [createdBy], references: [id])
+  assignee User?      @relation("RecurringTaskAssignee", fields: [assigneeId], references: [id])
+  tasks    Task[]
+
+  @@map("recurring_tasks")
+}
+
+enum RecurrenceType {
+  EVERY_N_WEEKS
+  MONTHLY_BEFORE_END
+  CUSTOM_DATES
 }
 
 

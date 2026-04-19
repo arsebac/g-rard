@@ -28,6 +28,7 @@ import {
   Plus,
   Search,
   Layers,
+  Repeat,
 } from "lucide-react";
 import { TaskActivity } from "./TaskActivity";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
@@ -386,6 +387,12 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
             {fullTask.parent && (
               <span className="text-xs text-gray-400">
                 ↳ {fullTask.parent.project.key ? `${fullTask.parent.project.key}-${fullTask.parent.number}` : `#${fullTask.parent.number}`}
+              </span>
+            )}
+            {fullTask.recurringTaskId && (
+              <span className="flex items-center gap-1 text-xs text-indigo-500">
+                <Repeat size={11} />
+                Recurring
               </span>
             )}
           </div>
