@@ -21,6 +21,7 @@ export interface Task {
   typeId: number | null;
   parentId: number | null;
   sprintId: number | null;
+  recurringTaskId: number | null;
   createdAt: string;
   updatedAt: string;
   assignee?: Pick<User, "id" | "name" | "avatarUrl"> | null;

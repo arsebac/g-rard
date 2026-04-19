@@ -100,6 +100,18 @@ interface Label {
   color: string;
 }
 
+interface RecurringTask {
+  id: number;
+  projectId: number;
+  title: string;
+  recurrenceType: "EVERY_N_WEEKS" | "MONTHLY_BEFORE_END" | "CUSTOM_DATES";
+  intervalWeeks: number | null;
+  daysBeforeEndOfMonth: number | null;
+  customDates: string[] | null;
+  priority: string;
+  _count?: { tasks: number };
+}
+
 interface Attachment {
   id: number;
   entityType: string;
@@ -444,6 +456,79 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           limit: { type: "number", default: 20 },
         },
         required: ["entityType", "entityId"],
+      },
+    },
+    // ── Recurring tasks ───────────────────────────────────────────────────────
+    {
+      name: "list_recurring_tasks",
+      description: "Liste les modèles de tâches récurrentes d'un projet",
+      inputSchema: {
+        type: "object",
+        properties: {
+          projectId: { type: "number", description: "ID du projet" },
+        },
+        required: ["projectId"],
+      },
+    },
+    {
+      name: "create_recurring_task",
+      description: "Crée un modèle de tâche récurrente et génère les occurrences",
+      inputSchema: {
+        type: "object",
+        properties: {
+          projectId: { type: "number", description: "ID du projet" },
+          title: { type: "string", description: "Titre de la tâche récurrente" },
+          recurrenceType: {
+            type: "string",
+            enum: ["EVERY_N_WEEKS", "MONTHLY_BEFORE_END", "CUSTOM_DATES"],
+            description: "Type de récurrence",
+          },
+          intervalWeeks: { type: "number", description: "Intervalle en semaines (pour EVERY_N_WEEKS)" },
+          daysBeforeEndOfMonth: { type: "number", description: "Jours avant la fin du mois (pour MONTHLY_BEFORE_END)" },
+          customDates: {
+            type: "array",
+            items: { type: "string" },
+            description: "Dates spécifiques au format YYYY-MM-DD (pour CUSTOM_DATES)",
+          },
+          priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"] },
+          assigneeId: { type: "number", description: "ID de l'utilisateur assigné" },
+          description: { type: "string" },
+        },
+        required: ["projectId", "title", "recurrenceType"],
+      },
+    },
+    {
+      name: "update_recurring_task",
+      description: "Modifie un modèle de tâche récurrente et régénère les occurrences futures",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "ID du modèle" },
+          title: { type: "string" },
+          recurrenceType: { type: "string", enum: ["EVERY_N_WEEKS", "MONTHLY_BEFORE_END", "CUSTOM_DATES"] },
+          intervalWeeks: { type: "number" },
+          daysBeforeEndOfMonth: { type: "number" },
+          customDates: { type: "array", items: { type: "string" } },
+          priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"] },
+          assigneeId: { type: ["number", "null"] },
+        },
+        required: ["id"],
+      },
+    },
+    {
+      name: "regenerate_recurring_task",
+      description: "Régénère les occurrences futures d'une tâche récurrente. Utiliser après réception d'un calendrier (ex: calendrier de collecte des poubelles) pour remplacer les dates futures par les nouvelles dates fournies.",
+      inputSchema: {
+        type: "object",
+        properties: {
+          id: { type: "number", description: "ID du modèle récurrent" },
+          customDates: {
+            type: "array",
+            items: { type: "string" },
+            description: "Nouvelles dates au format YYYY-MM-DD. Obligatoire pour le type CUSTOM_DATES.",
+          },
+        },
+        required: ["id"],
       },
     },
   ],
@@ -800,6 +885,65 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             createdAt: l.createdAt,
           }))
         );
+      }
+
+      // ── Recurring tasks ───────────────────────────────────────────────────
+      case "list_recurring_tasks": {
+        const { projectId } = z.object({ projectId: z.number() }).parse(args);
+        const templates = await api.get<RecurringTask[]>(`/api/projects/${projectId}/recurring-tasks`);
+        return ok(templates.map((r) => ({
+          id: r.id,
+          title: r.title,
+          recurrenceType: r.recurrenceType,
+          intervalWeeks: r.intervalWeeks,
+          daysBeforeEndOfMonth: r.daysBeforeEndOfMonth,
+          customDates: r.customDates,
+          priority: r.priority,
+          taskCount: r._count?.tasks ?? 0,
+        })));
+      }
+
+      case "create_recurring_task": {
+        const { projectId, ...body } = z
+          .object({
+            projectId: z.number(),
+            title: z.string().min(1),
+            recurrenceType: z.enum(["EVERY_N_WEEKS", "MONTHLY_BEFORE_END", "CUSTOM_DATES"]),
+            intervalWeeks: z.number().optional(),
+            daysBeforeEndOfMonth: z.number().optional(),
+            customDates: z.array(z.string()).optional(),
+            priority: z.enum(["basse", "normale", "haute", "urgente"]).optional(),
+            assigneeId: z.number().optional(),
+            description: z.string().optional(),
+          })
+          .parse(args);
+        const template = await api.post<RecurringTask>(`/api/projects/${projectId}/recurring-tasks`, body);
+        return ok({ id: template.id, title: template.title, recurrenceType: template.recurrenceType, taskCount: template._count?.tasks ?? 0 });
+      }
+
+      case "update_recurring_task": {
+        const { id, ...body } = z
+          .object({
+            id: z.number(),
+            title: z.string().optional(),
+            recurrenceType: z.enum(["EVERY_N_WEEKS", "MONTHLY_BEFORE_END", "CUSTOM_DATES"]).optional(),
+            intervalWeeks: z.number().optional(),
+            daysBeforeEndOfMonth: z.number().optional(),
+            customDates: z.array(z.string()).optional(),
+            priority: z.enum(["basse", "normale", "haute", "urgente"]).optional(),
+            assigneeId: z.number().nullable().optional(),
+          })
+          .parse(args);
+        const template = await api.patch<RecurringTask>(`/api/recurring-tasks/${id}`, body);
+        return ok({ id: template.id, title: template.title, recurrenceType: template.recurrenceType, taskCount: template._count?.tasks ?? 0 });
+      }
+
+      case "regenerate_recurring_task": {
+        const { id, customDates } = z
+          .object({ id: z.number(), customDates: z.array(z.string()).optional() })
+          .parse(args);
+        const template = await api.post<RecurringTask>(`/api/recurring-tasks/${id}/regenerate`, { customDates });
+        return ok({ id: template.id, title: template.title, taskCount: template._count?.tasks ?? 0 });
       }
 
       default:
