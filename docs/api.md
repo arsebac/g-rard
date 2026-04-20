@@ -21,6 +21,13 @@ L'API de Gérard est une API REST standard, sécurisée par session (cookies) po
 -   `PATCH /api/tasks/:id` : Mettre à jour (statut, assignation, etc.).
 -   `PATCH /api/tasks/:id/move` : Modifier l'ordre (position) dans la colonne kanban.
 
+### ↻ Tâches Récurrentes
+-   `GET /api/projects/:id/recurring-tasks` : Liste les modèles récurrents d'un projet.
+-   `POST /api/projects/:id/recurring-tasks` : Créer un modèle (génère les tâches).
+-   `PATCH /api/recurring-tasks/:id` : Modifier un modèle (régénère les tâches futures).
+-   `DELETE /api/recurring-tasks/:id` : Supprimer un modèle (annule les tâches futures).
+-   `POST /api/recurring-tasks/:id/regenerate` : Forcer la régénération (utile pour mettre à jour des dates spécifiques).
+
 ### 📚 Wiki
 -   `GET /api/projects/:id/wiki` : Arborescence des pages wiki d'un projet.
 -   `POST /api/wiki/pages` : Créer une page.
