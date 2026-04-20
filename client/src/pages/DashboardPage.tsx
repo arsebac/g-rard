@@ -44,6 +44,11 @@ export function DashboardPage() {
     createMutation.mutate({ ...form, key });
   };
 
+  const handleShowForm = () => {
+    createMutation.reset();
+    setShowForm(true);
+  };
+
   return (
     <AppShell>
       <div className="p-6 max-w-5xl mx-auto">
@@ -55,7 +60,7 @@ export function DashboardPage() {
             </p>
           </div>
           <button
-            onClick={() => setShowForm(true)}
+            onClick={handleShowForm}
             className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
           >
             <Plus size={16} />
@@ -101,7 +106,7 @@ export function DashboardPage() {
 
             {/* Bouton rapide */}
             <button
-              onClick={() => setShowForm(true)}
+              onClick={handleShowForm}
               className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl p-5 hover:border-indigo-300 hover:bg-indigo-50 transition-all flex items-center justify-center gap-2 text-gray-400 hover:text-indigo-600"
             >
               <Plus size={20} />
@@ -122,6 +127,12 @@ export function DashboardPage() {
                 <X size={18} />
               </button>
             </div>
+
+            {createMutation.isError && (
+              <div className="mb-4 bg-red-50 text-red-600 text-sm p-3 rounded-lg border border-red-100">
+                {createMutation.error instanceof Error ? createMutation.error.message : "An error occurred"}
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex gap-3">

@@ -27,6 +27,30 @@ export interface Label {
   color: string;
 }
 
+export type ProjectMemberRole = "admin" | "member" | "viewer";
+
+export interface ProjectMember {
+  userId: number;
+  role: ProjectMemberRole;
+  createdAt: string;
+  user: {
+    id: number;
+    name: string;
+    avatarUrl: string | null;
+  };
+}
+
+export const membersApi = {
+  list: (projectId: number) =>
+    api.get<ProjectMember[]>(`/api/projects/${projectId}/members`),
+  add: (projectId: number, data: { userId: number; role: ProjectMemberRole }) =>
+    api.post<ProjectMember>(`/api/projects/${projectId}/members`, data),
+  updateRole: (projectId: number, userId: number, role: ProjectMemberRole) =>
+    api.patch<ProjectMember>(`/api/projects/${projectId}/members/${userId}`, { role }),
+  remove: (projectId: number, userId: number) =>
+    api.delete(`/api/projects/${projectId}/members/${userId}`),
+};
+
 export const projectsApi = {
   list: () => api.get<Project[]>("/api/projects"),
   get: (id: number) => api.get<Project>(`/api/projects/${id}`),

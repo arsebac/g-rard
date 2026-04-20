@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth, requireProjectMember, getProjectAccess } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember, getProjectAccess } from "../plugins/auth";
 import { generateOccurrences } from "../services/recurringTaskGenerator";
 import { Prisma, RecurrenceType } from "@prisma/client";
 
@@ -34,7 +34,7 @@ export default async function recurringTaskRoutes(app: FastifyInstance) {
   // List all templates for a project
   app.get(
     "/api/projects/:projectId/recurring-tasks",
-    { preHandler: [requireAuth, requireProjectMember] },
+    { preHandler: [requireAuth, requireProjectViewer] },
     async (req, reply) => {
       const { projectId } = req.params as { projectId: string };
       const templates = await db.recurringTask.findMany({
@@ -109,6 +109,7 @@ export default async function recurringTaskRoutes(app: FastifyInstance) {
 
     const access = await getProjectAccess(req.currentUserId, existing.projectId);
     if (!access) return reply.status(403).send({ error: "Access denied" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
 
     const body = updateRecurringSchema.safeParse(req.body);
     if (!body.success) {
@@ -144,6 +145,7 @@ export default async function recurringTaskRoutes(app: FastifyInstance) {
 
     const access = await getProjectAccess(req.currentUserId, existing.projectId);
     if (!access) return reply.status(403).send({ error: "Access denied" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
 
     const now = new Date();
     // Delete future pending tasks
@@ -172,6 +174,7 @@ export default async function recurringTaskRoutes(app: FastifyInstance) {
 
     const access = await getProjectAccess(req.currentUserId, existing.projectId);
     if (!access) return reply.status(403).send({ error: "Access denied" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
 
     const body = regenerateSchema.safeParse(req.body);
     if (!body.success) {

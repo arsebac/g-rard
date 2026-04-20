@@ -9,15 +9,17 @@ import {
   useSortable, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { projectsApi } from "@/api/projects";
+import { projectsApi, membersApi, type ProjectMemberRole } from "@/api/projects";
 import { labelsApi } from "@/api/labels";
+import { usersApi } from "@/api/users";
+import { useAuthStore } from "@/store/auth";
 import { ticketTypesApi, TicketType } from "@/api/ticketTypes";
 import { projectColumnsApi, ProjectColumn } from "@/api/projectColumns";
 import { workflowApi } from "@/api/workflow";
 import {
   X, Settings, Tag, Layers, LayoutGrid, GitMerge,
   Check, Pencil, Trash2, GripVertical, Eye, EyeOff,
-  ChevronRight, Save,
+  ChevronRight, Save, Users,
 } from "lucide-react";
 
 // ─── Color palette ─────────────────────────────────────────────────────────────
@@ -604,16 +606,205 @@ function TabWorkflow({ projectId }: { projectId: number }) {
   );
 }
 
+// ─── Members tab ───────────────────────────────────────────────────────────────
+
+const ROLE_OPTIONS: { value: ProjectMemberRole; label: string }[] = [
+  { value: "admin",  label: "Admin" },
+  { value: "member", label: "Member" },
+  { value: "viewer", label: "Viewer" },
+];
+
+const ROLE_BADGE: Record<ProjectMemberRole, string> = {
+  admin:  "bg-indigo-50 text-indigo-700 border border-indigo-200",
+  member: "bg-gray-100 text-gray-600 border border-gray-200",
+  viewer: "bg-amber-50 text-amber-700 border border-amber-200",
+};
+
+function MemberAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+  if (avatarUrl) {
+    return <img src={avatarUrl} alt={name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />;
+  }
+  return (
+    <span className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-sm font-semibold flex-shrink-0">
+      {name[0]?.toUpperCase()}
+    </span>
+  );
+}
+
+function TabMembers({ projectId }: { projectId: number }) {
+  const queryClient = useQueryClient();
+  const currentUser = useAuthStore((s) => s.user);
+  const [addUserId, setAddUserId] = useState<number | "">("");
+  const [addRole, setAddRole] = useState<ProjectMemberRole>("member");
+
+  const { data: members = [], isLoading, isError: membersError } = useQuery({
+    queryKey: ["members", projectId],
+    queryFn: () => membersApi.list(projectId),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: () => usersApi.list(),
+  });
+
+  const invalidate = () => queryClient.invalidateQueries({ queryKey: ["members", projectId] });
+
+  const updateRole = useMutation({
+    mutationFn: ({ userId, role }: { userId: number; role: ProjectMemberRole }) =>
+      membersApi.updateRole(projectId, userId, role),
+    onSuccess: invalidate,
+  });
+
+  const remove = useMutation({
+    mutationFn: (userId: number) => membersApi.remove(projectId, userId),
+    onSuccess: invalidate,
+  });
+
+  const add = useMutation({
+    mutationFn: () => membersApi.add(projectId, { userId: addUserId as number, role: addRole }),
+    onSuccess: () => { invalidate(); setAddUserId(""); setAddRole("member"); },
+  });
+
+  const myRole = members.find((m) => m.userId === currentUser?.id)?.role;
+  const isAdmin = myRole === "admin";
+  const adminCount = members.filter((m) => m.role === "admin").length;
+
+  const nonMembers = allUsers.filter((u) => !members.some((m) => m.userId === u.id));
+
+  if (isLoading) return <div className="text-sm text-gray-400">Loading…</div>;
+
+  if (membersError) {
+    return <div className="text-sm text-red-500">Failed to load members. Make sure the server is running and up to date.</div>;
+  }
+
+  return (
+    <div className="flex flex-col gap-5 max-w-lg">
+      <p className="text-sm text-gray-500">
+        {members.length} member{members.length !== 1 ? "s" : ""} in this project.
+      </p>
+
+      {/* Error banners */}
+      {updateRole.isError && (
+        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          Failed to update role: {(updateRole.error as Error)?.message ?? "Unknown error"}
+        </div>
+      )}
+      {remove.isError && (
+        <div className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+          Failed to remove member: {(remove.error as Error)?.message ?? "Unknown error"}
+        </div>
+      )}
+
+      {/* Last-admin notice */}
+      {isAdmin && adminCount <= 1 && members.length > 0 && (
+        <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          You are the only admin. Promote another member to admin before changing your own role.
+        </div>
+      )}
+
+      {/* Member list */}
+      <div className="flex flex-col gap-1">
+        {members.map((m) => {
+          const isLastAdmin = m.role === "admin" && adminCount <= 1;
+          const isMe = m.userId === currentUser?.id;
+          return (
+            <div
+              key={m.userId}
+              className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50"
+            >
+              <MemberAvatar name={m.user.name} avatarUrl={m.user.avatarUrl} />
+              <span className="flex-1 text-sm font-medium text-gray-800">
+                {m.user.name}
+                {isMe && <span className="ml-1.5 text-xs text-gray-400">(you)</span>}
+              </span>
+
+              {isAdmin ? (
+                <select
+                  value={m.role}
+                  disabled={isLastAdmin || updateRole.isPending}
+                  onChange={(e) => updateRole.mutate({ userId: m.userId, role: e.target.value as ProjectMemberRole })}
+                  className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white focus:outline-none focus:ring-1 focus:ring-indigo-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {ROLE_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              ) : (
+                <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${ROLE_BADGE[m.role] ?? ROLE_BADGE.member}`}>
+                  {ROLE_OPTIONS.find((o) => o.value === m.role)?.label ?? m.role}
+                </span>
+              )}
+
+              {isAdmin && (
+                <button
+                  onClick={() => remove.mutate(m.userId)}
+                  disabled={isLastAdmin || remove.isPending}
+                  className="p-1.5 text-gray-300 hover:text-red-500 rounded-md transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={isLastAdmin ? "Cannot remove the last admin" : "Remove member"}
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Add member (admin only) */}
+      {isAdmin && nonMembers.length > 0 && (
+        <div className="border border-gray-200 rounded-xl p-4 bg-white">
+          <p className="text-sm font-medium text-gray-700 mb-3">Add member</p>
+          <div className="flex gap-2">
+            <select
+              value={addUserId}
+              onChange={(e) => setAddUserId(e.target.value === "" ? "" : parseInt(e.target.value))}
+              className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              <option value="">Select a user…</option>
+              {nonMembers.map((u) => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+            <select
+              value={addRole}
+              onChange={(e) => setAddRole(e.target.value as ProjectMemberRole)}
+              className="text-sm border border-gray-200 rounded-lg px-2 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+            >
+              {ROLE_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </select>
+            <button
+              onClick={() => add.mutate()}
+              disabled={addUserId === "" || add.isPending}
+              className="flex items-center gap-1.5 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-40 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Check size={13} />
+              Add
+            </button>
+          </div>
+          {add.isError && (
+            <p className="text-xs text-red-500 mt-2">
+              {(add.error as Error)?.message ?? "Failed to add member."}
+            </p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Tabs config ───────────────────────────────────────────────────────────────
 
-type Tab = "general" | "labels" | "types" | "columns" | "workflow";
+type Tab = "general" | "labels" | "types" | "columns" | "workflow" | "members";
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "general",  label: "General",        icon: <Settings size={15} /> },
   { id: "labels",   label: "Labels",         icon: <Tag size={15} /> },
   { id: "types",    label: "Ticket types",   icon: <Layers size={15} /> },
   { id: "columns",  label: "Columns",        icon: <LayoutGrid size={15} /> },
-  { id: "workflow", label: "Workflow",       icon: <GitMerge size={15} /> },
+  { id: "workflow", label: "Workflow",        icon: <GitMerge size={15} /> },
+  { id: "members",  label: "Members",        icon: <Users size={15} /> },
 ];
 
 // ─── Hook helper ──────────────────────────────────────────────────────────────
@@ -698,6 +889,7 @@ export function ProjectSettingsModal({ projectId, onClose, initialTab = "general
             {activeTab === "types"    && <TabTicketTypes projectId={projectId} />}
             {activeTab === "columns"  && <TabColumns projectId={projectId} />}
             {activeTab === "workflow" && <TabWorkflow projectId={projectId} />}
+            {activeTab === "members"  && <TabMembers projectId={projectId} />}
           </div>
         </div>
       </div>

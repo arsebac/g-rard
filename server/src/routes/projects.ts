@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth, requireProjectMember, requireProjectAdmin } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember, requireProjectAdmin } from "../plugins/auth";
 import { logActivity } from "../services/activity";
 import { generateUniqueKey } from "../services/projectKey";
 import { ensureDefaultColumns } from "./projectColumns";
@@ -66,7 +66,7 @@ export default async function projectRoutes(app: FastifyInstance) {
     return reply.status(201).send(project);
   });
 
-  app.get("/api/projects/:id", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
+  app.get("/api/projects/:id", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const projectId = parseInt(id);
     await ensureDefaultColumns(projectId);
@@ -116,7 +116,101 @@ export default async function projectRoutes(app: FastifyInstance) {
     return reply.send({ ok: true });
   });
 
-  app.get("/api/projects/:id/activity", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
+  app.get("/api/projects/:id/members", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const members = await db.projectMember.findMany({
+      where: { projectId: parseInt(id) },
+      include: {
+        user: { select: { id: true, name: true, avatarUrl: true } },
+      },
+      orderBy: [{ role: "asc" }, { createdAt: "asc" }],
+    });
+    return reply.send(members);
+  });
+
+  app.post("/api/projects/:id/members", { preHandler: [requireAuth, requireProjectAdmin] }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const projectId = parseInt(id);
+    const body = z.object({
+      userId: z.number(),
+      role: z.enum(["admin", "member", "viewer"]).default("member"),
+    }).safeParse(req.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: "Invalid data", details: body.error.flatten() });
+    }
+
+    const existing = await db.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: body.data.userId } },
+    });
+    if (existing) {
+      return reply.status(409).send({ error: "User is already a member of this project" });
+    }
+
+    const member = await db.projectMember.create({
+      data: { projectId, userId: body.data.userId, role: body.data.role as any },
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+    });
+    return reply.status(201).send(member);
+  });
+
+  app.patch("/api/projects/:id/members/:userId", { preHandler: [requireAuth, requireProjectAdmin] }, async (req, reply) => {
+    const { id, userId } = req.params as { id: string; userId: string };
+    const projectId = parseInt(id);
+    const targetUserId = parseInt(userId);
+
+    const body = z.object({
+      role: z.enum(["admin", "member", "viewer"]),
+    }).safeParse(req.body);
+    if (!body.success) {
+      return reply.status(400).send({ error: "Invalid data", details: body.error.flatten() });
+    }
+
+    const existing = await db.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: targetUserId } },
+    });
+    if (!existing) return reply.status(404).send({ error: "Member not found" });
+
+    // Prevent removing the last admin
+    if (existing.role === "admin" && body.data.role !== "admin") {
+      const adminCount = await db.projectMember.count({ where: { projectId, role: "admin" } });
+      if (adminCount <= 1) {
+        return reply.status(400).send({ error: "Cannot demote the last admin of this project" });
+      }
+    }
+
+    const member = await db.projectMember.update({
+      where: { projectId_userId: { projectId, userId: targetUserId } },
+      data: { role: body.data.role as any },
+      include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+    });
+    return reply.send(member);
+  });
+
+  app.delete("/api/projects/:id/members/:userId", { preHandler: [requireAuth, requireProjectAdmin] }, async (req, reply) => {
+    const { id, userId } = req.params as { id: string; userId: string };
+    const projectId = parseInt(id);
+    const targetUserId = parseInt(userId);
+
+    const existing = await db.projectMember.findUnique({
+      where: { projectId_userId: { projectId, userId: targetUserId } },
+    });
+    if (!existing) return reply.status(404).send({ error: "Member not found" });
+
+    // Prevent removing the last admin
+    if (existing.role === "admin") {
+      const adminCount = await db.projectMember.count({ where: { projectId, role: "admin" } });
+      if (adminCount <= 1) {
+        return reply.status(400).send({ error: "Cannot remove the last admin of this project" });
+      }
+    }
+
+    await db.projectMember.delete({
+      where: { projectId_userId: { projectId, userId: targetUserId } },
+    });
+    return reply.send({ ok: true });
+  });
+
+  app.get("/api/projects/:id/activity", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const query = req.query as { limit?: string; offset?: string };
     const limit = Math.min(parseInt(query.limit ?? "50"), 100);

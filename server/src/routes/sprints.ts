@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth, requireProjectMember } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember } from "../plugins/auth";
 
 const sprintSchema = z.object({
   name: z.string().min(1).max(255),
@@ -15,7 +15,7 @@ const updateSprintSchema = sprintSchema.partial();
 
 export default async function sprintRoutes(app: FastifyInstance) {
   // Liste des sprints d'un projet
-  app.get("/api/projects/:projectId/sprints", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
+  app.get("/api/projects/:projectId/sprints", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const { projectId } = req.params as { projectId: string };
     const sprints = await db.sprint.findMany({
       where: { projectId: parseInt(projectId) },

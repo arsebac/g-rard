@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth, requireProjectMember, getProjectAccess } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember, getProjectAccess } from "../plugins/auth";
 
 // Types par défaut créés automatiquement pour chaque nouveau projet
 const DEFAULT_TYPES = [
@@ -30,7 +30,7 @@ const typeSchema = z.object({
 
 export default async function ticketTypeRoutes(app: FastifyInstance) {
   // GET /api/projects/:id/ticket-types
-  app.get("/api/projects/:id/ticket-types", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
+  app.get("/api/projects/:id/ticket-types", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
     if (isNaN(projectId)) return reply.status(400).send({ error: "ID invalide" });
 
@@ -66,6 +66,7 @@ export default async function ticketTypeRoutes(app: FastifyInstance) {
 
     const access = await getProjectAccess(req.currentUserId, existing.projectId);
     if (!access) return reply.status(403).send({ error: "Accès refusé" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
 
     const body = typeSchema.partial().safeParse(req.body);
     if (!body.success) return reply.status(400).send({ error: "Données invalides" });
@@ -84,6 +85,7 @@ export default async function ticketTypeRoutes(app: FastifyInstance) {
 
     const access = await getProjectAccess(req.currentUserId, existing.projectId);
     if (!access) return reply.status(403).send({ error: "Accès refusé" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
 
     // Détacher les tâches avant suppression
     await db.task.updateMany({ where: { typeId: id }, data: { typeId: null } });
