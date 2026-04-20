@@ -993,7 +993,15 @@ function formatTask(t: Task) {
 
 export { server };
 
-if (import.meta.url.endsWith(process.argv[1]) || process.argv[1]?.endsWith('mcp/src/index.ts') || process.argv[1]?.endsWith('mcp/dist/index.js')) {
+import { fileURLToPath } from 'node:url';
+
+const isMain = process.argv[1] && (
+  process.argv[1] === fileURLToPath(import.meta.url) ||
+  process.argv[1].endsWith('mcp/src/index.ts') ||
+  process.argv[1].endsWith('mcp/dist/index.js')
+) && !process.argv[1].includes('server');
+
+if (isMain) {
   const transport = new StdioServerTransport();
   await server.connect(transport);
 }
