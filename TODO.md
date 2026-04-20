@@ -2,19 +2,9 @@
 
 ## Recurring tasks — required steps after merging
 
-### 1. Run the Prisma migration
+### 1. Run the Prisma migration [DONE]
 
-Inside the running Docker container (or with a local DB connection):
-
-```bash
-cd server
-npm run db:migrate
-# or directly:
-./node_modules/.bin/prisma migrate deploy
-```
-
-The migration file is at:
-`server/prisma/migrations/20260419000000_add_recurring_tasks/migration.sql`
+(Already applied to the database during the merge process)
 
 ### 2. Rebuild the Docker image
 
