@@ -281,7 +281,8 @@ export default async function taskRoutes(app: FastifyInstance) {
   app.patch("/api/tasks/:id/move", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const old = await db.task.findUnique({ where: { id: parseInt(id) } });
-    if (!old) return reply.status(404).send({ error: "Tâche introuvable" });
+    if (!old) return reply.status(404).send({ error: "Task not found" });
+
 
     // Project access verification
     const access = await getProjectAccess(req.currentUserId, old.projectId);

@@ -63,7 +63,7 @@ describe("Workflow Validation", () => {
     // Currently it returns 200 because validation is NOT enforced
     // Once implemented, it should return 400 or 403
     expect(response.statusCode).toBe(400);
-    expect(JSON.parse(response.payload).error).toContain("Transition non autorisée");
+    expect(JSON.parse(response.payload).error).toContain("Transition not allowed");
   });
 
   it("should allow move task if transition is allowed by workflow", async () => {

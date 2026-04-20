@@ -19,18 +19,19 @@ export default async function authRoutes(app: FastifyInstance) {
   app.post("/api/auth/login", async (req, reply) => {
     const body = loginSchema.safeParse(req.body);
     if (!body.success) {
-      return reply.status(400).send({ error: "Données invalides" });
+      return reply.status(400).send({ error: "Invalid data" });
     }
 
     const user = await db.user.findUnique({ where: { email: body.data.email } });
     if (!user) {
-      return reply.status(401).send({ error: "Email ou mot de passe incorrect" });
+      return reply.status(401).send({ error: "Incorrect email or password" });
     }
 
     const valid = await bcrypt.compare(body.data.password, user.passwordHash);
     if (!valid) {
-      return reply.status(401).send({ error: "Email ou mot de passe incorrect" });
+      return reply.status(401).send({ error: "Incorrect email or password" });
     }
+
 
     req.session.userId = user.id;
     return reply.send({
@@ -44,13 +45,14 @@ export default async function authRoutes(app: FastifyInstance) {
   app.post("/api/auth/register", async (req, reply) => {
     const body = registerSchema.safeParse(req.body);
     if (!body.success) {
-      return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
+      return reply.status(400).send({ error: "Invalid data", details: body.error.flatten() });
     }
 
     const existing = await db.user.findUnique({ where: { email: body.data.email } });
     if (existing) {
-      return reply.status(409).send({ error: "Cet email est déjà utilisé" });
+      return reply.status(409).send({ error: "This email is already in use" });
     }
+
 
     const passwordHash = await bcrypt.hash(body.data.password, 10);
     const user = await db.user.create({
@@ -77,7 +79,7 @@ export default async function authRoutes(app: FastifyInstance) {
       select: { id: true, name: true, email: true, avatarUrl: true },
     });
     if (!user) {
-      return reply.status(401).send({ error: "Utilisateur introuvable" });
+      return reply.status(401).send({ error: "User not found" });
     }
     return reply.send(user);
   });

@@ -23,7 +23,7 @@ describe("Routes Export", () => {
   });
 
   describe("GET /api/projects/:id/export/csv", () => {
-    it("Happy Path : Export CSV réussi", async () => {
+    it("Happy Path: Successful CSV Export", async () => {
       (db.user.findFirst as any).mockResolvedValue({ id: 1 });
       (db.project.findUnique as any).mockResolvedValue({ id: 1, name: "Project Test", key: "TEST", members: [{ userId: 1, role: "member" }] });
       (db.task.findMany as any).mockResolvedValue([
@@ -51,11 +51,11 @@ describe("Routes Export", () => {
       expect(response.headers["content-type"]).toContain("text/csv");
       expect(response.payload).toContain("TEST-1");
       expect(response.payload).toContain("Task 1");
-      expect(response.payload).toContain("En cours");
-      expect(response.payload).toContain("Haute");
+      expect(response.payload).toContain("In Progress");
+      expect(response.payload).toContain("High");
     });
 
-    it("Erreur 400 : ID de projet invalide", async () => {
+    it("Error 400: Invalid project ID", async () => {
       // Pour simuler une erreur 400 sur un paramètre invalide, 
       // on peut soit ajouter une validation dans la route, soit tester le comportement actuel.
       // Actuellement, parseInt("abc") donnera NaN.
@@ -70,7 +70,7 @@ describe("Routes Export", () => {
       expect(response.statusCode).toBe(400);
     });
 
-    it("Erreur 401 : Non authentifié", async () => {
+    it("Error 401: Not authenticated", async () => {
       const response = await app.inject({
         method: "GET",
         url: "/api/projects/1/export/csv",
@@ -79,7 +79,7 @@ describe("Routes Export", () => {
       expect(response.statusCode).toBe(401);
     });
 
-    it("Erreur 404 : Projet introuvable", async () => {
+    it("Error 404: Project not found", async () => {
       (db.user.findFirst as any).mockResolvedValue({ id: 1 });
       (db.project.findUnique as any).mockResolvedValue(null);
 
@@ -92,7 +92,8 @@ describe("Routes Export", () => {
       expect(response.statusCode).toBe(404);
     });
 
-    it("Erreur 403 : Accès refusé (IDOR)", async () => {
+    it("Error 403: Access denied (IDOR)", async () => {
+
       // On mock requireProjectMember pour simuler un refus d'accès
       // Mais export.ts n'utilise pas requireProjectMember actuellement !
       // Je vais devoir modifier export.ts pour ajouter requireProjectMember.
