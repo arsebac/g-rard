@@ -15,6 +15,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { api } from "./client.js";
+import { mcpContextStorage } from "./context.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -148,6 +149,11 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
+    {
+      name: "get_auth_url",
+      description: "Récupère l'URL d'authentification pour lier votre compte Gérard au serveur MCP",
+      inputSchema: { type: "object", properties: {}, required: [] },
+    },
     {
       name: "list_projects",
       description: "Liste tous les projets actifs dans Gérard",
@@ -541,6 +547,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   try {
     switch (name) {
+      case "get_auth_url": {
+        const baseUrl = process.env.GERARD_URL ?? "http://localhost:3000";
+        return ok({
+          message: "Pour authentifier le serveur MCP, veuillez vous connecter à Gérard dans votre navigateur et récupérer votre token MCP.",
+          authUrl: `${baseUrl}/mcp-auth`,
+          instructions: "Une fois connecté, copiez le token et configurez votre client MCP pour utiliser l'URL : " + `${baseUrl}/mcp?token=VOTRE_TOKEN`
+        });
+      }
       // ── Projects ──────────────────────────────────────────────────────────
       case "list_projects": {
         const projects = await api.get<Project[]>("/api/projects");

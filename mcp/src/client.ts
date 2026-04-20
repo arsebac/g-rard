@@ -2,6 +2,8 @@
  * Client HTTP pour appeler l'API Gérard avec authentification par API key.
  */
 
+import { getMcpUserId } from "./context.js";
+
 const BASE_URL = process.env.GERARD_URL ?? "http://localhost:3000";
 const API_KEY = process.env.GERARD_API_KEY;
 
@@ -10,12 +12,21 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
     throw new Error("La variable d'environnement GERARD_API_KEY est requise pour utiliser le serveur MCP.");
   }
 
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    "x-api-key": API_KEY,
+  };
+
+  try {
+    const userId = getMcpUserId();
+    headers["x-user-id"] = String(userId);
+  } catch (e) {
+    // Context not found, fallback to default behavior (admin user)
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": API_KEY as string,
-    },
+    headers,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 

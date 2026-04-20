@@ -19,7 +19,7 @@ Gérard utilise un fichier `.env` à la racine pour sa configuration.
 2.  **Paramètres clés :**
     - `DATABASE_URL` : L'URL de connexion à MariaDB (ex: `mysql://gerard:password@localhost:3306/gerard`).
     - `SESSION_SECRET` : Une chaîne aléatoire longue pour sécuriser les sessions.
-    - `GERARD_API_KEY` : Clé secrète pour autoriser les connexions via le serveur MCP (Phase 5).
+    - `GERARD_API_KEY` : Clé secrète partagée utilisée pour la communication interne entre le bridge MCP et l'API (Phase 5). Les utilisateurs finaux s'authentifient via leurs tokens personnels obtenus dans l'interface.
     - `UPLOAD_DIR` : Chemin où seront stockées les pièces jointes (défaut: `/app/uploads`).
 
 ## Installation via Docker (Production / Usage standard)

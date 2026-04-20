@@ -92,7 +92,16 @@ export const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
   // Support API key authentication (for the MCP server)
   const apiKey = req.headers["x-api-key"];
   if (apiKey && config.apiKey && apiKey === config.apiKey) {
-    // Use the first admin user as the actor for MCP requests
+    const userIdHeader = req.headers["x-user-id"];
+    if (userIdHeader) {
+      const userId = parseInt(String(userIdHeader));
+      if (!isNaN(userId)) {
+        req.currentUserId = userId;
+        return;
+      }
+    }
+
+    // Fallback to the first admin user as the actor for MCP requests
     const firstUser = await db.user.findFirst({ orderBy: { id: "asc" } });
     if (firstUser) {
       req.currentUserId = firstUser.id;

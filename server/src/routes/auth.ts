@@ -83,4 +83,26 @@ export default async function authRoutes(app: FastifyInstance) {
     }
     return reply.send(user);
   });
+
+  app.get("/api/auth/mcp-token", { preHandler: requireAuth }, async (req, reply) => {
+    let user = await db.user.findUnique({
+      where: { id: req.currentUserId },
+      select: { mcpToken: true },
+    });
+
+    if (!user) {
+      return reply.status(401).send({ error: "User not found" });
+    }
+
+    if (!user.mcpToken) {
+      const newToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      await db.user.update({
+        where: { id: req.currentUserId },
+        data: { mcpToken: newToken },
+      });
+      return reply.send({ mcpToken: newToken });
+    }
+
+    return reply.send({ mcpToken: user.mcpToken });
+  });
 }
