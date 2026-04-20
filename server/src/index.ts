@@ -4,15 +4,19 @@ import { config } from "./config";
 import { createServer } from "./app";
 
 async function start() {
+  console.log("Starting Gérard server...");
+  console.log(`Current working directory: ${process.cwd()}`);
   const app = await createServer();
 
   // Create uploads folder if necessary
   if (!fs.existsSync(config.uploadDir)) {
+    console.log(`Creating upload directory: ${config.uploadDir}`);
     fs.mkdirSync(config.uploadDir, { recursive: true });
   }
 
   // In production: serve Vite build
   if (!config.isDev) {
+    console.log("Running in production mode...");
     const staticPlugin = await import("@fastify/static");
     const clientDist = path.join(__dirname, "../../client/dist");
     await app.register(staticPlugin.default, { root: clientDist, prefix: "/" });
@@ -21,8 +25,9 @@ async function start() {
     });
   }
 
+  console.log(`Attempting to listen on port ${config.port}...`);
   await app.listen({ port: config.port, host: "0.0.0.0" });
-  console.log(`Gérard starting on http://localhost:${config.port}`);
+  console.log(`✅ Gérard server is now listening on http://localhost:${config.port}`);
 }
 
 start().catch((err) => {

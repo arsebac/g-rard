@@ -1,21 +1,14 @@
-#!/usr/bin/env node
 /**
  * Serveur MCP Gérard — pilotez votre gestionnaire de projets maison depuis Claude Code.
- *
- * Configuration requise dans l'environnement :
- *   GERARD_URL      URL de base de l'API (défaut : http://localhost:3000)
- *   GERARD_API_KEY  Clé API configurée dans GERARD_API_KEY côté serveur
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { api } from "./client.js";
-import { mcpContextStorage } from "./context.js";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -140,7 +133,7 @@ function err(message: string) {
 
 // ─── Server ───────────────────────────────────────────────────────────────────
 
-const server = new Server(
+export const server = new Server(
   { name: "gerard", version: "1.0.0" },
   { capabilities: { tools: {} } }
 );
@@ -987,21 +980,4 @@ function formatTask(t: Task) {
       createdAt: c.createdAt,
     })) ?? [],
   };
-}
-
-// ─── Start ────────────────────────────────────────────────────────────────────
-
-export { server };
-
-import { fileURLToPath } from 'node:url';
-
-const isMain = process.argv[1] && (
-  process.argv[1] === fileURLToPath(import.meta.url) ||
-  process.argv[1].endsWith('mcp/src/index.ts') ||
-  process.argv[1].endsWith('mcp/dist/index.js')
-) && !process.argv[1].includes('server');
-
-if (isMain) {
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
 }
