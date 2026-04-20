@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { requireAuth, requireProjectMember, getProjectAccess } from "../plugins/auth";
 import { generateOccurrences } from "../services/recurringTaskGenerator";
-import { RecurrenceType } from "@prisma/client";
+import { Prisma, RecurrenceType } from "@prisma/client";
 
 const RECURRING_INCLUDE = {
   creator: { select: { id: true, name: true, avatarUrl: true } },
@@ -116,13 +116,14 @@ export default async function recurringTaskRoutes(app: FastifyInstance) {
     }
 
     const { customDates, recurrenceType, ...rest } = body.data;
+    const updateData: Prisma.RecurringTaskUncheckedUpdateInput = {
+      ...rest,
+      ...(recurrenceType && { recurrenceType: recurrenceType as RecurrenceType }),
+      ...(customDates !== undefined && { customDates: customDates === null ? Prisma.DbNull : customDates }),
+    };
     const template = await db.recurringTask.update({
       where: { id: parseInt(id) },
-      data: {
-        ...rest,
-        ...(recurrenceType && { recurrenceType: recurrenceType as RecurrenceType }),
-        ...(customDates !== undefined && { customDates }),
-      },
+      data: updateData,
       include: RECURRING_INCLUDE,
     });
 
