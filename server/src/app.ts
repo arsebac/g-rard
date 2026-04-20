@@ -27,12 +27,14 @@ import recurringTaskRoutes from "./routes/recurringTasks";
 import mcpRoutes from "./routes/mcp";
 
 export async function createServer() {
+  console.log("Initializing Fastify instance...");
   const app = Fastify({ 
     logger: config.isDev,
     bodyLimit: 10 * 1024 * 1024,
   });
 
   // 1. Security Headers - Relaxed for local HTTP development
+  console.log("Registering security plugins...");
   await app.register(helmet, {
     contentSecurityPolicy: {
       directives: {
@@ -123,7 +125,9 @@ export async function createServer() {
   await app.register(workflowRoutes);
   await app.register(sprintRoutes);
   await app.register(recurringTaskRoutes);
+  console.log("Registering MCP routes...");
   await app.register(mcpRoutes);
 
+  console.log("Server initialization complete.");
   return app;
 }

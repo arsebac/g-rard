@@ -249,8 +249,9 @@ model TicketType {
   position  Int      @default(0)
   createdAt DateTime @default(now()) @map("created_at")
 
-  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  tasks   Task[]
+  project        Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks          Task[]
+  recurringTasks RecurringTask[]
 
   @@map("ticket_types")
 }
@@ -310,9 +311,10 @@ model RecurringTask {
   createdAt            DateTime       @default(now()) @map("created_at")
   updatedAt            DateTime       @updatedAt @map("updated_at")
 
-  project  Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  creator  User       @relation("RecurringTaskCreator", fields: [createdBy], references: [id])
-  assignee User?      @relation("RecurringTaskAssignee", fields: [assigneeId], references: [id])
+  project  Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  creator  User         @relation("RecurringTaskCreator", fields: [createdBy], references: [id])
+  assignee User?        @relation("RecurringTaskAssignee", fields: [assigneeId], references: [id])
+  type     TicketType?  @relation(fields: [typeId], references: [id], onDelete: SetNull)
   tasks    Task[]
 
   @@map("recurring_tasks")

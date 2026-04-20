@@ -46,7 +46,7 @@ export function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      await doLogin("test@test.com", "test");
+      await doLogin("test@test.com", "testtest");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error");
     } finally {

@@ -46,6 +46,25 @@ describe("Routes Recurring Tasks", () => {
     isPublic: false
   };
 
+  describe("GET /api/projects/:projectId/recurring-tasks - includes type relation", () => {
+    it("should pass correct include object with type relation (regression: typeId FK missing)", async () => {
+      (db.user.findFirst as any).mockResolvedValue(mockUser);
+      (db.project.findUnique as any).mockResolvedValue(mockProject);
+      (db.recurringTask.findMany as any).mockResolvedValue([]);
+
+      await app.inject({
+        method: "GET",
+        url: "/api/projects/1/recurring-tasks",
+        headers: { "x-api-key": "test-api-key" },
+      });
+
+      const call = (db.recurringTask.findMany as any).mock.calls[0][0];
+      expect(call.include).toHaveProperty("type");
+      expect(call.include).toHaveProperty("creator");
+      expect(call.include).toHaveProperty("assignee");
+    });
+  });
+
   describe("GET /api/projects/:projectId/recurring-tasks", () => {
     it("should return list of templates for a project", async () => {
       (db.user.findFirst as any).mockResolvedValue(mockUser);
