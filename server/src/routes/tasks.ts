@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth, requireProjectMember, getProjectAccess } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember, getProjectAccess } from "../plugins/auth";
 import { logActivity } from "../services/activity";
 import { nextTaskNumber } from "../services/projectKey";
 import { sanitizeHtml } from "../services/sanitize";
@@ -54,7 +54,7 @@ async function validateTransition(projectId: number, fromStatus: string, toStatu
 }
 
 export default async function taskRoutes(app: FastifyInstance) {
-  app.get("/api/projects/:projectId/tasks", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
+  app.get("/api/projects/:projectId/tasks", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     try {
       const { projectId } = req.params as { projectId: string };
       const query = req.query as {
@@ -211,6 +211,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     // Project access verification
     const access = await getProjectAccess(req.currentUserId, old.projectId);
     if (!access) return reply.status(403).send({ error: "Access denied" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
 
     const body = updateTaskSchema.safeParse(req.body);
     if (!body.success) {
@@ -287,6 +288,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     // Project access verification
     const access = await getProjectAccess(req.currentUserId, old.projectId);
     if (!access) return reply.status(403).send({ error: "Access denied" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
 
     const body = moveTaskSchema.safeParse(req.body);
     if (!body.success) {
@@ -332,6 +334,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     // Project access verification
     const access = await getProjectAccess(req.currentUserId, taskToDelete.projectId);
     if (!access) return reply.status(403).send({ error: "Access denied" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
 
     await db.task.delete({ where: { id: parseInt(id) } });
     return reply.send({ ok: true });

@@ -91,13 +91,25 @@ export async function createServer() {
 
   // Global error handler
   app.setErrorHandler((error, request, reply) => {
-    const statusCode = error.statusCode || 500;
-    const isClientError = statusCode >= 400 && statusCode < 500;
+    let statusCode = error.statusCode || 500;
+    let message = error.message;
 
+    // Prisma unique constraint violation
+    if (error.code === "P2002") {
+      statusCode = 409;
+      const target = (error as any).meta?.target as string[] | undefined;
+      if (target?.includes("key")) {
+        message = "A project with this key already exists";
+      } else {
+        message = "A record with this value already exists";
+      }
+    }
+
+    const isClientError = statusCode >= 400 && statusCode < 500;
     request.log.error(error);
 
     reply.status(statusCode).send({
-      error: isClientError ? error.message : "An internal server error occurred",
+      error: isClientError ? message : "An internal server error occurred",
       code: error.code,
       details: (error as any).details || undefined,
     });

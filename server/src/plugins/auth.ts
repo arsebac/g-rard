@@ -34,19 +34,19 @@ export async function getProjectAccess(userId: number, projectId: number) {
   const member = project.members[0];
   if (member) return member.role;
   
-  // If the project is public, any logged-in user has at least the member role
+  // If the project is public, any logged-in user has read-only access
   if (project.isPublic) {
-    return "member" as ProjectMemberRole;
+    return "viewer" as ProjectMemberRole;
   }
 
   return null;
 }
 
 /**
- * Middleware to require membership (or admin status) in a project.
- * The projectId must be present in req.params.projectId or req.params.id.
+ * Middleware: passes for any project member (admin, member, viewer).
+ * Use on read-only routes.
  */
-export const requireProjectMember = async (req: FastifyRequest, reply: FastifyReply) => {
+export const requireProjectViewer = async (req: FastifyRequest, reply: FastifyReply) => {
   const projectIdStr = (req.params as any).projectId || (req.params as any).id;
   if (!projectIdStr) return;
 
@@ -69,11 +69,24 @@ export const requireProjectMember = async (req: FastifyRequest, reply: FastifyRe
   }
 
   if (project.isPublic) {
-    req.projectRole = "member" as ProjectMemberRole;
+    req.projectRole = "viewer" as ProjectMemberRole;
     return;
   }
 
   return reply.status(403).send({ error: "Access denied to project" });
+};
+
+/**
+ * Middleware: passes for admin and member only. Blocks viewers.
+ * Use on write routes.
+ */
+export const requireProjectMember = async (req: FastifyRequest, reply: FastifyReply) => {
+  await requireProjectViewer(req, reply);
+  if (reply.sent) return;
+
+  if ((req.projectRole as string) === "viewer") {
+    return reply.status(403).send({ error: "Viewers cannot perform write operations" });
+  }
 };
 
 /**

@@ -98,6 +98,7 @@ export default async function taskLinkRoutes(app: FastifyInstance) {
     if (sourceTask) {
       const access = await getProjectAccess(req.currentUserId, sourceTask.projectId);
       if (!access) return reply.status(403).send({ error: "Accès refusé" });
+      if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
     }
 
     await db.taskLink.delete({ where: { id } });
