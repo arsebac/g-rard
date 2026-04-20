@@ -16,6 +16,14 @@ Le cœur du système.
 -   **Hiérarchie :** Un ticket peut avoir un `parent_id` (Epic -> Story -> Task).
 -   **Statuts :** `à_faire`, `en_cours`, `terminé`, `bloqué`.
 -   **Priorité :** `basse`, `normale`, `haute`, `urgente`.
+-   **Récurrence :** Une tâche peut être liée à un modèle récurrent (`recurringTaskId`).
+
+### Tâches Récurrentes (`recurring_tasks`)
+Permet de générer automatiquement des tâches selon un calendrier.
+-   **EVERY_N_WEEKS :** Toutes les X semaines à partir de maintenant.
+-   **MONTHLY_BEFORE_END :** X jours avant la fin de chaque mois.
+-   **CUSTOM_DATES :** Liste de dates spécifiques (ex: calendrier de collecte des déchets).
+Lors de la modification d'un modèle, les occurrences futures "À faire" sont automatiquement régénérées.
 
 ### Labels (`labels`)
 Système de tags par projet pour catégoriser les travaux (ex: "Électricité", "Achat", "Plomberie").

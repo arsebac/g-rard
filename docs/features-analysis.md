@@ -101,9 +101,21 @@ Ce document identifie les fonctionnalités clés de Jira absentes de **Gérard**
 
 ---
 
+## 6. Automatisation & Tâches Récurrentes (Complété ✅)
+
+### ↻ Tâches Récurrentes
+*   **Concept Jira :** Souvent géré via des automations ou des apps tierces.
+*   **Implémentation Gérard :** Système natif de modèles permettant de générer des tâches sur un horizon de 15 mois.
+*   **Types supportés :**
+    *   **Hebdomadaire :** Toutes les N semaines.
+    *   **Mensuel :** X jours avant la fin du mois (idéal pour les factures ou relevés).
+    *   **Dates personnalisées :** Import de listes de dates (ex: ramassage des encombrants).
+
+---
+
 ## 🚀 Priorisation Suggérée pour Gérard
 
-1.  **Phase 6 (En cours) :** Hiérarchie Epic/Task et Liens entre tickets.
+1.  **Phase 7 (En cours) :** Agile (Sprints & Scrum).
 2.  **Estimation & Budget :** Ajouter un champ numérique simple pour le suivi des coûts.
 3.  **Timeline simple :** Visualiser les Epics sur un calendrier.
 4.  **Notifications basiques :** Savoir quand l'autre a interagi.
