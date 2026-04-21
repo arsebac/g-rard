@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "gerard": {
+      "url": "http://gerard.local/mcp?token=36xmtng4pgm03gob469gs6c",
+      "type": "sse"
+    }
+  }
+}
