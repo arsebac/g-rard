@@ -1,5 +1,5 @@
 /**
- * Serveur MCP Gérard — pilotez votre gestionnaire de projets maison depuis Claude Code.
+ * Gerard MCP Server — control your home project manager from Claude Code.
  */
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
@@ -126,7 +126,7 @@ function ok(data: unknown) {
 
 function err(message: string) {
   return {
-    content: [{ type: "text" as const, text: `Erreur : ${message}` }],
+    content: [{ type: "text" as const, text: `Error: ${message}` }],
     isError: true,
   };
 }
@@ -144,63 +144,63 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "get_auth_url",
-      description: "Récupère l'URL d'authentification pour lier votre compte Gérard au serveur MCP",
+      description: "Retrieve the authentication URL to link your Gérard account to the MCP server",
       inputSchema: { type: "object", properties: {}, required: [] },
     },
     {
       name: "list_projects",
-      description: "Liste tous les projets actifs dans Gérard",
+      description: "List all active projects in Gérard",
       inputSchema: { type: "object", properties: {}, required: [] },
     },
     {
       name: "list_tasks",
-      description: "Liste les tâches d'un projet, avec filtres optionnels",
+      description: "List tasks for a project, with optional filters",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet" },
+          projectId: { type: "number", description: "Project ID" },
           status: {
             type: "string",
             enum: ["a_faire", "en_cours", "termine", "bloque"],
-            description: "Filtrer par statut",
+            description: "Filter by status",
           },
-          assigneeId: { type: "number", description: "Filtrer par assignée (user ID)" },
+          assigneeId: { type: "number", description: "Filter by assignee (user ID)" },
         },
         required: ["projectId"],
       },
     },
     {
       name: "search_tasks",
-      description: "Recherche fulltext dans les tâches (titre et description)",
+      description: "Fulltext search in tasks (title and description)",
       inputSchema: {
         type: "object",
         properties: {
-          q: { type: "string", description: "Termes de recherche (min 2 caractères)" },
-          projectId: { type: "number", description: "Restreindre à un projet (optionnel)" },
+          q: { type: "string", description: "Search terms (min 2 characters)" },
+          projectId: { type: "number", description: "Restrict to a project (optional)" },
         },
         required: ["q"],
       },
     },
     {
       name: "get_task",
-      description: "Récupère le détail d'une tâche par son ID ou sa référence (ex: CUI-4)",
+      description: "Retrieve task details by ID or reference (e.g., CUI-4)",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID numérique de la tâche" },
-          ref: { type: "string", description: "Référence style CUI-4 (alternative à id)" },
+          id: { type: "number", description: "Numeric task ID" },
+          ref: { type: "string", description: "Reference like CUI-4 (alternative to id)" },
         },
       },
     },
     {
       name: "create_task",
-      description: "Crée une nouvelle tâche dans un projet",
+      description: "Create a new task in a project",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet" },
-          title: { type: "string", description: "Titre de la tâche" },
-          description: { type: "string", description: "Description (texte libre ou JSON Tiptap)" },
+          projectId: { type: "number", description: "Project ID" },
+          title: { type: "string", description: "Task title" },
+          description: { type: "string", description: "Description (free text or Tiptap JSON)" },
           status: {
             type: "string",
             enum: ["a_faire", "en_cours", "termine", "bloque"],
@@ -211,40 +211,40 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             enum: ["basse", "normale", "haute", "urgente"],
             default: "normale",
           },
-          assigneeId: { type: "number", description: "ID de l'utilisateur assigné" },
-          dueDate: { type: "string", description: "Date d'échéance au format YYYY-MM-DD" },
+          assigneeId: { type: "number", description: "ID of the assigned user" },
+          dueDate: { type: "string", description: "Due date in YYYY-MM-DD format" },
         },
         required: ["projectId", "title"],
       },
     },
     {
       name: "update_task",
-      description: "Modifie une tâche existante",
+      description: "Modify an existing task",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID de la tâche" },
+          id: { type: "number", description: "Task ID" },
           title: { type: "string" },
           description: { type: "string" },
           status: { type: "string", enum: ["a_faire", "en_cours", "termine", "bloque"] },
           priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"] },
           assigneeId: { type: ["number", "null"] },
-          dueDate: { type: ["string", "null"], description: "YYYY-MM-DD ou null pour effacer" },
+          dueDate: { type: ["string", "null"], description: "YYYY-MM-DD or null to clear" },
         },
         required: ["id"],
       },
     },
     {
       name: "move_task",
-      description: "Déplace une tâche vers une autre colonne du kanban",
+      description: "Move a task to another kanban column",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID de la tâche" },
+          id: { type: "number", description: "Task ID" },
           status: {
             type: "string",
             enum: ["a_faire", "en_cours", "termine", "bloque"],
-            description: "Nouvelle colonne",
+            description: "New column",
           },
         },
         required: ["id", "status"],
@@ -252,35 +252,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "list_wiki_pages",
-      description: "Liste les pages wiki d'un projet (ou le wiki global si pas de projectId)",
+      description: "List wiki pages for a project (or global wiki if no projectId)",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet (optionnel)" },
+          projectId: { type: "number", description: "Project ID (optional)" },
         },
       },
     },
     {
       name: "get_wiki_page",
-      description: "Récupère le contenu d'une page wiki par son ID",
+      description: "Retrieve wiki page content by ID",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID de la page wiki" },
+          id: { type: "number", description: "Wiki page ID" },
         },
         required: ["id"],
       },
     },
     {
       name: "create_wiki_page",
-      description: "Crée une nouvelle page wiki",
+      description: "Create a new wiki page",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet (null = wiki global)" },
-          parentId: { type: "number", description: "ID de la page parente (optionnel)" },
-          title: { type: "string", description: "Titre de la page" },
-          body: { type: "string", description: "Contenu en markdown" },
+          projectId: { type: "number", description: "Project ID (null = global wiki)" },
+          parentId: { type: "number", description: "Parent page ID (optional)" },
+          title: { type: "string", description: "Page title" },
+          body: { type: "string", description: "Markdown content" },
           contentType: {
             type: "string",
             enum: ["tiptap", "markdown"],
@@ -292,48 +292,48 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "update_wiki_page",
-      description: "Modifie une page wiki existante",
+      description: "Modify an existing wiki page",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID de la page wiki" },
-          title: { type: "string", description: "Nouveau titre" },
-          body: { type: "string", description: "Nouveau contenu" },
+          id: { type: "number", description: "Wiki page ID" },
+          title: { type: "string", description: "New title" },
+          body: { type: "string", description: "New content" },
         },
         required: ["id"],
       },
     },
     {
       name: "delete_wiki_page",
-      description: "Supprime une page wiki",
+      description: "Delete a wiki page",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID de la page wiki" },
+          id: { type: "number", description: "Wiki page ID" },
         },
         required: ["id"],
       },
     },
     {
       name: "list_sprints",
-      description: "Liste les sprints d'un projet",
+      description: "List sprints for a project",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet" },
+          projectId: { type: "number", description: "Project ID" },
         },
         required: ["projectId"],
       },
     },
     {
       name: "create_sprint",
-      description: "Crée un nouveau sprint",
+      description: "Create a new sprint",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet" },
-          name: { type: "string", description: "Nom du sprint" },
-          goal: { type: "string", description: "Objectif du sprint" },
+          projectId: { type: "number", description: "Project ID" },
+          name: { type: "string", description: "Sprint name" },
+          goal: { type: "string", description: "Sprint goal" },
           startDate: { type: "string", description: "YYYY-MM-DD" },
           endDate: { type: "string", description: "YYYY-MM-DD" },
         },
@@ -342,11 +342,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "update_sprint",
-      description: "Modifie un sprint existant",
+      description: "Modify an existing sprint",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID du sprint" },
+          id: { type: "number", description: "Sprint ID" },
           name: { type: "string" },
           goal: { type: "string" },
           status: { type: "string", enum: ["futur", "actif", "termine"] },
@@ -358,95 +358,95 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "list_comments",
-      description: "Liste les commentaires d'une tâche",
+      description: "List comments for a task",
       inputSchema: {
         type: "object",
         properties: {
-          taskId: { type: "number", description: "ID de la tâche" },
+          taskId: { type: "number", description: "Task ID" },
         },
         required: ["taskId"],
       },
     },
     {
       name: "add_comment",
-      description: "Ajoute un commentaire à une tâche",
+      description: "Add a comment to a task",
       inputSchema: {
         type: "object",
         properties: {
-          taskId: { type: "number", description: "ID de la tâche" },
-          body: { type: "string", description: "Contenu du commentaire" },
+          taskId: { type: "number", description: "Task ID" },
+          body: { type: "string", description: "Comment body" },
         },
         required: ["taskId", "body"],
       },
     },
     {
       name: "list_users",
-      description: "Liste les utilisateurs de Gérard (pour assignation)",
+      description: "List Gérard users (for assignment)",
       inputSchema: { type: "object", properties: {}, required: [] },
     },
     {
       name: "list_labels",
-      description: "Liste les labels disponibles pour un projet",
+      description: "List available labels for a project",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet" },
+          projectId: { type: "number", description: "Project ID" },
         },
         required: ["projectId"],
       },
     },
     {
       name: "create_label",
-      description: "Crée un nouveau label dans un projet",
+      description: "Create a new label in a project",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet" },
-          name: { type: "string", description: "Nom du label" },
-          color: { type: "string", description: "Couleur hex (ex: #FF0000)" },
+          projectId: { type: "number", description: "Project ID" },
+          name: { type: "string", description: "Label name" },
+          color: { type: "string", description: "Hex color (e.g., #FF0000)" },
         },
         required: ["projectId", "name", "color"],
       },
     },
     {
       name: "add_label_to_task",
-      description: "Assigne un label à une tâche",
+      description: "Assign a label to a task",
       inputSchema: {
         type: "object",
         properties: {
-          taskId: { type: "number", description: "ID de la tâche" },
-          labelId: { type: "number", description: "ID du label" },
+          taskId: { type: "number", description: "Task ID" },
+          labelId: { type: "number", description: "Label ID" },
         },
         required: ["taskId", "labelId"],
       },
     },
     {
       name: "remove_label_from_task",
-      description: "Retire un label d'une tâche",
+      description: "Remove a label from a task",
       inputSchema: {
         type: "object",
         properties: {
-          taskId: { type: "number", description: "ID de la tâche" },
-          labelId: { type: "number", description: "ID du label" },
+          taskId: { type: "number", description: "Task ID" },
+          labelId: { type: "number", description: "Label ID" },
         },
         required: ["taskId", "labelId"],
       },
     },
     {
       name: "list_attachments",
-      description: "Liste les fichiers joints d'une tâche, d'un projet ou d'une page wiki",
+      description: "List attachments for a task, project, or wiki page",
       inputSchema: {
         type: "object",
         properties: {
           entityType: { type: "string", enum: ["task", "project", "wiki_page"] },
-          entityId: { type: "number", description: "ID de l'entité" },
+          entityId: { type: "number", description: "Entity ID" },
         },
         required: ["entityType", "entityId"],
       },
     },
     {
       name: "get_activity",
-      description: "Récupère l'historique d'activité d'une tâche ou d'un projet",
+      description: "Retrieve activity history for a task or project",
       inputSchema: {
         type: "object",
         properties: {
@@ -460,37 +460,37 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     // ── Recurring tasks ───────────────────────────────────────────────────────
     {
       name: "list_recurring_tasks",
-      description: "Liste les modèles de tâches récurrentes d'un projet",
+      description: "List recurring task templates for a project",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet" },
+          projectId: { type: "number", description: "Project ID" },
         },
         required: ["projectId"],
       },
     },
     {
       name: "create_recurring_task",
-      description: "Crée un modèle de tâche récurrente et génère les occurrences",
+      description: "Create a recurring task template and generate occurrences",
       inputSchema: {
         type: "object",
         properties: {
-          projectId: { type: "number", description: "ID du projet" },
-          title: { type: "string", description: "Titre de la tâche récurrente" },
+          projectId: { type: "number", description: "Project ID" },
+          title: { type: "string", description: "Recurring task title" },
           recurrenceType: {
             type: "string",
             enum: ["EVERY_N_WEEKS", "MONTHLY_BEFORE_END", "CUSTOM_DATES"],
-            description: "Type de récurrence",
+            description: "Recurrence type",
           },
-          intervalWeeks: { type: "number", description: "Intervalle en semaines (pour EVERY_N_WEEKS)" },
-          daysBeforeEndOfMonth: { type: "number", description: "Jours avant la fin du mois (pour MONTHLY_BEFORE_END)" },
+          intervalWeeks: { type: "number", description: "Interval in weeks (for EVERY_N_WEEKS)" },
+          daysBeforeEndOfMonth: { type: "number", description: "Days before end of month (for MONTHLY_BEFORE_END)" },
           customDates: {
             type: "array",
             items: { type: "string" },
-            description: "Dates spécifiques au format YYYY-MM-DD (pour CUSTOM_DATES)",
+            description: "Specific dates in YYYY-MM-DD format (for CUSTOM_DATES)",
           },
           priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"] },
-          assigneeId: { type: "number", description: "ID de l'utilisateur assigné" },
+          assigneeId: { type: "number", description: "ID of the assigned user" },
           description: { type: "string" },
         },
         required: ["projectId", "title", "recurrenceType"],
@@ -498,11 +498,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "update_recurring_task",
-      description: "Modifie un modèle de tâche récurrente et régénère les occurrences futures",
+      description: "Modify a recurring task template and regenerate future occurrences",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID du modèle" },
+          id: { type: "number", description: "Template ID" },
           title: { type: "string" },
           recurrenceType: { type: "string", enum: ["EVERY_N_WEEKS", "MONTHLY_BEFORE_END", "CUSTOM_DATES"] },
           intervalWeeks: { type: "number" },
@@ -516,15 +516,15 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "regenerate_recurring_task",
-      description: "Régénère les occurrences futures d'une tâche récurrente. Utiliser après réception d'un calendrier (ex: calendrier de collecte des poubelles) pour remplacer les dates futures par les nouvelles dates fournies.",
+      description: "Regenerate future occurrences of a recurring task. Use after receiving a schedule (e.g., trash collection schedule) to replace future dates with provided ones.",
       inputSchema: {
         type: "object",
         properties: {
-          id: { type: "number", description: "ID du modèle récurrent" },
+          id: { type: "number", description: "Recurring template ID" },
           customDates: {
             type: "array",
             items: { type: "string" },
-            description: "Nouvelles dates au format YYYY-MM-DD. Obligatoire pour le type CUSTOM_DATES.",
+            description: "New dates in YYYY-MM-DD format. Mandatory for CUSTOM_DATES type.",
           },
         },
         required: ["id"],
@@ -543,9 +543,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case "get_auth_url": {
         const baseUrl = process.env.GERARD_URL ?? "http://localhost:3000";
         return ok({
-          message: "Pour authentifier le serveur MCP, veuillez vous connecter à Gérard dans votre navigateur et récupérer votre token MCP.",
+          message: "To authenticate the MCP server, please log in to Gérard in your browser and retrieve your MCP token.",
           authUrl: `${baseUrl}/mcp-auth`,
-          instructions: "Une fois connecté, copiez le token et configurez votre client MCP pour utiliser l'URL : " + `${baseUrl}/mcp?token=VOTRE_TOKEN`
+          instructions: "Once logged in, copy the token and configure your MCP client to use the URL: " + `${baseUrl}/mcp?token=YOUR_TOKEN`
         });
       }
       // ── Projects ──────────────────────────────────────────────────────────
@@ -601,7 +601,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         if (ref) {
           const match = ref.match(/^([A-Z]+)-(\d+)$/i);
-          if (!match) return err("Format de référence invalide (ex: CUI-4)");
+          if (!match) return err("Invalid reference format (e.g., CUI-4)");
           const task = await api.get<Task>(`/api/tasks/ref/${match[1]}/${match[2]}`);
           return ok(formatTask(task));
         }
@@ -611,7 +611,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           return ok(formatTask(task));
         }
 
-        return err("Fournir id ou ref");
+        return err("Provide id or ref");
       }
 
       case "create_task": {
