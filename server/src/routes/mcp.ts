@@ -13,54 +13,58 @@ export default async function mcpRoutes(app: FastifyInstance) {
 
   app.all("/mcp", async (request, reply) => {
     const token = (request.query as any).token || request.headers["x-mcp-token"];
-    
+    const { method, url } = request;
+
     try {
-      if (!token) {
-        console.log("[MCP] Missing MCP token");
+      if (!token && method === "GET") {
+        console.log(`[MCP] ${request.id} - Missing MCP token for GET`);
         return reply.status(401).send({ error: "Missing MCP token" });
       }
 
-      const user = await db.user.findUnique({ where: { mcpToken: token as string } });
-      if (!user) {
-        console.log("[MCP] Invalid MCP token");
-        return reply.status(401).send({ error: "Invalid MCP token" });
+      let userId: number | undefined;
+      if (token) {
+        const user = await db.user.findUnique({ where: { mcpToken: token as string } });
+        if (!user) {
+          console.log(`[MCP] ${request.id} - Invalid MCP token: ${token}`);
+          return reply.status(401).send({ error: "Invalid MCP token" });
+        }
+        userId = user.id;
       }
-      const userId = user.id;
 
-      console.log(`[MCP] Handling ${request.method} request for user ${userId}`);
+      console.log(`[MCP] ${request.id} - Handling ${method} ${url} for user ${userId || "unknown"}`);
 
-      // In stateless mode, we create a fresh transport for every request.
-      // This is required by the SDK to avoid message ID collisions and state reuse errors.
       const transport = new StreamableHTTPServerTransport();
       const server = createMcpServer();
       await server.connect(transport);
 
-      // We MUST hijack the reply before passing it to the transport, 
-      // because the transport will manage the raw Node.js response.
+      console.log(`[MCP] ${request.id} - Server connected to transport, hijacking reply`);
       reply.hijack();
       const res = reply.raw;
       const req = request.raw;
 
-      await mcpContextStorage.run({ userId }, async () => {
+      const runHandler = async () => {
         try {
-          // Handle the request. 
-          // For GET: This establishes the SSE stream and stays open.
-          // For POST: This processes the message and sends the result in the HTTP response.
+          console.log(`[MCP] ${request.id} - Calling transport.handleRequest...`);
           await transport.handleRequest(req, res, request.body);
-          console.log(`[MCP] ${request.method} request handled successfully`);
+          console.log(`[MCP] ${request.id} - transport.handleRequest finished`);
         } catch (transportErr) {
-          console.error("[MCP] Transport error:", transportErr);
+          console.error(`[MCP] ${request.id} - Transport error:`, transportErr);
           if (!res.headersSent) {
             res.statusCode = 500;
-            res.end(JSON.stringify({ error: "Internal transport error" }));
+            res.end(JSON.stringify({ error: "Internal transport error", details: String(transportErr) }));
           }
         }
-      });
+      };
+
+      if (userId) {
+        await mcpContextStorage.run({ userId }, runHandler);
+      } else {
+        await runHandler();
+      }
     } catch (error) {
-      console.error("[MCP] Global route error:", error);
+      console.error(`[MCP] ${request.id} - Global route error:`, error);
       if (!reply.sent) {
-        reply.status(500).send({ error: "Internal server error in MCP route" });
+        reply.status(500).send({ error: "Internal server error in MCP route", details: String(error) });
       }
     }
-  });
-}
+  });}
