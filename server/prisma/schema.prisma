@@ -28,6 +28,8 @@ model User {
   taskLinks               TaskLink[]
   recurringTasksCreated   RecurringTask[] @relation("RecurringTaskCreator")
   recurringTasksAssigned  RecurringTask[] @relation("RecurringTaskAssignee")
+  notificationPreferences NotificationPreference[]
+  followedTasks          TaskFollower[]
 
   @@map("users")
 }
@@ -54,6 +56,7 @@ model Project {
   workflowTransitions WorkflowTransition[]
   sprints             Sprint[]
   recurringTasks      RecurringTask[]
+  notificationPreferences NotificationPreference[]
 
   @@map("projects")
 }
@@ -127,6 +130,7 @@ model Task {
   comments       Comment[]
   linksFrom      TaskLink[]     @relation("LinkSource")
   linksTo        TaskLink[]     @relation("LinkTarget")
+  followers      TaskFollower[]
 
   @@map("tasks")
 }
@@ -363,4 +367,32 @@ enum TaskLinkType {
   is_duplicated_by
   causes
   is_caused_by
+}
+
+model NotificationPreference {
+  userId    Int     @map("user_id")
+  projectId Int     @map("project_id")
+  
+  // Level of notification
+  // 0: None
+  // 1: Only assigned or followed
+  // 2: Everything in project
+  level     Int     @default(1) 
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@id([userId, projectId])
+  @@map("notification_preferences")
+}
+
+model TaskFollower {
+  taskId Int @map("task_id")
+  userId Int @map("user_id")
+  
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([taskId, userId])
+  @@map("task_followers")
 }

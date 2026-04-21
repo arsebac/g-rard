@@ -20,14 +20,14 @@
     "@fastify/rate-limit": "^9.1.0",
     "@fastify/session": "^10.9.0",
     "@fastify/static": "^7.0.4",
+    "@gerard/mcp": "*",
     "@prisma/client": "^5.22.0",
     "bcrypt": "^5.1.1",
     "dompurify": "^3.3.3",
     "fastify": "^4.28.1",
     "fastify-plugin": "^4.5.1",
     "jsdom": "^29.0.2",
-    "zod": "^3.23.8",
-    "@gerard/mcp": "*"
+    "zod": "^3.23.8"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

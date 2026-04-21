@@ -1,5 +1,6 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
+// @ts-ignore
 import bcrypt from "bcrypt";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";

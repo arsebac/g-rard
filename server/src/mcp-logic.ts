@@ -4,10 +4,9 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
-import { db } from "./db";
 import { AsyncLocalStorage } from "node:async_hooks";
 
-// Note: On utilise directement fetch ou l'API interne ici pour éviter les imports croisés
+// Use internal URL or local URL for API calls
 const BASE_URL = process.env.GERARD_URL ?? "http://localhost:3000";
 const API_KEY = process.env.GERARD_API_KEY;
 
@@ -50,12 +49,12 @@ function ok(data: unknown) {
 
 function err(message: string) {
   return {
-    content: [{ type: "text" as const, text: `Erreur : ${message}` }],
+    content: [{ type: "text" as const, text: `Error: ${message}` }],
     isError: true,
   };
 }
 
-// ─── Types (from mcp/src/index.ts) ──────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface Project {
   id: number;
@@ -79,10 +78,7 @@ interface Task {
   projectKey?: string | null;
   assignee?: { id: number; name: string } | null;
   labels?: { label: { name: string; color: string } }[];
-  comments?: any[];
 }
-
-// ... other types omitted for brevity, but I'll use them in the handlers
 
 function formatTask(t: Task) {
   return {
@@ -108,63 +104,63 @@ export function createMcpServer() {
     tools: [
       {
         name: "get_auth_url",
-        description: "Récupère l'URL d'authentification pour lier votre compte Gérard au serveur MCP",
+        description: "Get the authentication URL to link your Gérard account to the MCP server",
         inputSchema: { type: "object", properties: {}, required: [] },
       },
       {
         name: "list_projects",
-        description: "Liste tous les projets actifs dans Gérard",
+        description: "List all active projects in Gérard",
         inputSchema: { type: "object", properties: {}, required: [] },
       },
       {
         name: "list_tasks",
-        description: "Liste les tâches d'un projet, avec filtres optionnels",
+        description: "List tasks for a project with optional filters",
         inputSchema: {
           type: "object",
           properties: {
-            projectId: { type: "number", description: "ID du projet" },
+            projectId: { type: "number", description: "Project ID" },
             status: {
               type: "string",
               enum: ["a_faire", "en_cours", "termine", "bloque"],
-              description: "Filtrer par statut",
+              description: "Filter by status",
             },
-            assigneeId: { type: "number", description: "Filtrer par assignée (user ID)" },
+            assigneeId: { type: "number", description: "Filter by assignee (user ID)" },
           },
           required: ["projectId"],
         },
       },
       {
         name: "search_tasks",
-        description: "Recherche fulltext dans les tâches (titre et description)",
+        description: "Fulltext search in tasks (title and description)",
         inputSchema: {
           type: "object",
           properties: {
-            q: { type: "string", description: "Termes de recherche (min 2 caractères)" },
-            projectId: { type: "number", description: "Restreindre à un projet (optionnel)" },
+            q: { type: "string", description: "Search terms (min 2 characters)" },
+            projectId: { type: "number", description: "Restrict to a project (optional)" },
           },
           required: ["q"],
         },
       },
       {
         name: "get_task",
-        description: "Récupère le détail d'une tâche par son ID ou sa référence (ex: CUI-4)",
+        description: "Retrieve task details by ID or reference (e.g., CUI-4)",
         inputSchema: {
           type: "object",
           properties: {
-            id: { type: "number", description: "ID numérique de la tâche" },
-            ref: { type: "string", description: "Référence style CUI-4 (alternative à id)" },
+            id: { type: "number", description: "Numeric task ID" },
+            ref: { type: "string", description: "Reference like CUI-4 (alternative to id)" },
           },
         },
       },
       {
         name: "create_task",
-        description: "Crée une nouvelle tâche dans un projet",
+        description: "Create a new task in a project",
         inputSchema: {
           type: "object",
           properties: {
-            projectId: { type: "number", description: "ID du projet" },
-            title: { type: "string", description: "Titre de la tâche" },
-            description: { type: "string", description: "Description" },
+            projectId: { type: "number", description: "Project ID" },
+            title: { type: "string", description: "Task title" },
+            description: { type: "string", description: "Task description" },
             status: { type: "string", enum: ["a_faire", "en_cours", "termine", "bloque"], default: "a_faire" },
             priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"], default: "normale" },
             assigneeId: { type: "number" },
@@ -175,11 +171,11 @@ export function createMcpServer() {
       },
       {
         name: "update_task",
-        description: "Modifie une tâche existante",
+        description: "Modify an existing task",
         inputSchema: {
           type: "object",
           properties: {
-            id: { type: "number" },
+            id: { type: "number", description: "Task ID" },
             title: { type: "string" },
             description: { type: "string" },
             status: { type: "string", enum: ["a_faire", "en_cours", "termine", "bloque"] },
@@ -192,23 +188,35 @@ export function createMcpServer() {
       },
       {
         name: "list_wiki_pages",
-        description: "Liste les pages wiki d'un projet",
+        description: "List wiki pages for a project (or global wiki if no projectId)",
         inputSchema: {
           type: "object",
           properties: {
-            projectId: { type: "number", description: "ID du projet (optionnel)" },
+            projectId: { type: "number", description: "Project ID (optional)" },
           },
         },
       },
       {
         name: "get_wiki_page",
-        description: "Récupère le contenu d'une page wiki",
+        description: "Retrieve a wiki page content by ID",
         inputSchema: {
           type: "object",
           properties: {
-            id: { type: "number" },
+            id: { type: "number", description: "Wiki page ID" },
           },
           required: ["id"],
+        },
+      },
+      {
+        name: "add_comment",
+        description: "Add a comment to a task",
+        inputSchema: {
+          type: "object",
+          properties: {
+            taskId: { type: "number", description: "Task ID" },
+            body: { type: "string", description: "Comment body" },
+          },
+          required: ["taskId", "body"],
         },
       },
     ],
@@ -223,7 +231,7 @@ export function createMcpServer() {
         case "get_auth_url":
           return ok({ 
             authUrl: `${BASE_URL}/mcp-auth`,
-            instructions: "Récupérez votre token sur cette page et utilisez-le dans l'URL du serveur MCP."
+            instructions: "Get your token on this page and use it in your MCP client configuration (e.g., as a query param ?token=... or header x-mcp-token)."
           });
           
         case "list_projects": {
@@ -259,10 +267,11 @@ export function createMcpServer() {
           const { id, ref } = args as any;
           if (ref) {
             const match = ref.match(/^([A-Z]+)-(\d+)$/i);
-            if (!match) return err("Format de référence invalide (ex: CUI-4)");
+            if (!match) return err("Invalid reference format (e.g., CUI-4)");
             const task = await mcpApiRequest<Task>("GET", `/api/tasks/ref/${match[1]}/${match[2]}`, undefined, userId);
             return ok(formatTask(task));
           }
+          if (id === undefined) return err("Provide id or ref");
           const task = await mcpApiRequest<Task>("GET", `/api/tasks/${id}`, undefined, userId);
           return ok(formatTask(task));
         }
@@ -281,7 +290,8 @@ export function createMcpServer() {
 
         case "list_wiki_pages": {
           const { projectId } = args as any;
-          const pages = await mcpApiRequest<any[]>("GET", projectId ? `/api/projects/${projectId}/wiki` : "/api/wiki", undefined, userId);
+          const path = projectId ? `/api/projects/${projectId}/wiki` : "/api/wiki";
+          const pages = await mcpApiRequest<any[]>("GET", path, undefined, userId);
           return ok(pages.map(p => ({ id: p.id, title: p.title, slug: p.slug })));
         }
 
@@ -291,8 +301,14 @@ export function createMcpServer() {
           return ok(page);
         }
 
+        case "add_comment": {
+          const { taskId, body } = args as any;
+          const comment = await mcpApiRequest<any>("POST", `/api/tasks/${taskId}/comments`, { body }, userId);
+          return ok(comment);
+        }
+
         default:
-          return err(`Outil inconnu : ${name}`);
+          return err(`Unknown tool: ${name}`);
       }
     } catch (e) {
       return err(e instanceof Error ? e.message : String(e));

@@ -1,5 +1,5 @@
 /**
- * Client HTTP pour appeler l'API Gérard avec authentification par API key.
+ * HTTP Client to call the Gerard API with API key authentication.
  */
 
 import { getMcpUserId } from "./context.js";

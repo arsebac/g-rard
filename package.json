@@ -15,6 +15,9 @@
     "db:studio": "npm run db:studio -w server"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/jsdom": "^28.0.1",
+    "@types/node": "^20.19.39",
     "concurrently": "^8.2.2"
   }
 }
