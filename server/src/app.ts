@@ -89,8 +89,18 @@ export async function createServer() {
   await app.register(authPlugin);
   await app.register(multipartPlugin);
 
+  // Global logging hooks
+  app.addHook("onRequest", async (request, reply) => {
+    console.log(`[REQ] ${request.id} - ${request.method} ${request.url}`);
+  });
+
+  app.addHook("onResponse", async (request, reply) => {
+    console.log(`[RES] ${request.id} - ${request.method} ${request.url} - ${reply.statusCode} (${reply.elapsedTime.toFixed(2)}ms)`);
+  });
+
   // Global error handler
   app.setErrorHandler((error, request, reply) => {
+    console.error(`[ERR] ${request.id} - Error handling request ${request.method} ${request.url}:`, error);
     let statusCode = error.statusCode || 500;
     let message = error.message;
 
