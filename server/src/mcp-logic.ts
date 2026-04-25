@@ -208,6 +208,25 @@ export function createMcpServer() {
         },
       },
       {
+        name: "create_wiki_page",
+        description: "Create a new wiki page",
+        inputSchema: {
+          type: "object",
+          properties: {
+            projectId: { type: "number", description: "Project ID (null = global wiki)" },
+            parentId: { type: "number", description: "Parent page ID (optional)" },
+            title: { type: "string", description: "Page title" },
+            body: { type: "string", description: "Markdown content" },
+            contentType: {
+              type: "string",
+              enum: ["tiptap", "markdown"],
+              default: "markdown",
+            },
+          },
+          required: ["title", "body"],
+        },
+      },
+      {
         name: "add_comment",
         description: "Add a comment to a task",
         inputSchema: {
@@ -299,6 +318,12 @@ export function createMcpServer() {
           const { id } = args as any;
           const page = await mcpApiRequest<any>("GET", `/api/wiki/pages/${id}`, undefined, userId);
           return ok(page);
+        }
+
+        case "create_wiki_page": {
+          const { projectId, ...body } = args as any;
+          const page = await mcpApiRequest<any>("POST", "/api/wiki/pages", body, userId);
+          return ok({ id: page.id, title: page.title, slug: page.slug });
         }
 
         case "add_comment": {
