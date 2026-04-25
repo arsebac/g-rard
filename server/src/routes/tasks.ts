@@ -274,6 +274,9 @@ export default async function taskRoutes(app: FastifyInstance) {
     if (old?.parentId !== task.parentId) {
       logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "parent_changed", oldValue: { parentId: old?.parentId }, newValue: { parentId: task.parentId } }));
     }
+    if (old?.sprintId !== task.sprintId) {
+      logs.push(logActivity({ entityType: "task", entityId: task.id, actorId: req.currentUserId, action: "sprint_changed", oldValue: { sprintId: old?.sprintId }, newValue: { sprintId: task.sprintId } }));
+    }
 
     await Promise.all(logs);
     return reply.send(task);
@@ -312,17 +315,29 @@ export default async function taskRoutes(app: FastifyInstance) {
       },
     });
 
+    const logs: Promise<void>[] = [];
     if (old?.status !== task.status) {
-      await logActivity({
+      logs.push(logActivity({
         entityType: "task",
         entityId: task.id,
         actorId: req.currentUserId,
         action: "status_changed",
         oldValue: { status: old?.status },
         newValue: { status: task.status },
-      });
+      }));
+    }
+    if (old?.sprintId !== task.sprintId) {
+      logs.push(logActivity({
+        entityType: "task",
+        entityId: task.id,
+        actorId: req.currentUserId,
+        action: "sprint_changed",
+        oldValue: { sprintId: old?.sprintId },
+        newValue: { sprintId: task.sprintId },
+      }));
     }
 
+    await Promise.all(logs);
     return reply.send(task);
   });
 

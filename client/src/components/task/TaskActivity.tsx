@@ -35,6 +35,7 @@ const ACTION_ICONS: Record<string, string> = {
   description_changed: "📝",
   type_changed: "🏷️",
   parent_changed: "🔗",
+  sprint_changed: "🏃",
   comment_added: "💬",
   comment_deleted: "🗑️",
 };
@@ -107,6 +108,14 @@ function formatAction(log: ActivityLog, users: { id: number; name: string }[]): 
           {next.parentId
             ? <span>set parent ticket <span className="font-medium text-gray-800">#{String(next.parentId)}</span></span>
             : <span>removed the parent ticket</span>}
+        </span>
+      );
+    case "sprint_changed":
+      return (
+        <span>
+          {next.sprintId
+            ? <span>moved the task to sprint <span className="font-medium text-gray-800">#{String(next.sprintId)}</span></span>
+            : <span>moved the task to the backlog</span>}
         </span>
       );
     case "comment_added":
