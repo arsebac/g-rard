@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import {
   DndContext, DragEndEvent, PointerSensor,
   useSensor, useSensors, closestCenter,
@@ -50,12 +51,15 @@ function ColorPicker({ value, onChange }: { value: string; onChange: (c: string)
 
 function TabGeneral({ project }: { project: NonNullable<ReturnType<typeof useCurrentProject>["data"]> }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [form, setForm] = useState({
     name: project.name,
     description: project.description ?? "",
     color: project.color,
     key: project.key ?? "",
   });
+
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const save = useMutation({
     mutationFn: () => projectsApi.update(project.id, {
@@ -66,6 +70,22 @@ function TabGeneral({ project }: { project: NonNullable<ReturnType<typeof useCur
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["project", project.id] });
       queryClient.invalidateQueries({ queryKey: ["projects"] });
+    },
+  });
+
+  const archive = useMutation({
+    mutationFn: () => projectsApi.delete(project.id, false),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      navigate({ to: "/" });
+    },
+  });
+
+  const hardDelete = useMutation({
+    mutationFn: () => projectsApi.delete(project.id, true),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
+      navigate({ to: "/" });
     },
   });
 
@@ -124,6 +144,63 @@ function TabGeneral({ project }: { project: NonNullable<ReturnType<typeof useCur
           {save.isPending ? "Saving…" : "Save"}
         </button>
         {save.isSuccess && <p className="text-xs text-green-600 mt-2">Changes saved.</p>}
+      </div>
+
+      <div className="mt-8 pt-8 border-t border-red-100">
+        <h3 className="text-sm font-semibold text-red-600 mb-4">Danger Zone</h3>
+        
+        {!showDeleteConfirm ? (
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center justify-between p-4 rounded-xl border border-red-100 bg-red-50/30">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Archive project</p>
+                <p className="text-xs text-gray-500">The project will be hidden but data is preserved.</p>
+              </div>
+              <button
+                onClick={() => archive.mutate()}
+                disabled={archive.isPending}
+                className="px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-red-200"
+              >
+                Archive
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl border border-red-100 bg-red-50/30">
+              <div>
+                <p className="text-sm font-medium text-gray-900">Delete project</p>
+                <p className="text-xs text-gray-500">Permanently remove this project and all its data.</p>
+              </div>
+              <button
+                onClick={() => setShowDeleteConfirm(true)}
+                className="px-3 py-1.5 text-xs font-medium bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="p-4 rounded-xl border border-red-200 bg-red-50">
+            <p className="text-sm font-bold text-red-700 mb-1">Are you absolutely sure?</p>
+            <p className="text-xs text-red-600 mb-4">
+              This action cannot be undone. All tasks, wiki pages, and history for <strong>{project.name}</strong> will be permanently deleted.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => hardDelete.mutate()}
+                disabled={hardDelete.isPending}
+                className="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors shadow-sm"
+              >
+                {hardDelete.isPending ? "Deleting..." : "Yes, delete everything"}
+              </button>
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 hover:bg-white rounded-lg transition-colors border border-gray-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

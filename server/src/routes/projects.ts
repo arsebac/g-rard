@@ -109,11 +109,58 @@ export default async function projectRoutes(app: FastifyInstance) {
 
   app.delete("/api/projects/:id", { preHandler: [requireAuth, requireProjectAdmin] }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    const { hard } = req.query as { hard?: string };
+
+    if (hard === "true") {
+      const projectId = parseInt(id);
+      
+      // Get all task and wiki page IDs for this project to clean up their activity logs and attachments
+      const tasks = await db.task.findMany({
+        where: { projectId },
+        select: { id: true }
+      });
+      const taskIds = tasks.map(t => t.id);
+
+      const wikiPages = await db.wikiPage.findMany({
+        where: { projectId },
+        select: { id: true }
+      });
+      const wikiPageIds = wikiPages.map(w => w.id);
+
+      // Clean up activity logs
+      await db.activityLog.deleteMany({
+        where: {
+          OR: [
+            { entityType: "project", entityId: projectId },
+            { entityType: "task", entityId: { in: taskIds } },
+            { entityType: "wiki_page", entityId: { in: wikiPageIds } }
+          ]
+        }
+      });
+
+      // Clean up attachments
+      await db.attachment.deleteMany({
+        where: {
+          OR: [
+            { entityType: "project", entityId: projectId },
+            { entityType: "task", entityId: { in: taskIds } },
+            { entityType: "wiki_page", entityId: { in: wikiPageIds } }
+          ]
+        }
+      });
+
+      // Now delete the project (cascades will handle the rest: tasks, members, etc.)
+      await db.project.delete({
+        where: { id: projectId },
+      });
+      return reply.send({ ok: true, deleted: true });
+    }
+
     await db.project.update({
       where: { id: parseInt(id) },
       data: { status: "archive" },
     });
-    return reply.send({ ok: true });
+    return reply.send({ ok: true, archived: true });
   });
 
   app.get("/api/projects/:id/members", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {

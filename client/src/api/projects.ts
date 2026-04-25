@@ -58,5 +58,5 @@ export const projectsApi = {
     api.post<Project>("/api/projects", data),
   update: (id: number, data: Partial<Project>) =>
     api.patch<Project>(`/api/projects/${id}`, data),
-  archive: (id: number) => api.delete(`/api/projects/${id}`),
+  delete: (id: number, hard = false) => api.delete(`/api/projects/${id}${hard ? "?hard=true" : ""}`),
 };
