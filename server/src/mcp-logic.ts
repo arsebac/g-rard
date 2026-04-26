@@ -227,6 +227,30 @@ export function createMcpServer() {
         },
       },
       {
+        name: "update_wiki_page",
+        description: "Modify an existing wiki page",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "number", description: "Wiki page ID" },
+            title: { type: "string", description: "New title" },
+            body: { type: "string", description: "New content" },
+          },
+          required: ["id"],
+        },
+      },
+      {
+        name: "delete_wiki_page",
+        description: "Delete a wiki page",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "number", description: "Wiki page ID" },
+          },
+          required: ["id"],
+        },
+      },
+      {
         name: "add_comment",
         description: "Add a comment to a task",
         inputSchema: {
@@ -324,6 +348,18 @@ export function createMcpServer() {
           const { projectId, ...body } = args as any;
           const page = await mcpApiRequest<any>("POST", "/api/wiki/pages", body, userId);
           return ok({ id: page.id, title: page.title, slug: page.slug });
+        }
+
+        case "update_wiki_page": {
+          const { id, ...body } = args as any;
+          const page = await mcpApiRequest<any>("PATCH", `/api/wiki/pages/${id}`, body, userId);
+          return ok({ id: page.id, title: page.title, slug: page.slug });
+        }
+
+        case "delete_wiki_page": {
+          const { id } = args as any;
+          await mcpApiRequest<any>("DELETE", `/api/wiki/pages/${id}`, undefined, userId);
+          return ok({ success: true });
         }
 
         case "add_comment": {
