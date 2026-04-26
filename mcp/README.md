@@ -232,6 +232,34 @@ avec le contenu suivant : ...
 
 ---
 
+#### `update_wiki_page`
+Modifie une page wiki existante.
+
+| Paramètre | Type   | Requis | Description        |
+|-----------|--------|--------|--------------------|
+| `id`      | number | oui    | ID de la page wiki |
+| `title`   | string | non    | Nouveau titre      |
+| `body`    | string | non    | Nouveau contenu    |
+
+```
+Mets à jour la page wiki 12 avec le titre "Nouveaux tarifs"
+```
+
+---
+
+#### `delete_wiki_page`
+Supprime une page wiki.
+
+| Paramètre | Type   | Requis | Description        |
+|-----------|--------|--------|--------------------|
+| `id`      | number | oui    | ID de la page wiki |
+
+```
+Supprime la page wiki 15
+```
+
+---
+
 ### Activité
 
 #### `get_activity`
