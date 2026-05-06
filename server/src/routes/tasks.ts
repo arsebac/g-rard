@@ -154,7 +154,8 @@ export default async function taskRoutes(app: FastifyInstance) {
       newValue: { title: task.title },
     });
 
-    return reply.status(201).send(task);
+    const project = await db.project.findUnique({ where: { id: parseInt(projectId) }, select: { key: true } });
+    return reply.status(201).send({ ...task, projectKey: project?.key ?? null });
   });
 
   // Lookup by project reference (e.g., CUI-5)
