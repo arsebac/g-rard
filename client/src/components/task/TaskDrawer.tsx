@@ -138,7 +138,7 @@ function SelectField<T extends string>({
 
 // ─── TaskLinksPanel ───────────────────────────────────────────────────────────
 
-function TaskLinksPanel({ taskId, projectId }: { taskId: number; projectId: number }) {
+function TaskLinksPanel({ taskId, projectId, onTaskClick }: { taskId: number; projectId: number; onTaskClick: (task: Task) => void }) {
   const queryClient = useQueryClient();
   const [adding, setAdding] = useState(false);
   const [search, setSearch] = useState("");
@@ -264,13 +264,18 @@ function TaskLinksPanel({ taskId, projectId }: { taskId: number; projectId: numb
           <p className="text-xs font-medium text-gray-500 mb-1">{LINK_TYPE_LABELS[linkType]}</p>
           {group.map((link) => (
             <div key={link.id} className="flex items-center gap-2 group py-1">
-              <span className="font-mono text-xs text-indigo-500">
-                {taskRef(link.task.projectKey, link.task.number)}
-              </span>
-              <span className="flex-1 text-xs text-gray-700 truncate">{link.task.title}</span>
+              <button
+                onClick={() => tasksApi.get(link.task.id).then(onTaskClick)}
+                className="flex items-center gap-1.5 min-w-0 flex-1 text-left hover:underline"
+              >
+                <span className="font-mono text-xs text-indigo-500 flex-shrink-0">
+                  {taskRef(link.task.projectKey, link.task.number)}
+                </span>
+                <span className="text-xs text-gray-700 truncate">{link.task.title}</span>
+              </button>
               <button
                 onClick={() => removeLink.mutate(link.id)}
-                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity"
+                className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-500 transition-opacity flex-shrink-0"
               >
                 <X size={11} />
               </button>
@@ -433,7 +438,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
 
             {/* Liens */}
             <div className="border-t border-gray-100 pt-4">
-              <TaskLinksPanel taskId={fullTask.id} projectId={fullTask.projectId} />
+              <TaskLinksPanel taskId={fullTask.id} projectId={fullTask.projectId} onTaskClick={setLinkedTask} />
             </div>
 
             <div className="pt-2 border-t border-gray-100">

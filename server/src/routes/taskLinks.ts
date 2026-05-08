@@ -10,6 +10,16 @@ const LINK_TYPES = [
   "causes", "is_caused_by",
 ] as const;
 
+const INVERSE_LINK_TYPE: Record<string, string> = {
+  blocks: "is_blocked_by",
+  is_blocked_by: "blocks",
+  relates_to: "relates_to",
+  duplicates: "is_duplicated_by",
+  is_duplicated_by: "duplicates",
+  causes: "is_caused_by",
+  is_caused_by: "causes",
+};
+
 const createLinkSchema = z.object({
   targetId: z.number(),
   linkType: z.enum(LINK_TYPES),
@@ -57,7 +67,7 @@ export default async function taskLinkRoutes(app: FastifyInstance) {
       })),
       ...to.map((l) => ({
         id: l.id,
-        linkType: l.linkType,
+        linkType: INVERSE_LINK_TYPE[l.linkType] as TaskLinkType,
         direction: "inbound" as const,
         task: { ...l.source, projectKey: l.source.project.key },
       })),
