@@ -33,11 +33,6 @@ export async function getProjectAccess(userId: number, projectId: number) {
 
   const member = project.members[0];
   if (member) return member.role;
-  
-  // If the project is public, any logged-in user has read-only access
-  if (project.isPublic) {
-    return "viewer" as ProjectMemberRole;
-  }
 
   return null;
 }
@@ -65,11 +60,6 @@ export const requireProjectViewer = async (req: FastifyRequest, reply: FastifyRe
   const member = project.members[0];
   if (member) {
     req.projectRole = member.role;
-    return;
-  }
-
-  if (project.isPublic) {
-    req.projectRole = "viewer" as ProjectMemberRole;
     return;
   }
 

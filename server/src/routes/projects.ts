@@ -21,12 +21,9 @@ const updateProjectSchema = createProjectSchema.partial().extend({
 export default async function projectRoutes(app: FastifyInstance) {
   app.get("/api/projects", { preHandler: requireAuth }, async (req, reply) => {
     const projects = await db.project.findMany({
-      where: { 
+      where: {
         status: "actif",
-        OR: [
-          { isPublic: true },
-          { members: { some: { userId: req.currentUserId } } }
-        ]
+        members: { some: { userId: req.currentUserId } },
       },
       include: {
         creator: { select: { id: true, name: true, avatarUrl: true } },
