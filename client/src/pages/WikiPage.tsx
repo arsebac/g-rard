@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { wikiApi, WikiPageSummary } from "@/api/wiki";
 import { AppShell } from "@/components/layout/AppShell";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
-import { BookOpen, ChevronRight, Plus, Trash2, X, Download, Upload, Home, Loader2, Eye, EyeOff } from "lucide-react";
+import { BookOpen, ChevronRight, Plus, Trash2, X, Download, Upload, Home, Loader2, Eye, Pencil, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -203,13 +203,14 @@ interface PageContentProps {
   pageId: number;
   allPages: WikiPageSummary[];
   onSelectPage: (id: number) => void;
+  onBack?: () => void;
 }
 
-function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
+function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
-  const [isReadOnly, setIsReadOnly] = useState(false);
+  const [isReadOnly, setIsReadOnly] = useState(true);
 
   const { data: page, isLoading } = useQuery({
     queryKey: ["wiki-page", pageId],
@@ -265,7 +266,16 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
   const children = allPages.filter((p) => p.parentId === pageId);
 
   return (
-    <div className="flex-1 overflow-auto p-8 max-w-4xl">
+    <div className="flex-1 overflow-auto p-4 md:p-8">
+      {onBack && (
+        <button
+          onClick={onBack}
+          className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-600 mb-4 md:hidden transition-colors"
+        >
+          <ArrowLeft size={14} />
+          Pages
+        </button>
+      )}
       <Breadcrumb items={breadcrumbs} onSelect={onSelectPage} />
 
       {/* Titre */}
@@ -308,10 +318,10 @@ function PageContent({ pageId, allPages, onSelectPage }: PageContentProps) {
             <div className="flex items-center gap-2 mt-1">
               <button
                 onClick={() => setIsReadOnly(!isReadOnly)}
-                className={`p-1.5 rounded-lg transition-colors ${isReadOnly ? "text-indigo-600 bg-indigo-50" : "text-gray-400 hover:text-indigo-600"}`}
-                title={isReadOnly ? "Switch to edit" : "Switch to preview"}
+                className="p-1.5 rounded-lg transition-colors text-gray-400 hover:text-indigo-600"
+                title={isReadOnly ? "Edit" : "View"}
               >
-                {isReadOnly ? <EyeOff size={16} /> : <Eye size={16} />}
+                {isReadOnly ? <Pencil size={16} /> : <Eye size={16} />}
               </button>
               <a
                 href={wikiApi.getExportUrl(page.id)}
@@ -392,6 +402,7 @@ export function WikiPage() {
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [showNewPage, setShowNewPage] = useState(false);
+  const [mobileShowContent, setMobileShowContent] = useState(false);
 
   const { data: pages = [], isLoading } = useQuery({
     queryKey: ["wiki-pages"],
@@ -420,16 +431,18 @@ export function WikiPage() {
   const handleSelectPage = (id: number) => {
     if (id === -1) {
       setSelectedId(null);
+      setMobileShowContent(false);
     } else {
       setSelectedId(id);
+      setMobileShowContent(true);
     }
   };
 
   return (
     <AppShell>
       <div className="flex h-full">
-        {/* Sidebar wiki */}
-        <aside className="w-64 bg-white border-r border-gray-200 flex flex-col flex-shrink-0">
+        {/* Wiki sidebar — hidden on mobile when content is shown */}
+        <aside className={`bg-white border-r border-gray-200 flex flex-col flex-shrink-0 w-full md:w-64 ${mobileShowContent ? "hidden md:flex" : "flex"}`}>
           <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <BookOpen size={16} className="text-indigo-500" />
@@ -473,35 +486,38 @@ export function WikiPage() {
           </nav>
         </aside>
 
-        {/* Contenu principal */}
-        {selectedId !== null && pages.some((p) => p.id === selectedId) ? (
-          <PageContent
-            key={selectedId}
-            pageId={selectedId}
-            allPages={pages}
-            onSelectPage={handleSelectPage}
-          />
-        ) : (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
-              <BookOpen size={32} className="text-indigo-400" />
+        {/* Main content — hidden on mobile when sidebar is shown */}
+        <div className={`flex-1 min-w-0 ${mobileShowContent ? "flex" : "hidden md:flex"} flex-col`}>
+          {selectedId !== null && pages.some((p) => p.id === selectedId) ? (
+            <PageContent
+              key={selectedId}
+              pageId={selectedId}
+              allPages={pages}
+              onSelectPage={handleSelectPage}
+              onBack={() => { setMobileShowContent(false); }}
+            />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
+              <div className="w-16 h-16 rounded-2xl bg-indigo-50 flex items-center justify-center mb-4">
+                <BookOpen size={32} className="text-indigo-400" />
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">
+                Welcome to the Flatulence wiki
+              </h2>
+              <p className="text-sm text-gray-500 max-w-sm mb-6">
+                This space allows you to document your projects.
+                Select a page from the sidebar or create a new one.
+              </p>
+              <button
+                onClick={() => setShowNewPage(true)}
+                className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+              >
+                <Plus size={16} />
+                Create the first page
+              </button>
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">
-              Welcome to the Flatulence wiki
-            </h2>
-            <p className="text-sm text-gray-500 max-w-sm mb-6">
-              This space allows you to document your projects.
-              Select a page from the sidebar or create a new one.
-            </p>
-            <button
-              onClick={() => setShowNewPage(true)}
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
-            >
-              <Plus size={16} />
-              Create the first page
-            </button>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {showNewPage && (

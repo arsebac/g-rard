@@ -47,7 +47,7 @@ export function KanbanColumn({ status, tasks, onTaskClick, onAddTask, label, col
       {/* Cards */}
       <div
         ref={setNodeRef}
-        className={`flex-1 rounded-b-lg border border-gray-200 p-2 min-h-32 transition-colors ${
+        className={`flex-1 min-h-0 overflow-y-auto rounded-b-lg border border-gray-200 p-2 transition-colors ${
           isOver ? "bg-indigo-50" : "bg-gray-50"
         }`}
       >
