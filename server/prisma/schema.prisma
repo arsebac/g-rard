@@ -223,7 +223,6 @@ model WikiPage {
   parentId    Int?            @map("parent_id")
   title       String          @db.VarChar(500)
   slug        String          @db.VarChar(500)
-  contentType WikiContentType @default(tiptap) @map("content_type")
   body        String          @db.LongText
   sourceFile  String?         @map("source_file") @db.VarChar(500)
   createdBy   Int             @map("created_by")
@@ -239,10 +238,6 @@ model WikiPage {
   @@map("wiki_pages")
 }
 
-enum WikiContentType {
-  tiptap
-  markdown
-}
 
 model TicketType {
   id        Int      @id @default(autoincrement())

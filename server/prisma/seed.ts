@@ -105,8 +105,7 @@ async function main() {
         slug: "accueil",
         projectId: null,
         parentId: null,
-        body: "<h1>Bienvenue dans Flatulence</h1><p>Cet espace wiki est destiné à documenter les projets de rénovation.</p>",
-        contentType: "tiptap",
+        body: "# Bienvenue dans Flatulence\n\nCet espace wiki est destiné à documenter les projets de rénovation.",
         createdBy: user1.id,
       },
     });

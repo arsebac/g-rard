@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { wikiApi, WikiPageSummary } from "@/api/wiki";
 import { AppShell } from "@/components/layout/AppShell";
-import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import { BookOpen, ChevronRight, Plus, Trash2, X, Download, Upload, Home, Loader2, Eye, Pencil, ArrowLeft } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -211,6 +210,7 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(true);
+  const [editBody, setEditBody] = useState("");
 
   const { data: page, isLoading } = useQuery({
     queryKey: ["wiki-page", pageId],
@@ -244,8 +244,14 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
 
   if (!page) return null;
 
-  const handleSaveBody = (html: string) => {
-    updateMutation.mutate({ body: html });
+  const handleSaveBody = () => {
+    updateMutation.mutate({ body: editBody });
+    setIsReadOnly(true);
+  };
+
+  const handleEnterEdit = () => {
+    setEditBody(page?.body ?? "");
+    setIsReadOnly(false);
   };
 
   const handleSaveTitle = () => {
@@ -317,7 +323,7 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
             </h1>
             <div className="flex items-center gap-2 mt-1">
               <button
-                onClick={() => setIsReadOnly(!isReadOnly)}
+                onClick={() => isReadOnly ? handleEnterEdit() : setIsReadOnly(true)}
                 className="p-1.5 rounded-lg transition-colors text-gray-400 hover:text-indigo-600"
                 title={isReadOnly ? "Edit" : "View"}
               >
@@ -354,20 +360,37 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
       </div>
 
       {/* Contenu */}
-      {isReadOnly && page.contentType === "markdown" ? (
+      {isReadOnly ? (
         <div className="gerard-prose">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
             {page.body ?? ""}
           </ReactMarkdown>
         </div>
       ) : (
-        <RichTextEditor
-          key={pageId}
-          defaultValue={page.body ?? ""}
-          onSave={handleSaveBody}
-          placeholder="Write the content of this page…"
-          readOnly={isReadOnly}
-        />
+        <div className="flex flex-col gap-3">
+          <textarea
+            value={editBody}
+            onChange={(e) => setEditBody(e.target.value)}
+            className="w-full min-h-[400px] font-mono text-sm border border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
+            placeholder="Write the content in Markdown…"
+            autoFocus
+          />
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveBody}
+              disabled={updateMutation.isPending}
+              className="px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {updateMutation.isPending ? "Saving…" : "Save"}
+            </button>
+            <button
+              onClick={() => setIsReadOnly(true)}
+              className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
 
       {/* Sous-pages */}
