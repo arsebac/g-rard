@@ -217,11 +217,6 @@ export function createMcpServer() {
             parentId: { type: "number", description: "Parent page ID (optional)" },
             title: { type: "string", description: "Page title" },
             body: { type: "string", description: "Markdown content" },
-            contentType: {
-              type: "string",
-              enum: ["tiptap", "markdown"],
-              default: "markdown",
-            },
           },
           required: ["title", "body"],
         },

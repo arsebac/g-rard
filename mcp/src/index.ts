@@ -44,7 +44,6 @@ interface WikiPage {
   parentId: number | null;
   title: string;
   slug: string;
-  contentType: string;
   body: string;
   createdAt: string;
   updatedAt: string;
@@ -281,11 +280,6 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           parentId: { type: "number", description: "Parent page ID (optional)" },
           title: { type: "string", description: "Page title" },
           body: { type: "string", description: "Markdown content" },
-          contentType: {
-            type: "string",
-            enum: ["tiptap", "markdown"],
-            default: "markdown",
-          },
         },
         required: ["title", "body"],
       },
@@ -696,7 +690,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             parentId: z.number().optional(),
             title: z.string().min(1),
             body: z.string(),
-            contentType: z.enum(["tiptap", "markdown"]).default("markdown"),
           })
           .parse(args);
 

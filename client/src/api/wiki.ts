@@ -1,7 +1,5 @@
 import { api } from "./client";
 
-export type WikiContentType = "tiptap" | "markdown";
-
 export interface WikiPage {
   id: number;
   title: string;
@@ -9,7 +7,6 @@ export interface WikiPage {
   projectId: number | null;
   parentId: number | null;
   body: string | null;
-  contentType: WikiContentType;
   createdBy: number;
   createdAt: string;
   updatedAt: string;
@@ -32,7 +29,6 @@ export interface CreateWikiPageData {
   projectId?: number | null;
   parentId?: number | null;
   body?: string | null;
-  contentType?: WikiContentType;
 }
 
 export interface UpdateWikiPageData {

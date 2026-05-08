@@ -34,7 +34,6 @@ const createPageSchema = z.object({
   projectId: z.number().optional().nullable(),
   parentId: z.number().optional().nullable(),
   body: z.string().optional().nullable(),
-  contentType: z.enum(["tiptap", "markdown"]).optional(),
 });
 
 const updatePageSchema = z.object({
@@ -86,7 +85,7 @@ export default async function wikiRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
     }
 
-    const { title, projectId, parentId, body: content, contentType } = body.data;
+    const { title, projectId, parentId, body: content } = body.data;
     const baseSlug = slugify(title);
     const slug = await uniqueSlug(baseSlug);
 
@@ -94,8 +93,7 @@ export default async function wikiRoutes(app: FastifyInstance) {
       data: {
         title: sanitizeHtml(title),
         slug,
-        body: content ? sanitizeHtml(content) : "",
-        contentType: contentType ?? "tiptap",
+        body: content ?? "",
         creator: { connect: { id: req.currentUserId } },
         ...(projectId ? { project: { connect: { id: projectId } } } : {}),
         ...(parentId ? { parent: { connect: { id: parentId } } } : {}),
@@ -137,7 +135,7 @@ export default async function wikiRoutes(app: FastifyInstance) {
       data.slug = await uniqueSlug(baseSlug, parseInt(id));
     }
     if (body.data.body !== undefined) {
-      data.body = body.data.body ? sanitizeHtml(body.data.body) : "";
+      data.body = body.data.body ?? "";
     }
 
     const page = await db.wikiPage.update({
@@ -186,8 +184,7 @@ export default async function wikiRoutes(app: FastifyInstance) {
       data: {
         title: sanitizeHtml(title),
         slug,
-        body: sanitizeHtml(content.toString("utf-8")),
-        contentType: "markdown",
+        body: content.toString("utf-8"),
         creator: { connect: { id: req.currentUserId } },
       },
     });
