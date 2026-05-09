@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { projectsApi } from "@/api/projects";
 import { authApi } from "@/api/auth";
@@ -17,6 +17,8 @@ interface AppShellProps {
 
 export function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
+  const currentParams = useParams({ strict: false }) as { projectKey?: string };
+  const currentProjectKey = currentParams.projectKey;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const { user, setUser } = useAuthStore();
@@ -136,11 +138,14 @@ export function AppShell({ children }: AppShellProps) {
             {projects.map((p) => (
               <Link
                 key={p.id}
-                to="/projects/$projectId"
-                params={{ projectId: String(p.id) }}
-                activeProps={{ className: "bg-indigo-50 text-indigo-700 font-medium" }}
-                inactiveProps={{ className: "text-gray-600 hover:bg-gray-100" }}
-                className="flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors"
+                to="/projects/$projectKey/$view"
+                params={{ projectKey: p.key!, view: "board" }}
+                search={{ selectedIssue: undefined }}
+                className={`flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors ${
+                  currentProjectKey === p.key
+                    ? "bg-indigo-50 text-indigo-700 font-medium"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
               >
                 <span
                   className="w-2.5 h-2.5 rounded-full flex-shrink-0"

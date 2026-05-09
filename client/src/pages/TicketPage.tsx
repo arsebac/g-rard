@@ -50,8 +50,11 @@ export function TicketPage() {
       <TaskDrawer
         task={task}
         onClose={() => {
-          // Navigate back to the source project
-          navigate({ to: "/projects/$projectId", params: { projectId: String(task.projectId) } });
+          if (task.projectKey) {
+            navigate({ to: "/projects/$projectKey/$view", params: { projectKey: task.projectKey, view: "board" }, search: { selectedIssue: undefined } });
+          } else {
+            navigate({ to: "/" });
+          }
         }}
       />
     </AppShell>

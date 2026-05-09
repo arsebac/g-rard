@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams } from "@tanstack/react-router";
+import { useParams, useSearch, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import React from "react";
 import { projectsApi } from "@/api/projects";
@@ -11,7 +11,6 @@ import { AppShell } from "@/components/layout/AppShell";
 import { KanbanBoard } from "@/components/kanban/KanbanBoard";
 import { ProjectSettingsModal } from "@/components/project/ProjectSettingsModal";
 import { TaskListView } from "@/components/task/TaskListView";
-// import { RoadmapView } from "@/components/task/RoadmapView"; // TODO: Implement RoadmapView
 import { EpicBacklogView } from "@/components/task/EpicBacklogView";
 import { SprintBacklogView } from "@/components/task/SprintBacklogView";
 import { TaskDrawer } from "@/components/task/TaskDrawer";
@@ -104,6 +103,7 @@ function SprintDropdown({
   const { data: sprints = [] } = useQuery({
     queryKey: ["sprints", projectId],
     queryFn: () => sprintsApi.list(projectId),
+    enabled: !!projectId,
   });
 
   useEffect(() => {
@@ -195,6 +195,26 @@ function UserAvatar({
 
 type ViewMode = "kanban" | "list" | "backlog" | "sprints" | "roadmap" | "versions" | "recurring";
 
+const URL_TO_VIEW: Record<string, ViewMode> = {
+  board: "kanban",
+  list: "list",
+  backlog: "backlog",
+  sprints: "sprints",
+  roadmap: "roadmap",
+  versions: "versions",
+  recurring: "recurring",
+};
+
+const VIEW_TO_URL: Record<ViewMode, string> = {
+  kanban: "board",
+  list: "list",
+  backlog: "backlog",
+  sprints: "sprints",
+  roadmap: "roadmap",
+  versions: "versions",
+  recurring: "recurring",
+};
+
 const VIEWS: { id: ViewMode; label: string; icon: React.ReactNode }[] = [
   { id: "kanban",    label: "Board",     icon: <LayoutGrid size={14} /> },
   { id: "list",      label: "List",      icon: <List size={14} /> },
@@ -218,20 +238,23 @@ interface FilterState {
 const EMPTY_FILTERS: FilterState = { search: "", assigneeId: null, labelId: null, typeId: null, sprintId: undefined };
 
 export function ProjectPage() {
-  const { projectId } = useParams({ from: "/projects/$projectId" });
-  const id = parseInt(projectId);
+  const { projectKey, view } = useParams({ from: "/projects/$projectKey/$view" });
+  const { selectedIssue } = useSearch({ from: "/projects/$projectKey/$view" });
+  const navigate = useNavigate();
 
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const viewMode: ViewMode = URL_TO_VIEW[view] ?? "kanban";
+
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [newTaskStatus, setNewTaskStatus] = useState("a_faire");
-  const [viewMode, setViewMode] = useState<ViewMode>("kanban");
   const [filters, setFilters] = useState<FilterState>(EMPTY_FILTERS);
 
   const { data: project } = useQuery({
-    queryKey: ["project", id],
-    queryFn: () => projectsApi.get(id),
+    queryKey: ["project-key", projectKey],
+    queryFn: () => projectsApi.getByKey(projectKey),
   });
+
+  const id = project?.id ?? 0;
 
   const { data: allUsers = [] } = useQuery({
     queryKey: ["users"],
@@ -241,6 +264,7 @@ export function ProjectPage() {
   const { data: ticketTypes = [] } = useQuery({
     queryKey: ["ticketTypes", id],
     queryFn: () => ticketTypesApi.list(id),
+    enabled: !!id,
   });
 
   const isBacklog = viewMode === "backlog" || viewMode === "sprints";
@@ -259,6 +283,19 @@ export function ProjectPage() {
         ...(!isBacklog && filters.typeId ? { typeId: filters.typeId } : {}),
         ...(filters.sprintId !== undefined ? { sprintId: filters.sprintId } : {}),
       }),
+    enabled: !!id,
+  });
+
+  // Fetch the selected task from URL param
+  const { data: selectedTask = null } = useQuery({
+    queryKey: ["task-ref", selectedIssue],
+    queryFn: () => {
+      const lastDash = selectedIssue!.lastIndexOf("-");
+      const k = selectedIssue!.slice(0, lastDash);
+      const n = parseInt(selectedIssue!.slice(lastDash + 1));
+      return tasksApi.getByRef(k, n);
+    },
+    enabled: !!selectedIssue,
   });
 
   const tasks = useMemo(() => {
@@ -273,6 +310,22 @@ export function ProjectPage() {
   }, [rawTasks, allUsers]);
 
   const labels = project?.labels ?? [];
+
+  const handleViewChange = (mode: ViewMode) => {
+    navigate({
+      to: "/projects/$projectKey/$view",
+      params: { projectKey, view: VIEW_TO_URL[mode] },
+      search: { selectedIssue: selectedIssue ?? undefined },
+    });
+  };
+
+  const handleTaskSelect = (task: Task | null) => {
+    navigate({
+      to: "/projects/$projectKey/$view",
+      params: { projectKey, view },
+      search: { selectedIssue: task ? `${projectKey}-${task.number}` : undefined },
+    });
+  };
 
   const handleAddTask = (status: string) => {
     setNewTaskStatus(status);
@@ -331,18 +384,18 @@ export function ProjectPage() {
 
           {/* ── Row 2: tabs ──────────────────────────────────────────────── */}
           <div className="flex items-end gap-0">
-            {VIEWS.map((view) => (
+            {VIEWS.map((v) => (
               <button
-                key={view.id}
-                onClick={() => setViewMode(view.id)}
+                key={v.id}
+                onClick={() => handleViewChange(v.id)}
                 className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors -mb-px ${
-                  viewMode === view.id
+                  viewMode === v.id
                     ? "border-indigo-600 text-indigo-600"
                     : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
                 }`}
               >
-                {view.icon}
-                {view.label}
+                {v.icon}
+                {v.label}
               </button>
             ))}
           </div>
@@ -446,21 +499,21 @@ export function ProjectPage() {
             <KanbanBoard
               tasks={tasks}
               projectId={id}
-              onTaskClick={setSelectedTask}
+              onTaskClick={handleTaskSelect}
               onAddTask={handleAddTask}
               columns={project.columns}
             />
           ) : viewMode === "list" ? (
-            <TaskListView tasks={tasks} onTaskClick={setSelectedTask} />
+            <TaskListView tasks={tasks} onTaskClick={handleTaskSelect} />
           ) : viewMode === "roadmap" ? (
             <div className="flex flex-col items-center justify-center h-48 gap-3 text-gray-400">
               <Calendar size={32} className="opacity-30" />
               <p className="text-sm">Roadmap view coming soon (TODO).</p>
             </div>
           ) : viewMode === "backlog" ? (
-            <EpicBacklogView tasks={tasks} onTaskClick={setSelectedTask} />
+            <EpicBacklogView tasks={tasks} onTaskClick={handleTaskSelect} />
           ) : viewMode === "sprints" ? (
-            <SprintBacklogView projectId={id} tasks={tasks} onTaskClick={setSelectedTask} />
+            <SprintBacklogView projectId={id} tasks={tasks} onTaskClick={handleTaskSelect} />
           ) : viewMode === "recurring" ? (
             <RecurringTasksView projectId={id} />
           ) : (
@@ -477,7 +530,7 @@ export function ProjectPage() {
       )}
 
       {selectedTask && (
-        <TaskDrawer task={selectedTask} onClose={() => setSelectedTask(null)} />
+        <TaskDrawer task={selectedTask} onClose={() => handleTaskSelect(null)} />
       )}
 
       {showTaskForm && (

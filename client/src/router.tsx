@@ -42,11 +42,27 @@ const dashboardRoute = createRoute({
   component: DashboardPage,
 });
 
+const projectIndexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/projects/$projectKey",
+  beforeLoad: async ({ params }) => {
+    await authGuard();
+    throw redirect({
+      to: "/projects/$projectKey/$view",
+      params: { projectKey: params.projectKey, view: "board" },
+      search: { selectedIssue: undefined },
+    });
+  },
+});
+
 const projectRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/projects/$projectId",
+  path: "/projects/$projectKey/$view",
   beforeLoad: authGuard,
   component: ProjectPage,
+  validateSearch: (search: Record<string, unknown>) => ({
+    selectedIssue: typeof search.selectedIssue === "string" ? search.selectedIssue : undefined,
+  }),
 });
 
 const ticketRoute = createRoute({
@@ -73,6 +89,7 @@ const mcpAuthRoute = createRoute({
 const routeTree = rootRoute.addChildren([
   loginRoute,
   dashboardRoute,
+  projectIndexRoute,
   projectRoute,
   ticketRoute,
   wikiRoute,
