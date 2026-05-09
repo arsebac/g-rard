@@ -75,8 +75,9 @@ export function DashboardPage() {
             {projects.map((project) => (
               <Link
                 key={project.id}
-                to="/projects/$projectId"
-                params={{ projectId: String(project.id) }}
+                to="/projects/$projectKey/$view"
+                params={{ projectKey: project.key!, view: "board" }}
+                search={{ selectedIssue: undefined }}
                 className="bg-white border border-gray-200 rounded-xl p-5 hover:shadow-md hover:border-indigo-200 transition-all group"
               >
                 <div className="flex items-start justify-between mb-3">

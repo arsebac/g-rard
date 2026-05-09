@@ -63,6 +63,35 @@ export default async function projectRoutes(app: FastifyInstance) {
     return reply.status(201).send(project);
   });
 
+  app.get("/api/projects/by-key/:key", { preHandler: requireAuth }, async (req, reply) => {
+    const { key } = req.params as { key: string };
+
+    const projectBase = await db.project.findFirst({
+      where: {
+        key: key.toUpperCase(),
+        members: { some: { userId: req.currentUserId } },
+      },
+      select: { id: true },
+    });
+
+    if (!projectBase) return reply.status(404).send({ error: "Project not found" });
+
+    await ensureDefaultColumns(projectBase.id);
+
+    const project = await db.project.findUnique({
+      where: { id: projectBase.id },
+      include: {
+        creator: { select: { id: true, name: true, avatarUrl: true } },
+        labels: true,
+        columns: { orderBy: { position: "asc" } },
+        workflowTransitions: true,
+        _count: { select: { tasks: true } },
+      },
+    });
+
+    return reply.send(project);
+  });
+
   app.get("/api/projects/:id", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const projectId = parseInt(id);

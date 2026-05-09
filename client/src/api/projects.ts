@@ -54,6 +54,7 @@ export const membersApi = {
 export const projectsApi = {
   list: () => api.get<Project[]>("/api/projects"),
   get: (id: number) => api.get<Project>(`/api/projects/${id}`),
+  getByKey: (key: string) => api.get<Project>(`/api/projects/by-key/${key}`),
   create: (data: { name: string; key?: string; description?: string; color?: string }) =>
     api.post<Project>("/api/projects", data),
   update: (id: number, data: Partial<Project>) =>
