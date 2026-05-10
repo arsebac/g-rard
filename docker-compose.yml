@@ -1,9 +1,6 @@
 services:
   app:
-    image: ghcr.io/arsebac/g-rard:main
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/arsebac/g-rard:latest
     container_name: gerard-app
     restart: unless-stopped
     extra_hosts:
