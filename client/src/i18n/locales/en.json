@@ -351,6 +351,20 @@
       "title": "Official Documents",
       "description": "Store your contracts, pay slips and other important documents, organised by spaces.",
       "createFirst": "Create a first space"
+    },
+    "roles": {
+      "owner": "Owner",
+      "editor": "Editor",
+      "viewer": "Viewer"
+    },
+    "share": {
+      "title": "Share space",
+      "members": "Members",
+      "invite": "Invite",
+      "selectUser": "Select a user…",
+      "addMember": "Add",
+      "remove": "Remove",
+      "manage": "Manage access"
     }
   }
 }

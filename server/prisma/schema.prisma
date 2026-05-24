@@ -30,7 +30,8 @@ model User {
   recurringTasksAssigned  RecurringTask[] @relation("RecurringTaskAssignee")
   notificationPreferences NotificationPreference[]
   followedTasks          TaskFollower[]
-  documents       Document[]
+  documents              Document[]
+  documentSpaceMembers   DocumentSpaceMember[]
 
   @@map("users")
 }
@@ -404,11 +405,31 @@ model DocumentSpace {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  parent    DocumentSpace?  @relation("SpaceChildren", fields: [parentId], references: [id], onDelete: Cascade)
-  children  DocumentSpace[] @relation("SpaceChildren")
+  parent    DocumentSpace?       @relation("SpaceChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  DocumentSpace[]      @relation("SpaceChildren")
   documents Document[]
+  members   DocumentSpaceMember[]
 
   @@map("document_spaces")
+}
+
+model DocumentSpaceMember {
+  spaceId   Int                     @map("space_id")
+  userId    Int                     @map("user_id")
+  role      DocumentSpaceMemberRole @default(viewer)
+  createdAt DateTime                @default(now()) @map("created_at")
+
+  space DocumentSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([spaceId, userId])
+  @@map("document_space_members")
+}
+
+enum DocumentSpaceMemberRole {
+  owner
+  editor
+  viewer
 }
 
 model Document {

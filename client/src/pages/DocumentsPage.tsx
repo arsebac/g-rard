@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { documentsApi, DocumentSpace, Document } from "@/api/documents";
+import { documentsApi, DocumentSpace, Document, DocumentSpaceMemberRole } from "@/api/documents";
+import { usersApi } from "@/api/users";
+import { useAuthStore } from "@/store/auth";
 import { AppShell } from "@/components/layout/AppShell";
 import {
   FolderOpen,
@@ -13,6 +15,11 @@ import {
   Pencil,
   X,
   FolderPlus,
+  Share2,
+  Crown,
+  Eye,
+  ShieldCheck,
+  UserPlus,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 
@@ -27,6 +34,176 @@ const COLOR_OPTIONS = [
   "#f97316", "#eab308", "#22c55e", "#14b8a6", "#3b82f6",
 ];
 
+function RoleIcon({ role }: { role: DocumentSpaceMemberRole }) {
+  if (role === "owner") return <Crown size={12} className="text-yellow-500" />;
+  if (role === "editor") return <ShieldCheck size={12} className="text-indigo-500" />;
+  return <Eye size={12} className="text-gray-400" />;
+}
+
+function roleLabel(role: DocumentSpaceMemberRole, t: (k: string) => string) {
+  return t(`documents.roles.${role}`);
+}
+
+// ─── Share modal ──────────────────────────────────────────────────────────────
+
+interface ShareModalProps {
+  space: DocumentSpace;
+  currentUserId: number;
+  onClose: () => void;
+}
+
+function ShareModal({ space, currentUserId, onClose }: ShareModalProps) {
+  const { t } = useTranslation();
+  const qc = useQueryClient();
+  const [selectedUserId, setSelectedUserId] = useState<number | "">("");
+  const [selectedRole, setSelectedRole] = useState<"editor" | "viewer">("viewer");
+
+  const { data: members = [] } = useQuery({
+    queryKey: ["document-space-members", space.id],
+    queryFn: () => documentsApi.listMembers(space.id),
+  });
+
+  const { data: allUsers = [] } = useQuery({
+    queryKey: ["users"],
+    queryFn: usersApi.list,
+  });
+
+  const memberUserIds = new Set(members.map((m) => m.userId));
+  const invitableUsers = allUsers.filter((u) => !memberUserIds.has(u.id));
+
+  const addMember = useMutation({
+    mutationFn: ({ userId, role }: { userId: number; role: "editor" | "viewer" }) =>
+      documentsApi.addMember(space.id, userId, role),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["document-space-members", space.id] });
+      qc.invalidateQueries({ queryKey: ["document-spaces"] });
+      setSelectedUserId("");
+    },
+  });
+
+  const updateMember = useMutation({
+    mutationFn: ({ userId, role }: { userId: number; role: "editor" | "viewer" }) =>
+      documentsApi.updateMember(space.id, userId, role),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["document-space-members", space.id] }),
+  });
+
+  const removeMember = useMutation({
+    mutationFn: (userId: number) => documentsApi.removeMember(space.id, userId),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["document-space-members", space.id] });
+      qc.invalidateQueries({ queryKey: ["document-spaces"] });
+    },
+  });
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="font-semibold text-gray-900">{t("documents.share.title")}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{space.name}</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          {/* Current members */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              {t("documents.share.members")}
+            </p>
+            <ul className="space-y-1.5">
+              {members.map((m) => (
+                <li key={m.userId} className="flex items-center gap-3">
+                  <div className="w-7 h-7 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 text-xs font-semibold flex-shrink-0">
+                    {m.user.name[0]?.toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-gray-900 truncate">{m.user.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{m.user.email}</p>
+                  </div>
+                  {m.role === "owner" ? (
+                    <span className="flex items-center gap-1 text-xs text-yellow-600 font-medium">
+                      <Crown size={12} />
+                      {roleLabel("owner", t)}
+                    </span>
+                  ) : (
+                    <div className="flex items-center gap-1">
+                      <select
+                        value={m.role}
+                        onChange={(e) =>
+                          updateMember.mutate({ userId: m.userId, role: e.target.value as "editor" | "viewer" })
+                        }
+                        className="text-xs border border-gray-200 rounded px-1.5 py-0.5 text-gray-600 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                      >
+                        <option value="editor">{roleLabel("editor", t)}</option>
+                        <option value="viewer">{roleLabel("viewer", t)}</option>
+                      </select>
+                      {m.userId !== currentUserId && (
+                        <button
+                          onClick={() => removeMember.mutate(m.userId)}
+                          disabled={removeMember.isPending}
+                          className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                          title={t("documents.share.remove")}
+                        >
+                          <X size={13} />
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Invite form */}
+          {invitableUsers.length > 0 && (
+            <div className="border-t border-gray-100 pt-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                {t("documents.share.invite")}
+              </p>
+              <div className="flex gap-2">
+                <select
+                  value={selectedUserId}
+                  onChange={(e) => setSelectedUserId(e.target.value === "" ? "" : parseInt(e.target.value))}
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  <option value="">{t("documents.share.selectUser")}</option>
+                  {invitableUsers.map((u) => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedRole}
+                  onChange={(e) => setSelectedRole(e.target.value as "editor" | "viewer")}
+                  className="border border-gray-300 rounded-lg px-2 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                >
+                  <option value="editor">{roleLabel("editor", t)}</option>
+                  <option value="viewer">{roleLabel("viewer", t)}</option>
+                </select>
+                <button
+                  onClick={() => {
+                    if (selectedUserId !== "") {
+                      addMember.mutate({ userId: selectedUserId as number, role: selectedRole });
+                    }
+                  }}
+                  disabled={selectedUserId === "" || addMember.isPending}
+                  className="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                  title={t("documents.share.addMember")}
+                >
+                  <UserPlus size={15} />
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Space tree item ───────────────────────────────────────────────────────────
 
 interface SpaceTreeItemProps {
@@ -34,10 +211,12 @@ interface SpaceTreeItemProps {
   children: DocumentSpace[];
   selectedId: number | null;
   depth: number;
+  currentUserId: number;
   onSelect: (id: number) => void;
   onDelete: (space: DocumentSpace) => void;
   onAddChild: (parentId: number) => void;
   onRename: (space: DocumentSpace) => void;
+  onShare: (space: DocumentSpace) => void;
 }
 
 function SpaceTreeItem({
@@ -45,15 +224,21 @@ function SpaceTreeItem({
   children,
   selectedId,
   depth,
+  currentUserId,
   onSelect,
   onDelete,
   onAddChild,
   onRename,
+  onShare,
 }: SpaceTreeItemProps) {
   const [open, setOpen] = useState(true);
   const hasChildren = children.length > 0;
   const isSelected = selectedId === space.id;
   const { t } = useTranslation();
+
+  const myMembership = space.members?.find((m) => m.userId === currentUserId);
+  const isOwner = myMembership?.role === "owner";
+  const canWrite = isOwner || myMembership?.role === "editor";
 
   return (
     <li>
@@ -75,13 +260,29 @@ function SpaceTreeItem({
         ) : (
           <span className="w-3 flex-shrink-0" />
         )}
-        <span
-          className="w-3 h-3 rounded-full flex-shrink-0"
-          style={{ backgroundColor: space.color }}
-        />
+        <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: space.color }} />
         <span className="truncate flex-1">{space.name}</span>
-        <span className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 flex items-center gap-0.5">
-          {depth === 0 && (
+
+        {/* Role badge */}
+        {myMembership && (
+          <span className="opacity-40 group-hover:opacity-100 flex-shrink-0">
+            <RoleIcon role={myMembership.role} />
+          </span>
+        )}
+
+        {/* Actions */}
+        <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          {isOwner && depth === 0 && (
+            <button
+              type="button"
+              title={t("documents.share.title")}
+              className="p-0.5 hover:text-indigo-600"
+              onClick={(e) => { e.stopPropagation(); onShare(space); }}
+            >
+              <Share2 size={12} />
+            </button>
+          )}
+          {canWrite && depth === 0 && (
             <button
               type="button"
               title={t("documents.addSubfolder")}
@@ -91,22 +292,26 @@ function SpaceTreeItem({
               <FolderPlus size={12} />
             </button>
           )}
-          <button
-            type="button"
-            title={t("common.edit")}
-            className="p-0.5 hover:text-indigo-600"
-            onClick={(e) => { e.stopPropagation(); onRename(space); }}
-          >
-            <Pencil size={12} />
-          </button>
-          <button
-            type="button"
-            title={t("common.delete")}
-            className="p-0.5 hover:text-red-600"
-            onClick={(e) => { e.stopPropagation(); onDelete(space); }}
-          >
-            <Trash2 size={12} />
-          </button>
+          {canWrite && (
+            <button
+              type="button"
+              title={t("common.edit")}
+              className="p-0.5 hover:text-indigo-600"
+              onClick={(e) => { e.stopPropagation(); onRename(space); }}
+            >
+              <Pencil size={12} />
+            </button>
+          )}
+          {isOwner && (
+            <button
+              type="button"
+              title={t("common.delete")}
+              className="p-0.5 hover:text-red-600"
+              onClick={(e) => { e.stopPropagation(); onDelete(space); }}
+            >
+              <Trash2 size={12} />
+            </button>
+          )}
         </span>
       </div>
 
@@ -119,10 +324,12 @@ function SpaceTreeItem({
               children={[]}
               selectedId={selectedId}
               depth={depth + 1}
+              currentUserId={currentUserId}
               onSelect={onSelect}
               onDelete={onDelete}
               onAddChild={onAddChild}
               onRename={onRename}
+              onShare={onShare}
             />
           ))}
         </ul>
@@ -131,7 +338,7 @@ function SpaceTreeItem({
   );
 }
 
-// ─── New / Edit space modal ────────────────────────────────────────────────────
+// ─── Space modal (create / edit) ──────────────────────────────────────────────
 
 interface SpaceModalProps {
   mode: "create" | "edit";
@@ -154,9 +361,7 @@ function SpaceModal({ mode, parentId, initial, onClose, onSave, isPending }: Spa
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
           <h2 className="font-semibold text-gray-900">
             {mode === "create"
-              ? parentId
-                ? t("documents.newSubfolder")
-                : t("documents.newSpace")
+              ? parentId ? t("documents.newSubfolder") : t("documents.newSpace")
               : t("documents.editSpace")}
           </h2>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -185,9 +390,7 @@ function SpaceModal({ mode, parentId, initial, onClose, onSave, isPending }: Spa
                   key={c}
                   type="button"
                   onClick={() => setColor(c)}
-                  className={`w-7 h-7 rounded-full border-2 transition-transform ${
-                    color === c ? "border-gray-900 scale-110" : "border-transparent"
-                  }`}
+                  className={`w-7 h-7 rounded-full border-2 transition-transform ${color === c ? "border-gray-900 scale-110" : "border-transparent"}`}
                   style={{ backgroundColor: c }}
                 />
               ))}
@@ -207,10 +410,7 @@ function SpaceModal({ mode, parentId, initial, onClose, onSave, isPending }: Spa
         </div>
 
         <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-100">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-          >
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
             {t("common.cancel")}
           </button>
           <button
@@ -230,10 +430,11 @@ function SpaceModal({ mode, parentId, initial, onClose, onSave, isPending }: Spa
 
 interface DocumentRowProps {
   doc: Document;
+  canDelete: boolean;
   onDelete: (doc: Document) => void;
 }
 
-function DocumentRow({ doc, onDelete }: DocumentRowProps) {
+function DocumentRow({ doc, canDelete, onDelete }: DocumentRowProps) {
   const { t } = useTranslation();
 
   return (
@@ -258,14 +459,16 @@ function DocumentRow({ doc, onDelete }: DocumentRowProps) {
         >
           <Download size={15} />
         </a>
-        <button
-          type="button"
-          onClick={() => onDelete(doc)}
-          className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-          title={t("common.delete")}
-        >
-          <Trash2 size={15} />
-        </button>
+        {canDelete && (
+          <button
+            type="button"
+            onClick={() => onDelete(doc)}
+            className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
+            title={t("common.delete")}
+          >
+            <Trash2 size={15} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -277,6 +480,7 @@ export function DocumentsPage() {
   const { t } = useTranslation();
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { user } = useAuthStore();
 
   const [selectedSpaceId, setSelectedSpaceId] = useState<number | null>(null);
   const [spaceModal, setSpaceModal] = useState<{
@@ -284,6 +488,7 @@ export function DocumentsPage() {
     parentId?: number | null;
     initial?: DocumentSpace;
   } | null>(null);
+  const [shareTarget, setShareTarget] = useState<DocumentSpace | null>(null);
   const [deleteSpaceTarget, setDeleteSpaceTarget] = useState<DocumentSpace | null>(null);
   const [deleteDocTarget, setDeleteDocTarget] = useState<Document | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -301,9 +506,10 @@ export function DocumentsPage() {
 
   const createSpace = useMutation({
     mutationFn: documentsApi.createSpace,
-    onSuccess: () => {
+    onSuccess: (created) => {
       qc.invalidateQueries({ queryKey: ["document-spaces"] });
       setSpaceModal(null);
+      if (!created.parentId) setSelectedSpaceId(created.id);
     },
   });
 
@@ -336,17 +542,9 @@ export function DocumentsPage() {
   const handleSaveSpace = (data: { name: string; color: string; description: string }) => {
     if (!spaceModal) return;
     if (spaceModal.mode === "create") {
-      createSpace.mutate({
-        name: data.name,
-        color: data.color,
-        description: data.description || null,
-        parentId: spaceModal.parentId ?? null,
-      });
+      createSpace.mutate({ name: data.name, color: data.color, description: data.description || null, parentId: spaceModal.parentId ?? null });
     } else if (spaceModal.initial) {
-      updateSpace.mutate({
-        id: spaceModal.initial.id,
-        data: { name: data.name, color: data.color, description: data.description || null },
-      });
+      updateSpace.mutate({ id: spaceModal.initial.id, data: { name: data.name, color: data.color, description: data.description || null } });
     }
   };
 
@@ -365,6 +563,12 @@ export function DocumentsPage() {
 
   const topLevelSpaces = spaces.filter((s) => s.parentId === null);
   const selectedSpace = selectedSpaceId !== null ? spaces.find((s) => s.id === selectedSpaceId) : null;
+
+  // Determine current user's role in selected space
+  const selectedTopLevelId = selectedSpace?.parentId ?? selectedSpace?.id ?? null;
+  const selectedTopLevel = selectedTopLevelId ? spaces.find((s) => s.id === selectedTopLevelId) : null;
+  const myRole = selectedTopLevel?.members?.find((m) => m.userId === user?.id)?.role ?? null;
+  const canWrite = myRole === "owner" || myRole === "editor";
 
   return (
     <AppShell>
@@ -399,10 +603,12 @@ export function DocumentsPage() {
                     children={spaces.filter((s) => s.parentId === space.id)}
                     selectedId={selectedSpaceId}
                     depth={0}
+                    currentUserId={user?.id ?? 0}
                     onSelect={setSelectedSpaceId}
                     onDelete={setDeleteSpaceTarget}
                     onAddChild={(parentId) => setSpaceModal({ mode: "create", parentId })}
                     onRename={(s) => setSpaceModal({ mode: "edit", initial: s })}
+                    onShare={setShareTarget}
                   />
                 ))}
               </ul>
@@ -412,7 +618,7 @@ export function DocumentsPage() {
 
         {/* Main content */}
         <main className="flex-1 overflow-auto min-w-0 bg-gray-50">
-          {selectedSpace === undefined || selectedSpaceId === null ? (
+          {!selectedSpace ? (
             <div className="flex flex-col items-center justify-center h-full text-center p-8">
               <FolderOpen size={48} className="text-gray-300 mb-4" />
               <h2 className="text-lg font-semibold text-gray-700 mb-1">{t("documents.welcome.title")}</h2>
@@ -429,34 +635,59 @@ export function DocumentsPage() {
               {/* Header */}
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <span
-                    className="w-4 h-4 rounded-full"
-                    style={{ backgroundColor: selectedSpace!.color }}
-                  />
-                  <h1 className="text-xl font-bold text-gray-900">{selectedSpace!.name}</h1>
-                  {selectedSpace!.description && (
-                    <span className="text-sm text-gray-500">{selectedSpace!.description}</span>
+                  <span className="w-4 h-4 rounded-full" style={{ backgroundColor: selectedSpace.color }} />
+                  <h1 className="text-xl font-bold text-gray-900">{selectedSpace.name}</h1>
+                  {selectedSpace.description && (
+                    <span className="text-sm text-gray-500">{selectedSpace.description}</span>
+                  )}
+                  {myRole && (
+                    <span className="flex items-center gap-1 text-xs px-2 py-0.5 bg-gray-100 rounded-full text-gray-500">
+                      <RoleIcon role={myRole} />
+                      {roleLabel(myRole, t)}
+                    </span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    className="hidden"
-                    onChange={handleFileChange}
-                    disabled={isUploading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-                  >
-                    <Upload size={14} />
-                    {isUploading ? t("documents.uploading") : t("documents.upload")}
-                  </button>
-                </div>
+                {canWrite && (
+                  <div className="flex items-center gap-2">
+                    <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} disabled={isUploading} />
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={isUploading}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                    >
+                      <Upload size={14} />
+                      {isUploading ? t("documents.uploading") : t("documents.upload")}
+                    </button>
+                  </div>
+                )}
               </div>
+
+              {/* Members summary (top-level only) */}
+              {!selectedSpace.parentId && selectedTopLevel?.members && selectedTopLevel.members.length > 0 && (
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="flex -space-x-1.5">
+                    {selectedTopLevel.members.slice(0, 5).map((m) => (
+                      <div
+                        key={m.userId}
+                        title={`${m.user.name} (${roleLabel(m.role, t)})`}
+                        className="w-6 h-6 rounded-full bg-indigo-100 border-2 border-white flex items-center justify-center text-indigo-700 text-xs font-semibold"
+                      >
+                        {m.user.name[0]?.toUpperCase()}
+                      </div>
+                    ))}
+                  </div>
+                  {myRole === "owner" && (
+                    <button
+                      onClick={() => setShareTarget(selectedTopLevel)}
+                      className="text-xs text-indigo-600 hover:underline flex items-center gap-1"
+                    >
+                      <Share2 size={12} />
+                      {t("documents.share.manage")}
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Documents list */}
               <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
@@ -466,18 +697,20 @@ export function DocumentsPage() {
                   <div className="text-center py-12">
                     <FileText size={36} className="text-gray-300 mx-auto mb-3" />
                     <p className="text-sm text-gray-400">{t("documents.noDocuments")}</p>
-                    <button
-                      type="button"
-                      onClick={() => fileInputRef.current?.click()}
-                      className="mt-3 text-sm text-indigo-600 hover:underline"
-                    >
-                      {t("documents.uploadFirst")}
-                    </button>
+                    {canWrite && (
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="mt-3 text-sm text-indigo-600 hover:underline"
+                      >
+                        {t("documents.uploadFirst")}
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div className="divide-y divide-gray-100">
                     {documents.map((doc) => (
-                      <DocumentRow key={doc.id} doc={doc} onDelete={setDeleteDocTarget} />
+                      <DocumentRow key={doc.id} doc={doc} canDelete={canWrite} onDelete={setDeleteDocTarget} />
                     ))}
                   </div>
                 )}
@@ -487,7 +720,7 @@ export function DocumentsPage() {
         </main>
       </div>
 
-      {/* Space modal */}
+      {/* Modals */}
       {spaceModal && (
         <SpaceModal
           mode={spaceModal.mode}
@@ -499,7 +732,14 @@ export function DocumentsPage() {
         />
       )}
 
-      {/* Delete space confirm */}
+      {shareTarget && (
+        <ShareModal
+          space={shareTarget}
+          currentUserId={user?.id ?? 0}
+          onClose={() => setShareTarget(null)}
+        />
+      )}
+
       {deleteSpaceTarget && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
@@ -508,10 +748,7 @@ export function DocumentsPage() {
               {t("documents.confirmDeleteSpaceBody", { name: deleteSpaceTarget.name })}
             </p>
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDeleteSpaceTarget(null)}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
-              >
+              <button onClick={() => setDeleteSpaceTarget(null)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
                 {t("common.cancel")}
               </button>
               <button
@@ -526,17 +763,13 @@ export function DocumentsPage() {
         </div>
       )}
 
-      {/* Delete document confirm */}
       {deleteDocTarget && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
             <h2 className="font-semibold text-gray-900 mb-2">{t("documents.confirmDeleteDoc")}</h2>
             <p className="text-sm text-gray-500 mb-5">{deleteDocTarget.title}</p>
             <div className="flex justify-end gap-2">
-              <button
-                onClick={() => setDeleteDocTarget(null)}
-                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"
-              >
+              <button onClick={() => setDeleteDocTarget(null)} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
                 {t("common.cancel")}
               </button>
               <button

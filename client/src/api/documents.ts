@@ -1,5 +1,15 @@
 import { api } from "./client";
 
+export type DocumentSpaceMemberRole = "owner" | "editor" | "viewer";
+
+export interface DocumentSpaceMember {
+  spaceId: number;
+  userId: number;
+  role: DocumentSpaceMemberRole;
+  createdAt: string;
+  user: { id: number; name: string; avatarUrl: string | null; email?: string };
+}
+
 export interface DocumentSpace {
   id: number;
   name: string;
@@ -11,6 +21,7 @@ export interface DocumentSpace {
   createdAt: string;
   updatedAt: string;
   _count?: { documents: number; children: number };
+  members?: DocumentSpaceMember[];
 }
 
 export interface Document {
@@ -47,6 +58,20 @@ export const documentsApi = {
 
   deleteSpace: (id: number) => api.delete(`/api/document-spaces/${id}`),
 
+  // Members
+  listMembers: (spaceId: number) =>
+    api.get<DocumentSpaceMember[]>(`/api/document-spaces/${spaceId}/members`),
+
+  addMember: (spaceId: number, userId: number, role: "editor" | "viewer") =>
+    api.post<DocumentSpaceMember>(`/api/document-spaces/${spaceId}/members`, { userId, role }),
+
+  updateMember: (spaceId: number, userId: number, role: "editor" | "viewer") =>
+    api.patch<DocumentSpaceMember>(`/api/document-spaces/${spaceId}/members/${userId}`, { role }),
+
+  removeMember: (spaceId: number, userId: number) =>
+    api.delete(`/api/document-spaces/${spaceId}/members/${userId}`),
+
+  // Documents
   listDocuments: (spaceId: number) =>
     api.get<Document[]>(`/api/document-spaces/${spaceId}/documents`),
 
