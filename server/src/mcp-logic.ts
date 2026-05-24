@@ -179,7 +179,7 @@ function formatTask(t: Task) {
   };
 }
 
-export function createMcpServer() {
+export function createMcpServer(serverUserId?: number) {
   const server = new Server(
     { name: "gerard", version: "1.0.0" },
     { capabilities: { tools: {}, resources: {} } }
@@ -442,7 +442,7 @@ export function createMcpServer() {
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     const { name, arguments: args } = request.params;
-    const userId = mcpContextStorage.getStore()?.userId;
+    const userId = serverUserId ?? mcpContextStorage.getStore()?.userId;
 
     try {
       switch (name) {

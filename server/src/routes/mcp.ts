@@ -14,7 +14,7 @@ const activeTransports = new Map<string, any>();
 export default async function mcpRoutes(app: FastifyInstance) {
   console.log("[MCP Route] Loading modules...");
   const { SSEServerTransport } = await import("@modelcontextprotocol/sdk/server/sse.js");
-  const { createMcpServer, mcpContextStorage } = await import("../mcp-logic");
+  const { createMcpServer } = await import("../mcp-logic");
 
   app.all("/mcp", async (request, reply) => {
     const token = (request.query as any).token || request.headers["x-mcp-token"];
@@ -43,7 +43,7 @@ export default async function mcpRoutes(app: FastifyInstance) {
         // The endpoint tells the client where to POST messages. 
         // We include the token so subsequent POSTs are also authenticated.
         const transport = new SSEServerTransport(`/mcp?token=${token}`, reply.raw);
-        const server = createMcpServer();
+        const server = createMcpServer(userId);
         
         await server.connect(transport);
         const transportSessionId = transport.sessionId;
@@ -74,17 +74,14 @@ export default async function mcpRoutes(app: FastifyInstance) {
           return reply.status(404).send({ error: "Session not found or expired" });
         }
 
-        // Run the message handler within the user context
-        await mcpContextStorage.run({ userId }, async () => {
-          try {
-            await transport.handlePostMessage(request.raw, reply.raw, request.body);
-          } catch (err) {
-            console.error(`[MCP] ${request.id} - Error handling POST message:`, err);
-            if (!reply.raw.headersSent) {
-              reply.status(500).send({ error: "Error handling message" });
-            }
+        try {
+          await transport.handlePostMessage(request.raw, reply.raw, request.body);
+        } catch (err) {
+          console.error(`[MCP] ${request.id} - Error handling POST message:`, err);
+          if (!reply.raw.headersSent) {
+            reply.status(500).send({ error: "Error handling message" });
           }
-        });
+        }
         return;
       }
 
