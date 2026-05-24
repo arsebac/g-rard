@@ -351,6 +351,20 @@
       "title": "Documents officiels",
       "description": "Stockez vos contrats, bulletins de salaire et autres documents importants, organisés par espaces.",
       "createFirst": "Créer un premier espace"
+    },
+    "roles": {
+      "owner": "Propriétaire",
+      "editor": "Éditeur",
+      "viewer": "Lecteur"
+    },
+    "share": {
+      "title": "Partager l'espace",
+      "members": "Membres",
+      "invite": "Inviter",
+      "selectUser": "Choisir un utilisateur…",
+      "addMember": "Ajouter",
+      "remove": "Retirer",
+      "manage": "Gérer les accès"
     }
   }
 }
