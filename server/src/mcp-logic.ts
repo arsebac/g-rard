@@ -2,6 +2,8 @@ import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
+  ListResourcesRequestSchema,
+  ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { AsyncLocalStorage } from "node:async_hooks";
@@ -12,33 +14,68 @@ const API_KEY = process.env.GERARD_API_KEY;
 
 export const mcpContextStorage = new AsyncLocalStorage<{ userId: number }>();
 
-async function mcpApiRequest<T>(method: string, path: string, body?: unknown, userId?: number): Promise<T> {
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    "x-api-key": API_KEY || "",
-  };
-  if (userId) headers["x-user-id"] = String(userId);
+function apiHeaders(userId?: number, extra?: Record<string, string>): Record<string, string> {
+  const h: Record<string, string> = { "x-api-key": API_KEY || "" };
+  if (userId) h["x-user-id"] = String(userId);
+  if (extra) Object.assign(h, extra);
+  return h;
+}
 
+async function handleApiError(res: Response, method: string, path: string): Promise<never> {
+  let msg = `API ${method} ${path} → ${res.status}`;
+  try {
+    const d = await res.json();
+    if (d?.error) msg += `: ${d.error}`;
+  } catch {
+    const t = await res.text().catch(() => "");
+    if (t) msg += `: ${t}`;
+  }
+  throw new Error(msg);
+}
+
+async function mcpApiRequest<T>(method: string, path: string, body?: unknown, userId?: number): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     method,
-    headers,
+    headers: apiHeaders(userId, { "Content-Type": "application/json" }),
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
-
-  if (!res.ok) {
-    let errorMessage = `API ${method} ${path} → ${res.status}`;
-    try {
-      const errorData = await res.json();
-      if (errorData && errorData.error) {
-        errorMessage += `: ${errorData.error}`;
-      }
-    } catch {
-      const text = await res.text().catch(() => "");
-      if (text) errorMessage += `: ${text}`;
-    }
-    throw new Error(errorMessage);
-  }
+  if (!res.ok) await handleApiError(res, method, path);
   return res.json() as Promise<T>;
+}
+
+// Upload a base64-encoded file as multipart/form-data to the Gerard API
+async function mcpApiUpload<T>(
+  path: string,
+  filename: string,
+  contentBase64: string,
+  mimeType: string,
+  fields: Record<string, string>,
+  userId?: number
+): Promise<T> {
+  const buffer = Buffer.from(contentBase64, "base64");
+  const formData = new FormData();
+  for (const [k, v] of Object.entries(fields)) formData.append(k, v);
+  formData.append("file", new Blob([buffer], { type: mimeType }), filename);
+
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "POST",
+    headers: apiHeaders(userId),
+    body: formData,
+  });
+  if (!res.ok) await handleApiError(res, "POST", path);
+  return res.json() as Promise<T>;
+}
+
+// Fetch a binary resource and return it as a base64 string
+async function mcpApiBinary(path: string, userId?: number): Promise<{ base64: string; mimeType: string }> {
+  const res = await fetch(`${BASE_URL}${path}`, {
+    method: "GET",
+    headers: apiHeaders(userId),
+  });
+  if (!res.ok) await handleApiError(res, "GET", path);
+  const mimeType = res.headers.get("content-type") ?? "application/octet-stream";
+  const buffer = Buffer.from(await res.arrayBuffer());
+  return { base64: buffer.toString("base64"), mimeType };
 }
 
 function ok(data: unknown) {
@@ -80,6 +117,54 @@ interface Task {
   labels?: { label: { name: string; color: string } }[];
 }
 
+interface DocumentSpace {
+  id: number;
+  name: string;
+  color: string;
+  description: string | null;
+  parentId: number | null;
+  _count?: { documents: number; children: number };
+  members?: { userId: number; role: string; user: { id: number; name: string; email: string } }[];
+}
+
+interface Document {
+  id: number;
+  spaceId: number;
+  title: string;
+  description: string | null;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+  uploader?: { id: number; name: string };
+}
+
+function formatSpace(s: DocumentSpace) {
+  return {
+    id: s.id,
+    name: s.name,
+    color: s.color,
+    description: s.description,
+    parentId: s.parentId,
+    documentCount: s._count?.documents ?? 0,
+    subfolderCount: s._count?.children ?? 0,
+  };
+}
+
+function formatDocument(d: Document) {
+  return {
+    id: d.id,
+    spaceId: d.spaceId,
+    title: d.title,
+    description: d.description,
+    filename: d.filename,
+    mimeType: d.mimeType,
+    uploadedBy: d.uploader?.name ?? null,
+    createdAt: d.createdAt,
+    downloadUrl: `${BASE_URL}/api/documents/${d.id}/download`,
+  };
+}
+
 function formatTask(t: Task) {
   return {
     id: t.id,
@@ -97,7 +182,7 @@ function formatTask(t: Task) {
 export function createMcpServer() {
   const server = new Server(
     { name: "gerard", version: "1.0.0" },
-    { capabilities: { tools: {} } }
+    { capabilities: { tools: {}, resources: {} } }
   );
 
   server.setRequestHandler(ListToolsRequestSchema, async () => ({
@@ -257,6 +342,101 @@ export function createMcpServer() {
           required: ["taskId", "body"],
         },
       },
+
+      // ── Documents ─────────────────────────────────────────────────────────
+      {
+        name: "list_document_spaces",
+        description: "List all document spaces accessible to the current user (top-level spaces and their subfolders)",
+        inputSchema: { type: "object", properties: {}, required: [] },
+      },
+      {
+        name: "create_document_space",
+        description: "Create a new document space (or subfolder inside an existing space)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            name: { type: "string", description: "Space name" },
+            description: { type: "string", description: "Optional description" },
+            color: { type: "string", description: "Hex color (e.g. #6366f1)" },
+            parentId: { type: "number", description: "Parent space ID to create a subfolder (optional)" },
+          },
+          required: ["name"],
+        },
+      },
+      {
+        name: "list_documents",
+        description: "List documents in a space",
+        inputSchema: {
+          type: "object",
+          properties: {
+            spaceId: { type: "number", description: "Space ID" },
+          },
+          required: ["spaceId"],
+        },
+      },
+      {
+        name: "upload_document",
+        description: "Upload a document to a space. The file content must be provided as a base64-encoded string. Tip: read the file with your Read tool and encode it with btoa() or Buffer.from(content).toString('base64').",
+        inputSchema: {
+          type: "object",
+          properties: {
+            spaceId: { type: "number", description: "Target space ID" },
+            filename: { type: "string", description: "Original filename (e.g. contrat.pdf)" },
+            mimeType: { type: "string", description: "MIME type (e.g. application/pdf)" },
+            content_base64: { type: "string", description: "File content encoded in base64" },
+            title: { type: "string", description: "Document title (defaults to filename)" },
+            description: { type: "string", description: "Optional description" },
+          },
+          required: ["spaceId", "filename", "mimeType", "content_base64"],
+        },
+      },
+      {
+        name: "delete_document",
+        description: "Delete a document from a space",
+        inputSchema: {
+          type: "object",
+          properties: {
+            id: { type: "number", description: "Document ID" },
+          },
+          required: ["id"],
+        },
+      },
+      {
+        name: "list_space_members",
+        description: "List members of a document space and their roles",
+        inputSchema: {
+          type: "object",
+          properties: {
+            spaceId: { type: "number", description: "Space ID" },
+          },
+          required: ["spaceId"],
+        },
+      },
+      {
+        name: "add_space_member",
+        description: "Share a document space with another user",
+        inputSchema: {
+          type: "object",
+          properties: {
+            spaceId: { type: "number", description: "Space ID" },
+            userId: { type: "number", description: "User ID to add" },
+            role: { type: "string", enum: ["editor", "viewer"], description: "Role to grant" },
+          },
+          required: ["spaceId", "userId", "role"],
+        },
+      },
+      {
+        name: "remove_space_member",
+        description: "Remove a user from a document space",
+        inputSchema: {
+          type: "object",
+          properties: {
+            spaceId: { type: "number", description: "Space ID" },
+            userId: { type: "number", description: "User ID to remove" },
+          },
+          required: ["spaceId", "userId"],
+        },
+      },
     ],
   }));
 
@@ -363,12 +543,138 @@ export function createMcpServer() {
           return ok(comment);
         }
 
+        // ── Documents ──────────────────────────────────────────────────────
+        case "list_document_spaces": {
+          const spaces = await mcpApiRequest<DocumentSpace[]>("GET", "/api/document-spaces", undefined, userId);
+          return ok(spaces.map(formatSpace));
+        }
+
+        case "create_document_space": {
+          const { name, description, color, parentId } = args as any;
+          const space = await mcpApiRequest<DocumentSpace>(
+            "POST",
+            "/api/document-spaces",
+            { name, description: description ?? null, color: color ?? "#6366f1", parentId: parentId ?? null },
+            userId
+          );
+          return ok(formatSpace(space));
+        }
+
+        case "list_documents": {
+          const { spaceId } = args as any;
+          const docs = await mcpApiRequest<Document[]>("GET", `/api/document-spaces/${spaceId}/documents`, undefined, userId);
+          return ok(docs.map(formatDocument));
+        }
+
+        case "upload_document": {
+          const { spaceId, filename, mimeType, content_base64, title, description } = args as any;
+          const fields: Record<string, string> = {};
+          if (title) fields["title"] = title;
+          if (description) fields["description"] = description;
+          const doc = await mcpApiUpload<Document>(
+            `/api/document-spaces/${spaceId}/documents`,
+            filename,
+            content_base64,
+            mimeType,
+            fields,
+            userId
+          );
+          return ok(formatDocument(doc));
+        }
+
+        case "delete_document": {
+          const { id } = args as any;
+          await mcpApiRequest<any>("DELETE", `/api/documents/${id}`, undefined, userId);
+          return ok({ success: true });
+        }
+
+        case "list_space_members": {
+          const { spaceId } = args as any;
+          const members = await mcpApiRequest<any[]>("GET", `/api/document-spaces/${spaceId}/members`, undefined, userId);
+          return ok(members.map((m) => ({
+            userId: m.userId,
+            name: m.user.name,
+            email: m.user.email,
+            role: m.role,
+          })));
+        }
+
+        case "add_space_member": {
+          const { spaceId, userId: targetUserId, role } = args as any;
+          const member = await mcpApiRequest<any>(
+            "POST",
+            `/api/document-spaces/${spaceId}/members`,
+            { userId: targetUserId, role },
+            userId
+          );
+          return ok({ userId: member.userId, name: member.user.name, role: member.role });
+        }
+
+        case "remove_space_member": {
+          const { spaceId, userId: targetUserId } = args as any;
+          await mcpApiRequest<any>("DELETE", `/api/document-spaces/${spaceId}/members/${targetUserId}`, undefined, userId);
+          return ok({ success: true });
+        }
+
         default:
           return err(`Unknown tool: ${name}`);
       }
     } catch (e) {
       return err(e instanceof Error ? e.message : String(e));
     }
+  });
+
+  // ─── MCP Resources — documents as readable binary resources ───────────────
+
+  server.setRequestHandler(ListResourcesRequestSchema, async (request) => {
+    const userId = mcpContextStorage.getStore()?.userId;
+    try {
+      const spaces = await mcpApiRequest<DocumentSpace[]>("GET", "/api/document-spaces", undefined, userId);
+      const resources: { uri: string; name: string; mimeType: string; description: string }[] = [];
+
+      for (const space of spaces) {
+        const docs = await mcpApiRequest<Document[]>(
+          "GET",
+          `/api/document-spaces/${space.id}/documents`,
+          undefined,
+          userId
+        );
+        for (const doc of docs) {
+          resources.push({
+            uri: `gerard://documents/${doc.id}`,
+            name: doc.title,
+            mimeType: doc.mimeType,
+            description: `[${space.name}] ${doc.filename} — ${new Date(doc.createdAt).toLocaleDateString()}`,
+          });
+        }
+      }
+
+      return { resources };
+    } catch {
+      return { resources: [] };
+    }
+  });
+
+  server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
+    const userId = mcpContextStorage.getStore()?.userId;
+    const uri = request.params.uri;
+    const match = uri.match(/^gerard:\/\/documents\/(\d+)$/);
+    if (!match) {
+      throw new Error(`Unknown resource URI: ${uri}`);
+    }
+
+    const docId = parseInt(match[1]);
+    const { base64, mimeType } = await mcpApiBinary(`/api/documents/${docId}/download`, userId);
+
+    return {
+      contents: [
+        {
+          uri,
+          mimeType,
+          blob: base64,
+        },
+      ],
+    };
   });
 
   return server;
