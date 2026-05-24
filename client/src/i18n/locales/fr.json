@@ -321,8 +321,36 @@
   "sidebar": {
     "dashboard": "Tableau de bord",
     "wiki": "Wiki",
+    "documents": "Documents",
     "projects": "Projets",
     "newProject": "Nouveau projet",
     "search": "Rechercher…"
+  },
+
+  "documents": {
+    "spaces": "Espaces",
+    "newSpace": "Nouvel espace",
+    "newSubfolder": "Nouveau sous-dossier",
+    "editSpace": "Modifier l'espace",
+    "spaceName": "Nom",
+    "spaceNamePlaceholder": "Ex : Finances, Immobilier…",
+    "color": "Couleur",
+    "description": "Description",
+    "descriptionPlaceholder": "Description optionnelle…",
+    "noSpaces": "Aucun espace. Créez-en un !",
+    "addSubfolder": "Ajouter un sous-dossier",
+    "upload": "Ajouter un document",
+    "uploading": "Envoi en cours…",
+    "download": "Télécharger",
+    "noDocuments": "Aucun document dans cet espace.",
+    "uploadFirst": "Ajouter le premier document",
+    "confirmDeleteSpace": "Supprimer cet espace ?",
+    "confirmDeleteSpaceBody": "L'espace « {{name}} » et tous ses documents seront supprimés définitivement.",
+    "confirmDeleteDoc": "Supprimer ce document ?",
+    "welcome": {
+      "title": "Documents officiels",
+      "description": "Stockez vos contrats, bulletins de salaire et autres documents importants, organisés par espaces.",
+      "createFirst": "Créer un premier espace"
+    }
   }
 }
