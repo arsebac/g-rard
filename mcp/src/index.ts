@@ -115,6 +115,30 @@ interface Attachment {
   uploader: { id: number; name: string };
 }
 
+interface DocumentSpace {
+  id: number;
+  name: string;
+  color: string;
+  description: string | null;
+  parentId: number | null;
+  position: number;
+  createdAt: string;
+  _count?: { documents: number; children: number };
+  members?: { userId: number; role: string; user: { id: number; name: string; email: string } }[];
+}
+
+interface Document {
+  id: number;
+  spaceId: number;
+  title: string;
+  description: string | null;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  createdAt: string;
+  uploader?: { id: number; name: string };
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function ok(data: unknown) {
