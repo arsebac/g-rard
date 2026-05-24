@@ -24,6 +24,7 @@ import projectColumnRoutes from "./routes/projectColumns";
 import workflowRoutes from "./routes/workflow";
 import sprintRoutes from "./routes/sprints";
 import recurringTaskRoutes from "./routes/recurringTasks";
+import documentRoutes from "./routes/documents";
 import mcpRoutes from "./routes/mcp";
 
 export async function createServer() {
@@ -147,6 +148,7 @@ export async function createServer() {
   await app.register(workflowRoutes);
   await app.register(sprintRoutes);
   await app.register(recurringTaskRoutes);
+  await app.register(documentRoutes);
   console.log("Registering MCP routes...");
   await app.register(mcpRoutes);
 

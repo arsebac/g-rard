@@ -321,8 +321,36 @@
   "sidebar": {
     "dashboard": "Dashboard",
     "wiki": "Wiki",
+    "documents": "Documents",
     "projects": "Projects",
     "newProject": "New project",
     "search": "Search…"
+  },
+
+  "documents": {
+    "spaces": "Spaces",
+    "newSpace": "New space",
+    "newSubfolder": "New subfolder",
+    "editSpace": "Edit space",
+    "spaceName": "Name",
+    "spaceNamePlaceholder": "e.g. Finances, Real Estate…",
+    "color": "Color",
+    "description": "Description",
+    "descriptionPlaceholder": "Optional description…",
+    "noSpaces": "No spaces yet. Create one!",
+    "addSubfolder": "Add subfolder",
+    "upload": "Add document",
+    "uploading": "Uploading…",
+    "download": "Download",
+    "noDocuments": "No documents in this space.",
+    "uploadFirst": "Add the first document",
+    "confirmDeleteSpace": "Delete this space?",
+    "confirmDeleteSpaceBody": "Space \"{{name}}\" and all its documents will be permanently deleted.",
+    "confirmDeleteDoc": "Delete this document?",
+    "welcome": {
+      "title": "Official Documents",
+      "description": "Store your contracts, pay slips and other important documents, organised by spaces.",
+      "createFirst": "Create a first space"
+    }
   }
 }

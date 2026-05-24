@@ -30,6 +30,7 @@ model User {
   recurringTasksAssigned  RecurringTask[] @relation("RecurringTaskAssignee")
   notificationPreferences NotificationPreference[]
   followedTasks          TaskFollower[]
+  documents       Document[]
 
   @@map("users")
 }
@@ -384,10 +385,47 @@ model NotificationPreference {
 model TaskFollower {
   taskId Int @map("task_id")
   userId Int @map("user_id")
-  
+
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([taskId, userId])
   @@map("task_followers")
+}
+
+model DocumentSpace {
+  id          Int      @id @default(autoincrement())
+  name        String   @db.VarChar(255)
+  icon        String   @default("folder") @db.VarChar(50)
+  color       String   @default("#6366f1") @db.VarChar(7)
+  description String?  @db.Text
+  parentId    Int?     @map("parent_id")
+  position    Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent    DocumentSpace?  @relation("SpaceChildren", fields: [parentId], references: [id], onDelete: Cascade)
+  children  DocumentSpace[] @relation("SpaceChildren")
+  documents Document[]
+
+  @@map("document_spaces")
+}
+
+model Document {
+  id          Int      @id @default(autoincrement())
+  spaceId     Int      @map("space_id")
+  title       String   @db.VarChar(500)
+  description String?  @db.Text
+  uploadedBy  Int      @map("uploaded_by")
+  filename    String   @db.VarChar(255)
+  storedPath  String   @map("stored_path") @db.VarChar(500)
+  mimeType    String   @map("mime_type") @db.VarChar(100)
+  sizeBytes   Int      @map("size_bytes")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  space    DocumentSpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  uploader User          @relation(fields: [uploadedBy], references: [id])
+
+  @@map("documents")
 }

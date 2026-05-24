@@ -6,7 +6,7 @@ import { usersApi } from "@/api/users";
 import { attachmentsApi } from "@/api/attachments";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
-import { BookOpen, LayoutDashboard, LogOut, Plus, Camera, Loader2, Menu, X, Search } from "lucide-react";
+import { BookOpen, FolderOpen, LayoutDashboard, LogOut, Plus, Camera, Loader2, Menu, X, Search } from "lucide-react";
 import { SearchModal } from "@/components/ui/SearchModal";
 
 import { useEffect, useState } from "react";
@@ -119,6 +119,16 @@ export function AppShell({ children }: AppShellProps) {
           >
             <BookOpen size={16} />
             Wiki
+          </Link>
+
+          <Link
+            to="/documents"
+            activeProps={{ className: "bg-indigo-50 text-indigo-700" }}
+            inactiveProps={{ className: "text-gray-600 hover:bg-gray-100" }}
+            className="flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-colors"
+          >
+            <FolderOpen size={16} />
+            Documents
           </Link>
 
           {/* Projets */}

@@ -12,6 +12,7 @@ import { DashboardPage } from "./pages/DashboardPage";
 import { ProjectPage } from "./pages/ProjectPage";
 import { TicketPage } from "./pages/TicketPage";
 import { WikiPage } from "./pages/WikiPage";
+import { DocumentsPage } from "./pages/DocumentsPage";
 import McpAuthPage from "./pages/McpAuthPage";
 
 const rootRoute = createRootRoute({
@@ -79,6 +80,13 @@ const wikiRoute = createRoute({
   component: WikiPage,
 });
 
+const documentsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/documents",
+  beforeLoad: authGuard,
+  component: DocumentsPage,
+});
+
 const mcpAuthRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/mcp-auth",
@@ -93,6 +101,7 @@ const routeTree = rootRoute.addChildren([
   projectRoute,
   ticketRoute,
   wikiRoute,
+  documentsRoute,
   mcpAuthRoute,
 ]);
 
