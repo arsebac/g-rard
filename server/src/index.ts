@@ -1,11 +1,24 @@
 import path from "path";
 import fs from "fs";
+import { execSync } from "child_process";
 import { config } from "./config";
 import { createServer } from "./app";
 
 async function start() {
   console.log("Starting Gérard server...");
   console.log(`Current working directory: ${process.cwd()}`);
+
+  try {
+    console.log("Running database migrations...");
+    execSync("npx prisma migrate deploy --schema=./prisma/schema.prisma", {
+      cwd: path.join(__dirname, ".."),
+      stdio: "inherit",
+    });
+    console.log("Migrations applied.");
+  } catch (err) {
+    console.error("Migration failed:", err);
+    process.exit(1);
+  }
   const app = await createServer();
 
   // Create uploads folder if necessary
