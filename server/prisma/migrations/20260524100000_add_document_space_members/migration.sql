@@ -1,6 +1,4 @@
--- CreateEnum: DocumentSpaceMemberRole
-ALTER TABLE `document_space_members` ENGINE=InnoDB; -- no-op guard
-
+-- CreateTable: document_space_members
 CREATE TABLE `document_space_members` (
     `space_id` INTEGER NOT NULL,
     `user_id` INTEGER NOT NULL,
