@@ -347,6 +347,10 @@
     "confirmDeleteSpace": "Supprimer cet espace ?",
     "confirmDeleteSpaceBody": "L'espace « {{name}} » et tous ses documents seront supprimés définitivement.",
     "confirmDeleteDoc": "Supprimer ce document ?",
+    "noPreview": "Aperçu non disponible pour ce type de fichier.",
+    "fileInfo": "Informations",
+    "noDescription": "Aucune description",
+    "titleLabel": "Titre",
     "welcome": {
       "title": "Documents officiels",
       "description": "Stockez vos contrats, bulletins de salaire et autres documents importants, organisés par espaces.",

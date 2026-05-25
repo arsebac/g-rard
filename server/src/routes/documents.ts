@@ -401,7 +401,9 @@ export default async function documentRoutes(app: FastifyInstance) {
     const role = await getSpaceRole(req.currentUserId, doc.spaceId);
     if (!role) return reply.status(403).send({ error: "Access denied" });
 
-    reply.header("Content-Disposition", `attachment; filename="${doc.filename}"`);
+    const { inline } = req.query as { inline?: string };
+    const disposition = inline === "1" ? "inline" : "attachment";
+    reply.header("Content-Disposition", `${disposition}; filename="${doc.filename}"`);
     reply.header("Content-Type", doc.mimeType);
     return reply.send(storageService.getStream(doc.storedPath));
   });

@@ -347,6 +347,10 @@
     "confirmDeleteSpace": "Delete this space?",
     "confirmDeleteSpaceBody": "Space \"{{name}}\" and all its documents will be permanently deleted.",
     "confirmDeleteDoc": "Delete this document?",
+    "noPreview": "No preview available for this file type.",
+    "fileInfo": "File info",
+    "noDescription": "No description",
+    "titleLabel": "Title",
     "welcome": {
       "title": "Official Documents",
       "description": "Store your contracts, pay slips and other important documents, organised by spaces.",
