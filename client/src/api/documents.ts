@@ -88,5 +88,7 @@ export const documentsApi = {
 
   deleteDocument: (id: number) => api.delete(`/api/documents/${id}`),
 
-  getDownloadUrl: (id: number) => `${api.baseURL}/api/documents/${id}/download`,
+  getDownloadUrl: (id: number) => `/api/documents/${id}/download`,
+
+  getPreviewUrl: (id: number) => `/api/documents/${id}/download?inline=1`,
 };

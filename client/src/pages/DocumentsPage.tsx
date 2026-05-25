@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { documentsApi, DocumentSpace, Document, DocumentSpaceMemberRole } from "@/api/documents";
 import { usersApi } from "@/api/users";
@@ -22,11 +22,19 @@ import {
   UserPlus,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 const COLOR_OPTIONS = [
@@ -42,6 +50,18 @@ function RoleIcon({ role }: { role: DocumentSpaceMemberRole }) {
 
 function roleLabel(role: DocumentSpaceMemberRole, t: (k: string) => string) {
   return t(`documents.roles.${role}`);
+}
+
+function isImageType(mimeType: string) {
+  return mimeType.startsWith("image/");
+}
+
+function isPdfType(mimeType: string) {
+  return mimeType === "application/pdf";
+}
+
+function isMarkdownType(mimeType: string, filename: string) {
+  return mimeType.includes("markdown") || filename.toLowerCase().endsWith(".md");
 }
 
 // ─── Share modal ──────────────────────────────────────────────────────────────
@@ -109,7 +129,6 @@ function ShareModal({ space, currentUserId, onClose }: ShareModalProps) {
         </div>
 
         <div className="p-5 space-y-4">
-          {/* Current members */}
           <div>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
               {t("documents.share.members")}
@@ -158,7 +177,6 @@ function ShareModal({ space, currentUserId, onClose }: ShareModalProps) {
             </ul>
           </div>
 
-          {/* Invite form */}
           {invitableUsers.length > 0 && (
             <div className="border-t border-gray-100 pt-4">
               <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
@@ -263,14 +281,12 @@ function SpaceTreeItem({
         <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: space.color }} />
         <span className="truncate flex-1">{space.name}</span>
 
-        {/* Role badge */}
         {myMembership && (
           <span className="opacity-40 group-hover:opacity-100 flex-shrink-0">
             <RoleIcon role={myMembership.role} />
           </span>
         )}
 
-        {/* Actions */}
         <span className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           {isOwner && depth === 0 && (
             <button
@@ -426,31 +442,294 @@ function SpaceModal({ mode, parentId, initial, onClose, onSave, isPending }: Spa
   );
 }
 
+// ─── Upload modal ──────────────────────────────────────────────────────────────
+
+interface UploadModalProps {
+  file: File;
+  onClose: () => void;
+  onUpload: (title: string, description: string) => void;
+  isPending: boolean;
+}
+
+function UploadModal({ file, onClose, onUpload, isPending }: UploadModalProps) {
+  const { t } = useTranslation();
+  const [title, setTitle] = useState(file.name.replace(/\.[^.]+$/, ""));
+  const [description, setDescription] = useState("");
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-sm">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <h2 className="font-semibold text-gray-900">{t("documents.upload")}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="p-5 space-y-4">
+          <p className="text-xs text-gray-400 truncate flex items-center gap-1.5">
+            <FileText size={13} />
+            {file.name}
+          </p>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("documents.titleLabel")} *</label>
+            <input
+              autoFocus
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+              onKeyDown={(e) => { if (e.key === "Enter" && title.trim()) onUpload(title.trim(), description); }}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t("documents.description")}</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              rows={3}
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+              placeholder={t("documents.descriptionPlaceholder")}
+            />
+          </div>
+        </div>
+
+        <div className="flex justify-end gap-2 px-5 py-4 border-t border-gray-100">
+          <button onClick={onClose} className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900">
+            {t("common.cancel")}
+          </button>
+          <button
+            onClick={() => title.trim() && onUpload(title.trim(), description)}
+            disabled={!title.trim() || isPending}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+          >
+            <Upload size={14} />
+            {isPending ? t("documents.uploading") : t("documents.upload")}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Document viewer modal ─────────────────────────────────────────────────────
+
+interface DocumentViewerModalProps {
+  doc: Document;
+  canWrite: boolean;
+  onClose: () => void;
+  onUpdate: (id: number, data: { title?: string; description?: string | null }) => void;
+  isPending: boolean;
+}
+
+function DocumentViewerModal({ doc, canWrite, onClose, onUpdate, isPending }: DocumentViewerModalProps) {
+  const { t } = useTranslation();
+  const [editingDesc, setEditingDesc] = useState(false);
+  const [description, setDescription] = useState(doc.description ?? "");
+  const [markdownContent, setMarkdownContent] = useState<string | null>(null);
+  const [markdownLoading, setMarkdownLoading] = useState(false);
+
+  const isImage = isImageType(doc.mimeType);
+  const isPdf = isPdfType(doc.mimeType);
+  const isMarkdown = isMarkdownType(doc.mimeType, doc.filename);
+  const previewUrl = documentsApi.getPreviewUrl(doc.id);
+
+  useEffect(() => {
+    if (!isMarkdown) return;
+    setMarkdownLoading(true);
+    fetch(previewUrl, { credentials: "include" })
+      .then((r) => r.text())
+      .then(setMarkdownContent)
+      .finally(() => setMarkdownLoading(false));
+  }, [isMarkdown, previewUrl]);
+
+  const handleSaveDesc = () => {
+    onUpdate(doc.id, { description: description.trim() || null });
+    setEditingDesc(false);
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/60 z-50 flex flex-col">
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-3 bg-white border-b border-gray-200 flex-shrink-0">
+        <h2 className="font-semibold text-gray-900 truncate flex-1 mr-4">{doc.title}</h2>
+        <div className="flex items-center gap-3 flex-shrink-0">
+          <a
+            href={documentsApi.getDownloadUrl(doc.id)}
+            download={doc.filename}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <Download size={14} />
+            {t("documents.download")}
+          </a>
+          <button
+            onClick={onClose}
+            className="p-1.5 text-gray-400 hover:text-gray-700 transition-colors"
+            title={t("common.close")}
+          >
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Preview area */}
+        <div className="flex-1 overflow-auto bg-gray-100 flex items-center justify-center">
+          {isImage && (
+            <img
+              src={previewUrl}
+              alt={doc.title}
+              className="max-h-full max-w-full object-contain rounded shadow"
+            />
+          )}
+          {isPdf && (
+            <iframe
+              src={previewUrl}
+              title={doc.title}
+              className="w-full h-full border-0"
+            />
+          )}
+          {isMarkdown && (
+            markdownLoading ? (
+              <p className="text-sm text-gray-400">{t("common.loading")}</p>
+            ) : markdownContent !== null ? (
+              <div className="w-full h-full overflow-auto bg-white">
+                <div className="max-w-3xl mx-auto px-8 py-8 gerard-prose">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdownContent}</ReactMarkdown>
+                </div>
+              </div>
+            ) : null
+          )}
+          {!isImage && !isPdf && !isMarkdown && (
+            <div className="text-center">
+              <FileText size={52} className="text-gray-300 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">{t("documents.noPreview")}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Side panel */}
+        <div className="w-72 border-l border-gray-200 bg-white overflow-y-auto p-5 space-y-6 flex-shrink-0">
+          {/* File info */}
+          <div>
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              {t("documents.fileInfo")}
+            </p>
+            <dl className="space-y-1.5 text-sm">
+              <div>
+                <dt className="text-xs text-gray-400">Fichier</dt>
+                <dd className="text-gray-700 break-all">{doc.filename}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-400">Taille</dt>
+                <dd className="text-gray-700">{formatBytes(doc.sizeBytes)}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-gray-400">Ajouté le</dt>
+                <dd className="text-gray-700">{formatDate(doc.createdAt)}</dd>
+              </div>
+              {doc.uploader && (
+                <div>
+                  <dt className="text-xs text-gray-400">Par</dt>
+                  <dd className="text-gray-700">{doc.uploader.name}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+
+          {/* Description */}
+          <div>
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider">
+                {t("documents.description")}
+              </p>
+              {canWrite && !editingDesc && (
+                <button
+                  onClick={() => setEditingDesc(true)}
+                  className="text-xs text-indigo-600 hover:underline"
+                >
+                  {t("common.edit")}
+                </button>
+              )}
+            </div>
+            {editingDesc ? (
+              <div className="space-y-2">
+                <textarea
+                  autoFocus
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={5}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+                  placeholder={t("documents.descriptionPlaceholder")}
+                />
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleSaveDesc}
+                    disabled={isPending}
+                    className="px-3 py-1.5 bg-indigo-600 text-white text-xs font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {t("common.save")}
+                  </button>
+                  <button
+                    onClick={() => { setEditingDesc(false); setDescription(doc.description ?? ""); }}
+                    className="px-3 py-1.5 text-xs text-gray-600 hover:text-gray-900"
+                  >
+                    {t("common.cancel")}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {doc.description || (
+                  <span className="text-gray-400 italic">{t("documents.noDescription")}</span>
+                )}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Document row ──────────────────────────────────────────────────────────────
 
 interface DocumentRowProps {
   doc: Document;
   canDelete: boolean;
   onDelete: (doc: Document) => void;
+  onView: (doc: Document) => void;
 }
 
-function DocumentRow({ doc, canDelete, onDelete }: DocumentRowProps) {
+function DocumentRow({ doc, canDelete, onDelete, onView }: DocumentRowProps) {
   const { t } = useTranslation();
+  const isImage = isImageType(doc.mimeType);
+  const isPdf = isPdfType(doc.mimeType);
+  const isMarkdown = isMarkdownType(doc.mimeType, doc.filename);
+  const canPreview = isImage || isPdf || isMarkdown;
 
   return (
-    <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-lg group transition-colors">
-      <FileText size={18} className="text-gray-400 flex-shrink-0" />
+    <div
+      className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-lg group transition-colors cursor-pointer"
+      onClick={() => onView(doc)}
+    >
+      <FileText size={18} className={`flex-shrink-0 ${canPreview ? "text-indigo-400" : "text-gray-400"}`} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">{doc.title}</p>
         {doc.description && (
           <p className="text-xs text-gray-500 truncate">{doc.description}</p>
         )}
         <p className="text-xs text-gray-400 mt-0.5">
-          {doc.filename} · {formatDate(doc.createdAt)}
+          {doc.filename} · {formatBytes(doc.sizeBytes)} · {formatDate(doc.createdAt)}
           {doc.uploader && ` · ${doc.uploader.name}`}
         </p>
       </div>
-      <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div
+        className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => e.stopPropagation()}
+      >
         <a
           href={documentsApi.getDownloadUrl(doc.id)}
           download={doc.filename}
@@ -491,6 +770,8 @@ export function DocumentsPage() {
   const [shareTarget, setShareTarget] = useState<DocumentSpace | null>(null);
   const [deleteSpaceTarget, setDeleteSpaceTarget] = useState<DocumentSpace | null>(null);
   const [deleteDocTarget, setDeleteDocTarget] = useState<Document | null>(null);
+  const [viewTarget, setViewTarget] = useState<Document | null>(null);
+  const [pendingUpload, setPendingUpload] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   const { data: spaces = [], isLoading: spacesLoading } = useQuery({
@@ -539,6 +820,17 @@ export function DocumentsPage() {
     },
   });
 
+  const updateDocument = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: { title?: string; description?: string | null } }) =>
+      documentsApi.updateDocument(id, data),
+    onSuccess: (updated) => {
+      qc.setQueryData(["documents", selectedSpaceId], (old: Document[] | undefined) =>
+        old?.map((d) => (d.id === updated.id ? updated : d)) ?? []
+      );
+      setViewTarget((prev) => (prev?.id === updated.id ? updated : prev));
+    },
+  });
+
   const handleSaveSpace = (data: { name: string; color: string; description: string }) => {
     if (!spaceModal) return;
     if (spaceModal.mode === "create") {
@@ -548,23 +840,28 @@ export function DocumentsPage() {
     }
   };
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || selectedSpaceId === null) return;
+    setPendingUpload(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleUpload = async (title: string, description: string) => {
+    if (!pendingUpload || selectedSpaceId === null) return;
     setIsUploading(true);
     try {
-      await documentsApi.upload(selectedSpaceId, file);
+      await documentsApi.upload(selectedSpaceId, pendingUpload, title, description || undefined);
       qc.invalidateQueries({ queryKey: ["documents", selectedSpaceId] });
+      setPendingUpload(null);
     } finally {
       setIsUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
     }
   };
 
   const topLevelSpaces = spaces.filter((s) => s.parentId === null);
   const selectedSpace = selectedSpaceId !== null ? spaces.find((s) => s.id === selectedSpaceId) : null;
 
-  // Determine current user's role in selected space
   const selectedTopLevelId = selectedSpace?.parentId ?? selectedSpace?.id ?? null;
   const selectedTopLevel = selectedTopLevelId ? spaces.find((s) => s.id === selectedTopLevelId) : null;
   const myRole = selectedTopLevel?.members?.find((m) => m.userId === user?.id)?.role ?? null;
@@ -649,7 +946,7 @@ export function DocumentsPage() {
                 </div>
                 {canWrite && (
                   <div className="flex items-center gap-2">
-                    <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} disabled={isUploading} />
+                    <input ref={fileInputRef} type="file" className="hidden" onChange={handleFileChange} />
                     <button
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
@@ -657,7 +954,7 @@ export function DocumentsPage() {
                       className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
                     >
                       <Upload size={14} />
-                      {isUploading ? t("documents.uploading") : t("documents.upload")}
+                      {t("documents.upload")}
                     </button>
                   </div>
                 )}
@@ -710,7 +1007,13 @@ export function DocumentsPage() {
                 ) : (
                   <div className="divide-y divide-gray-100">
                     {documents.map((doc) => (
-                      <DocumentRow key={doc.id} doc={doc} canDelete={canWrite} onDelete={setDeleteDocTarget} />
+                      <DocumentRow
+                        key={doc.id}
+                        doc={doc}
+                        canDelete={canWrite}
+                        onDelete={setDeleteDocTarget}
+                        onView={setViewTarget}
+                      />
                     ))}
                   </div>
                 )}
@@ -737,6 +1040,25 @@ export function DocumentsPage() {
           space={shareTarget}
           currentUserId={user?.id ?? 0}
           onClose={() => setShareTarget(null)}
+        />
+      )}
+
+      {pendingUpload && (
+        <UploadModal
+          file={pendingUpload}
+          onClose={() => setPendingUpload(null)}
+          onUpload={handleUpload}
+          isPending={isUploading}
+        />
+      )}
+
+      {viewTarget && (
+        <DocumentViewerModal
+          doc={viewTarget}
+          canWrite={canWrite}
+          onClose={() => setViewTarget(null)}
+          onUpdate={(id, data) => updateDocument.mutate({ id, data })}
+          isPending={updateDocument.isPending}
         />
       )}
 
