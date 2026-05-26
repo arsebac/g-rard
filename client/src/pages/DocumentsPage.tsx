@@ -451,10 +451,13 @@ interface UploadModalProps {
   isPending: boolean;
 }
 
+const DESCRIPTION_MAX_LENGTH = 10_000;
+
 function UploadModal({ file, onClose, onUpload, isPending }: UploadModalProps) {
   const { t } = useTranslation();
   const [title, setTitle] = useState(file.name.replace(/\.[^.]+$/, ""));
   const [description, setDescription] = useState("");
+  const descriptionTooLong = description.length > DESCRIPTION_MAX_LENGTH;
 
   return (
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
@@ -489,9 +492,16 @@ function UploadModal({ file, onClose, onUpload, isPending }: UploadModalProps) {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"
+              className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 resize-none ${
+                descriptionTooLong
+                  ? "border-red-400 focus:ring-red-400"
+                  : "border-gray-300 focus:ring-indigo-400"
+              }`}
               placeholder={t("documents.descriptionPlaceholder")}
             />
+            {descriptionTooLong && (
+              <p className="text-xs text-red-500 mt-1">{t("documents.descriptionTooLong")}</p>
+            )}
           </div>
         </div>
 
@@ -501,7 +511,7 @@ function UploadModal({ file, onClose, onUpload, isPending }: UploadModalProps) {
           </button>
           <button
             onClick={() => title.trim() && onUpload(title.trim(), description)}
-            disabled={!title.trim() || isPending}
+            disabled={!title.trim() || isPending || descriptionTooLong}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
           >
             <Upload size={14} />

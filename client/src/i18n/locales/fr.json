@@ -337,6 +337,7 @@
     "color": "Couleur",
     "description": "Description",
     "descriptionPlaceholder": "Description optionnelle…",
+    "descriptionTooLong": "La description ne peut pas dépasser 10 000 caractères.",
     "noSpaces": "Aucun espace. Créez-en un !",
     "addSubfolder": "Ajouter un sous-dossier",
     "upload": "Ajouter un document",
