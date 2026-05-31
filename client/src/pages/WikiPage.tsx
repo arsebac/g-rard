@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { wikiApi, WikiPageSummary } from "@/api/wiki";
 import { AppShell } from "@/components/layout/AppShell";
@@ -423,9 +424,11 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
 
 export function WikiPage() {
   const queryClient = useQueryClient();
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const { pageId: pageIdParam } = useParams({ strict: false });
+  const navigate = useNavigate();
+  const selectedId = pageIdParam ? Number(pageIdParam) : null;
   const [showNewPage, setShowNewPage] = useState(false);
-  const [mobileShowContent, setMobileShowContent] = useState(false);
+  const [mobileShowContent, setMobileShowContent] = useState(selectedId !== null);
 
   const { data: pages = [], isLoading } = useQuery({
     queryKey: ["wiki-pages"],
@@ -436,7 +439,7 @@ export function WikiPage() {
     mutationFn: (file: File) => wikiApi.importMd(file),
     onSuccess: (page) => {
       queryClient.invalidateQueries({ queryKey: ["wiki-pages"] });
-      setSelectedId(page.id);
+      navigate({ to: "/wiki/$pageId", params: { pageId: String(page.id) } });
     },
   });
 
@@ -453,10 +456,10 @@ export function WikiPage() {
 
   const handleSelectPage = (id: number) => {
     if (id === -1) {
-      setSelectedId(null);
+      navigate({ to: "/wiki" });
       setMobileShowContent(false);
     } else {
-      setSelectedId(id);
+      navigate({ to: "/wiki/$pageId", params: { pageId: String(id) } });
       setMobileShowContent(true);
     }
   };
@@ -547,7 +550,7 @@ export function WikiPage() {
         <NewPageModal
           pages={pages}
           onClose={() => setShowNewPage(false)}
-          onCreate={(id) => setSelectedId(id)}
+          onCreate={(id) => navigate({ to: "/wiki/$pageId", params: { pageId: String(id) } })}
         />
       )}
     </AppShell>
