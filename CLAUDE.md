@@ -114,3 +114,4 @@ See `PLAN.md` for the full route list.
 - Do not add comments unless the logic is non-obvious.
 - Tests live alongside routes: `server/src/routes/*.test.ts` (Vitest + supertest).
 - The app targets 2 users — do not over-engineer for scale.
+- Always commit **and push** after completing a task (`git push` after every commit).

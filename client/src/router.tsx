@@ -80,6 +80,13 @@ const wikiRoute = createRoute({
   component: WikiPage,
 });
 
+const wikiPageRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/wiki/$pageId",
+  beforeLoad: authGuard,
+  component: WikiPage,
+});
+
 const documentsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/documents",
@@ -101,6 +108,7 @@ const routeTree = rootRoute.addChildren([
   projectRoute,
   ticketRoute,
   wikiRoute,
+  wikiPageRoute,
   documentsRoute,
   mcpAuthRoute,
 ]);
