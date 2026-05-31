@@ -4,8 +4,9 @@ import crypto from "crypto";
 import { config } from "../config";
 
 const ALLOWED_EXTENSIONS = [
-  ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf", 
-  ".doc", ".docx", ".xls", ".xlsx", ".txt", ".md", ".json", ".zip", ".csv"
+  ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf",
+  ".doc", ".docx", ".xls", ".xlsx", ".txt", ".md", ".json", ".zip", ".csv",
+  ".apk", ".ipa", ".exe", ".dmg",
 ];
 
 export const storageService = {
