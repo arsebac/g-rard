@@ -365,9 +365,6 @@ export default async function documentRoutes(app: FastifyInstance) {
 
       return reply.status(201).send(doc);
     } catch (err: any) {
-      if (err.message?.startsWith("File extension not allowed")) {
-        return reply.status(400).send({ error: err.message });
-      }
       app.log.error(err);
       return reply.status(500).send({ error: err.message || "Error while saving the file" });
     }

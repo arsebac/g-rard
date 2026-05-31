@@ -3,22 +3,9 @@ import path from "path";
 import crypto from "crypto";
 import { config } from "../config";
 
-const ALLOWED_EXTENSIONS = [
-  ".jpg", ".jpeg", ".png", ".gif", ".webp", ".pdf",
-  ".doc", ".docx", ".xls", ".xlsx", ".txt", ".md", ".json", ".zip", ".csv",
-  ".apk", ".ipa", ".exe", ".dmg",
-];
-
 export const storageService = {
-  /**
-   * Saves a file to disk in a date-structured folder
-   */
   async saveFile(stream: NodeJS.ReadableStream, filename: string): Promise<string> {
     const ext = path.extname(filename).toLowerCase();
-    
-    if (!ALLOWED_EXTENSIONS.includes(ext)) {
-      throw new Error(`File extension not allowed: ${ext}`);
-    }
 
     const today = new Date();
     const year = today.getFullYear().toString();
