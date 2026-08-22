@@ -49,9 +49,12 @@ function readSuppliedToken(req: FastifyRequest): SuppliedToken | null {
  * A token the client supplied wins over the Cloudflare Access header, which the
  * infrastructure adds to every request that comes through the tunnel: a
  * deliberate credential should beat ambient context, and existing clients keep
- * behaving exactly as they did. A token that is supplied but wrong fails outright
- * rather than falling through, so a stale configuration surfaces as an error
- * instead of silently acting as somebody else.
+ * behaving exactly as they did.
+ *
+ * A supplied token that matches nothing does not end the chain. An Authorization
+ * header is not necessarily one of ours -- an OAuth-capable client puts its own
+ * access token there -- so the remaining sources still get their turn. The
+ * attempt is logged so that a stale configuration stays visible.
  *
  * The Cloudflare branch is inert unless Access is configured, so a deployment
  * without it is unaffected.
@@ -60,7 +63,8 @@ export async function authenticateMcpRequest(req: FastifyRequest): Promise<McpId
   const supplied = readSuppliedToken(req);
   if (supplied) {
     const user = await db.user.findUnique({ where: { mcpToken: supplied.token } });
-    return user ? { userId: user.id, method: supplied.method } : null;
+    if (user) return { userId: user.id, method: supplied.method };
+    console.warn(`[MCP] Unknown token supplied via ${supplied.method}; trying the remaining credentials`);
   }
 
   if (isAccessEnabled()) {
