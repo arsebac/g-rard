@@ -47,17 +47,28 @@ describe("MCP request authentication", () => {
     expect(result).toEqual({ userId: 7, method: "query" });
   });
 
-  it("rejects an unknown token instead of falling through", async () => {
-    tokenMatches("secret", 7);
+  it("falls through to Access when the Authorization header is not one of our tokens", async () => {
+    // An OAuth-capable client puts its own access token in this header, so an
+    // unrecognised value must not end the chain.
     vi.mocked(isAccessEnabled).mockReturnValue(true);
     vi.mocked(verifyAccessToken).mockResolvedValue({ email: "user@example.com", subject: "s" });
-
-    const result = await authenticateMcpRequest(
-      request({ authorization: "Bearer wrong", "cf-access-jwt-assertion": "valid.jwt" })
+    vi.mocked(db.user.findUnique).mockImplementation(async (args: any) =>
+      args.where.email === "user@example.com" ? ({ id: 42 } as any) : null
     );
 
+    const result = await authenticateMcpRequest(
+      request({ authorization: "Bearer oauth:opaque", "cf-access-jwt-assertion": "valid.jwt" })
+    );
+
+    expect(result).toEqual({ userId: 42, method: "cloudflare-access" });
+  });
+
+  it("rejects an unknown token when nothing else can authenticate", async () => {
+    tokenMatches("secret", 7);
+    vi.mocked(isAccessEnabled).mockReturnValue(false);
+
+    const result = await authenticateMcpRequest(request({ authorization: "Bearer wrong" }));
     expect(result).toBeNull();
-    expect(verifyAccessToken).not.toHaveBeenCalled();
   });
 
   it("falls back to Cloudflare Access when no token is supplied", async () => {
