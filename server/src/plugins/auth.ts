@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
 import fp from "fastify-plugin";
 import { db } from "../db";
 import { config } from "../config";
+import { isAccessEnabled, verifyAccessToken } from "../services/cfAccess";
 import { ProjectMemberRole } from "@prisma/client";
 
 declare module "@fastify/session" {
@@ -108,6 +109,28 @@ export const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
     const firstUser = await db.user.findFirst({ orderBy: { id: "asc" } });
     if (firstUser) {
       req.currentUserId = firstUser.id;
+      return;
+    }
+  }
+
+  // Cloudflare Access. When the app is reached through the tunnel, the signed
+  // JWT is the authoritative identity, so it is checked before the session.
+  // Users are matched on email and are never created implicitly: an identity
+  // with no matching account is refused rather than provisioned.
+  if (isAccessEnabled()) {
+    const token = req.headers["cf-access-jwt-assertion"];
+    if (typeof token === "string" && token.length > 0) {
+      const identity = await verifyAccessToken(token);
+      if (!identity) {
+        return reply.status(401).send({ error: "Invalid Cloudflare Access token" });
+      }
+
+      const user = await db.user.findUnique({ where: { email: identity.email } });
+      if (!user) {
+        return reply.status(403).send({ error: "No account matches this identity" });
+      }
+
+      req.currentUserId = user.id;
       return;
     }
   }
