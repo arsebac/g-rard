@@ -21,6 +21,7 @@
     "@fastify/session": "^10.9.0",
     "@fastify/static": "^7.0.4",
     "@gerard/mcp": "*",
+    "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/client": "^5.22.0",
     "bcrypt": "^5.1.1",
     "dompurify": "^3.3.3",
