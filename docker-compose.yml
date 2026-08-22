@@ -14,6 +14,8 @@ services:
       PORT: ${PORT}
       NODE_ENV: ${NODE_ENV}
       GERARD_API_KEY: ${GERARD_API_KEY}
+      CF_ACCESS_TEAM_DOMAIN: ${CF_ACCESS_TEAM_DOMAIN:-}
+      CF_ACCESS_AUD: ${CF_ACCESS_AUD:-}
     volumes:
       - gerard_uploads:/app/uploads
     labels:
