@@ -6,12 +6,12 @@ import type { KeyLike } from "jose";
 // over has to be hoisted with them.
 const h = vi.hoisted(() => ({
   teamDomain: "https://test-team.cloudflareaccess.com",
-  aud: "test_application_audience_tag",
+  aud: ["test_application_audience_tag", "second_application_audience_tag"],
   publicKey: undefined as unknown,
 }));
 
 const TEAM_DOMAIN = h.teamDomain;
-const AUD = h.aud;
+const AUD = h.aud[0];
 
 vi.mock("../config", () => ({
   config: { cfAccess: { teamDomain: h.teamDomain, aud: h.aud } },
@@ -67,6 +67,11 @@ describe("Cloudflare Access token verification", () => {
 
   it("rejects a token signed by a different key", async () => {
     expect(await verifyAccessToken(await sign(otherPrivateKey))).toBeNull();
+  });
+
+  it("accepts a token from any of the configured applications", async () => {
+    const token = await sign(privateKey, {}, { audience: "second_application_audience_tag" });
+    expect((await verifyAccessToken(token))?.email).toBe("user@example.com");
   });
 
   it("rejects a token issued for another application", async () => {

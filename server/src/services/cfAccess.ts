@@ -27,7 +27,7 @@ function getKeySet(teamDomain: string) {
  * the app falls back to password sessions only and behaves exactly as before.
  */
 export function isAccessEnabled(): boolean {
-  return Boolean(config.cfAccess.teamDomain && config.cfAccess.aud);
+  return Boolean(config.cfAccess.teamDomain && config.cfAccess.aud.length > 0);
 }
 
 /**
@@ -43,9 +43,11 @@ export function isAccessEnabled(): boolean {
  */
 export async function verifyAccessToken(token: string): Promise<AccessIdentity | null> {
   const { teamDomain, aud } = config.cfAccess;
-  if (!teamDomain || !aud) return null;
+  if (!teamDomain || aud.length === 0) return null;
 
   try {
+    // `jose` treats an array as "any of these", which is what we want: the token
+    // only has to match the application it actually came through.
     const { payload } = await jwtVerify(token, getKeySet(teamDomain), {
       issuer: teamDomain,
       audience: aud,
