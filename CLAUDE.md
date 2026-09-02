@@ -107,6 +107,37 @@ See `PLAN.md` for the full route list.
 
 ---
 
+## Deployment
+
+**Every fix ends with a deployment.** Containers run built images, not the
+working directory's contents — until the cycle below runs, a modified file
+executes nowhere. No need to ask for permission to deploy a requested fix —
+just report when it's done, or why it failed.
+
+The app is built **locally on the Pi** (native arm64, no CI, no registry):
+
+```bash
+/deploy
+```
+
+This skill (`.claude/skills/deploy/SKILL.md`) calls Clauditor's shared script
+(`clauditor/scripts/local-deploy.sh`): `docker compose build --no-cache`
+(npm workspaces + Prisma generate), `up -d --force-recreate`, then an HTTP
+check on `http://gerard.local/api/health`. It waits on a **machine-wide**
+lock shared with every other locally-built project — this Pi (4 cores, tight
+RAM) can't run two native compiles at once, so a call may wait for another
+build to finish first.
+
+MCP equivalent (Clauditor tool): `project_redeploy(project_path:
+"/home/duck/projets/g-rard/docker-compose.yml", mode: "build")`.
+
+Previous setup (removed): `.github/workflows/docker.yml` published to
+`ghcr.io` (already native amd64/arm64 matrix + digest merge, so no QEMU
+here), but was still subject to a race with Clauditor's auto-update polling
+ghcr digests in the background (see memory
+`clauditor-autoupdate-races-manual-compose.md`). Both disappear with the
+local build — no registry left to compare against, so no polling possible.
+
 ## Dev conventions
 
 - Prefer editing existing files over creating new ones.
