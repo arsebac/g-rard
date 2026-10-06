@@ -72,6 +72,12 @@ export async function createServer() {
   await app.register(cookie);
   await app.register(session, {
     secret: config.sessionSecret,
+    // Only persist a session once something is written to it (login). The
+    // default (true) stores one per cookieless request in the in-memory
+    // store, which never expires entries: API-key/JWT/MCP callers and the
+    // healthcheck (duckies-hub polls every 10 s) piled up ~50k sessions a
+    // day until the heap hit its 2 GB limit.
+    saveUninitialized: false,
     cookie: {
       secure: false, // Must be false for plain HTTP
       httpOnly: true,
