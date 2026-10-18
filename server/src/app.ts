@@ -63,7 +63,7 @@ export async function createServer() {
   }
 
   await app.register(cors, {
-    origin: true,
+    origin: config.corsOrigins,
     credentials: true,
     methods: ["GET", "PUT", "POST", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie"],

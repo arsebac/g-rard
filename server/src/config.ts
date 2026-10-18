@@ -7,6 +7,12 @@ export const config = {
   uploadDir: process.env.UPLOAD_DIR ?? "./uploads",
   isDev: process.env.NODE_ENV !== "production",
   apiKey: process.env.GERARD_API_KEY ?? null,
+  // Browser origins allowed to call the API with credentials. The UI is served
+  // by this same server, so only its own hostnames need to be listed.
+  corsOrigins: (process.env.CORS_ORIGINS || "http://gerard.local,https://gerard.duckies.men,http://localhost:5173")
+    .split(",")
+    .map((o) => o.trim().replace(/\/+$/, ""))
+    .filter(Boolean),
   // Cloudflare Access. Both values are deployment-specific and must come from
   // the environment: never hardcode them, this repository is public.
   // Unset means the feature is off and password sessions are the only path in.

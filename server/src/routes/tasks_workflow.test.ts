@@ -24,6 +24,7 @@ vi.mock("../config", () => ({
     uploadDir: "./uploads",
     isDev: true,
     port: 3000,
+    corsOrigins: ["http://gerard.local"],
   },
 }));
 
