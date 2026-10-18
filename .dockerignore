@@ -10,7 +10,6 @@ docker-compose.yml
 README.md
 PLAN.md
 CLAUDE.md
-package-lock.json
 client/node_modules
 server/node_modules
 mcp/node_modules

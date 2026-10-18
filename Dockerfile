@@ -10,19 +10,16 @@ COPY client/package*.json ./client/
 COPY mcp/package*.json ./mcp/
 
 # Install all dependencies
-RUN npm install
+RUN npm ci
 
 # Stage 2: Build
 FROM node:20-alpine AS builder
 RUN apk add --no-cache openssl
 WORKDIR /app
 
-# Copy node_modules from deps
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/package.json ./package.json
-COPY --from=deps /app/server/package.json ./server/package.json
-COPY --from=deps /app/client/package.json ./client/package.json
-COPY --from=deps /app/mcp/package.json ./mcp/package.json
+# Copy node_modules from deps, including workspace-level ones (npm nests a
+# dependency under server/ or client/ when its version conflicts with the root)
+COPY --from=deps /app ./
 
 # Copy source code
 COPY . .
@@ -49,6 +46,7 @@ COPY --from=builder /app/package.json ./package.json
 # Copy server files
 WORKDIR /app/server
 COPY --from=builder /app/server/dist ./dist
+COPY --from=builder /app/server/node_modules ./node_modules
 COPY --from=builder /app/server/package.json ./package.json
 COPY --from=builder /app/server/prisma ./prisma
 
