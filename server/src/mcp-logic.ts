@@ -115,6 +115,10 @@ interface Task {
   projectKey?: string | null;
   assignee?: { id: number; name: string } | null;
   labels?: { label: { name: string; color: string } }[];
+  typeId?: number | null;
+  type?: { id: number; name: string; isEpic: boolean } | null;
+  parentId?: number | null;
+  parent?: { id: number; number: number; title: string; project?: { key: string | null } } | null;
 }
 
 interface DocumentSpace {
@@ -175,6 +179,14 @@ function formatTask(t: Task) {
     priority: t.priority,
     assignee: t.assignee?.name ?? null,
     dueDate: t.dueDate,
+    type: t.type ? { id: t.type.id, name: t.type.name, isEpic: t.type.isEpic } : null,
+    parent: t.parent
+      ? {
+          id: t.parent.id,
+          ref: t.parent.project?.key ? `${t.parent.project.key}-${t.parent.number}` : null,
+          title: t.parent.title,
+        }
+      : null,
     labels: t.labels?.map((l) => l.label.name) ?? [],
   };
 }
@@ -210,6 +222,7 @@ export function createMcpServer(serverUserId?: number) {
               description: "Filter by status",
             },
             assigneeId: { type: "number", description: "Filter by assignee (user ID)" },
+            parentId: { type: "number", description: "Filter by parent/epic task ID (list an epic's sub-tasks)" },
           },
           required: ["projectId"],
         },
@@ -250,6 +263,8 @@ export function createMcpServer(serverUserId?: number) {
             priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"], default: "normale" },
             assigneeId: { type: "number" },
             dueDate: { type: "string", description: "YYYY-MM-DD" },
+            typeId: { type: "number", description: "Ticket type ID (e.g. Epic, Story, Task, Bug — see list_tasks/get_task output or project ticket types)" },
+            parentId: { type: "number", description: "Parent/epic task ID — links this task under an epic" },
           },
           required: ["projectId", "title"],
         },
@@ -267,6 +282,8 @@ export function createMcpServer(serverUserId?: number) {
             priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"] },
             assigneeId: { type: ["number", "null"] },
             dueDate: { type: ["string", "null"] },
+            typeId: { type: ["number", "null"], description: "Ticket type ID, or null to clear" },
+            parentId: { type: ["number", "null"], description: "Parent/epic task ID, or null to unlink" },
           },
           required: ["id"],
         },
@@ -464,10 +481,11 @@ export function createMcpServer(serverUserId?: number) {
         }
 
         case "list_tasks": {
-          const { projectId, status, assigneeId } = args as any;
+          const { projectId, status, assigneeId, parentId } = args as any;
           const params = new URLSearchParams();
           if (status) params.set("status", status);
           if (assigneeId) params.set("assigneeId", String(assigneeId));
+          if (parentId) params.set("parentId", String(parentId));
           const qs = params.toString();
           const tasks = await mcpApiRequest<Task[]>("GET", `/api/projects/${projectId}/tasks${qs ? `?${qs}` : ""}`, undefined, userId);
           return ok(tasks.map(formatTask));

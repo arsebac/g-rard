@@ -62,6 +62,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         assigneeId?: string;
         labelId?: string;
         typeId?: string;
+        parentId?: string;
         dueDateFrom?: string;
         dueDateTo?: string;
         startDateFrom?: string;
@@ -81,6 +82,7 @@ export default async function taskRoutes(app: FastifyInstance) {
             labels: { some: { labelId: parseInt(query.labelId) } },
           }),
           ...(query.typeId && { typeId: parseInt(query.typeId) }),
+          ...(query.parentId && { parentId: query.parentId === "null" ? null : parseInt(query.parentId) }),
           ...(query.sprintId && { sprintId: query.sprintId === "null" ? null : parseInt(query.sprintId) }),
           ...((query.dueDateFrom || query.dueDateTo) && {
             dueDate: {
