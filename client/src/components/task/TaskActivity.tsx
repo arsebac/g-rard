@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { commentsApi, Comment, ActivityLog } from "@/api/comments";
+import { attachmentsApi } from "@/api/attachments";
 import { useAuthStore } from "@/store/auth";
 import { STATUS_LABELS, PRIORITY_LABELS } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
@@ -16,6 +17,8 @@ import {
   Check,
   X,
   ArrowRight,
+  ImagePlus,
+  Loader2,
 } from "lucide-react";
 
 type Tab = "comments" | "history";
@@ -184,15 +187,98 @@ function CommentBody({ body, onTaskRefClick }: { body: string; onTaskRefClick?: 
   );
 }
 
+// ─── Image upload ─────────────────────────────────────────────────────────────
+
+const imageFiles = (list: FileList | null | undefined) =>
+  Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
+
+// Uploads images as task attachments and inserts Markdown image links at the
+// textarea cursor. Returns the props to spread on the textarea, plus a picker.
+function useCommentImages(taskId: number, setText: (update: (text: string) => string) => void) {
+  const queryClient = useQueryClient();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const insertImages = async (files: File[]) => {
+    if (!files.length) return;
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart;
+    const end = textarea?.selectionEnd;
+    setUploading(true);
+    try {
+      const links: string[] = [];
+      for (const file of files) {
+        const attachment = await attachmentsApi.upload("task", taskId, file);
+        links.push(`![${file.name.replace(/[[\]]/g, "")}](${attachmentsApi.getDownloadUrl(attachment.id)})`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["attachments", "task", taskId] });
+      setText((text) => {
+        const from = start ?? text.length;
+        return text.slice(0, from) + links.join("\n\n") + text.slice(end ?? from);
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const textareaProps = {
+    ref: textareaRef,
+    onPaste: (e: React.ClipboardEvent) => {
+      const files = imageFiles(e.clipboardData.files);
+      if (!files.length) return;
+      e.preventDefault();
+      insertImages(files);
+    },
+    onDragOver: (e: React.DragEvent) => e.preventDefault(),
+    onDrop: (e: React.DragEvent) => {
+      const files = imageFiles(e.dataTransfer.files);
+      if (!files.length) return;
+      e.preventDefault();
+      insertImages(files);
+    },
+  };
+
+  const picker = (
+    <>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        disabled={uploading}
+        title="Insert image (or paste / drop it in the text)"
+        className="flex items-center gap-1 text-xs text-gray-400 hover:text-indigo-600 disabled:opacity-50"
+      >
+        {uploading ? <Loader2 size={12} className="animate-spin" /> : <ImagePlus size={12} />}
+        Image
+      </button>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        hidden
+        onChange={(e) => {
+          insertImages(imageFiles(e.target.files));
+          e.target.value = "";
+        }}
+      />
+    </>
+  );
+
+  return { textareaProps, picker, uploading };
+}
+
 // ─── Individual comment component ────────────────────────────────────────────
 
 function CommentItem({
+  taskId,
   comment,
   currentUserId,
   onUpdate,
   onDelete,
   onTaskRefClick,
 }: {
+  taskId: number;
   comment: Comment;
   currentUserId: number;
   onUpdate: (body: string) => void;
@@ -202,6 +288,7 @@ function CommentItem({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
   const isOwn = comment.authorId === currentUserId;
+  const images = useCommentImages(taskId, setDraft);
 
   const commit = () => {
     if (draft.trim() && draft !== comment.body) onUpdate(draft.trim());
@@ -243,6 +330,7 @@ function CommentItem({
         {editing ? (
           <div>
             <textarea
+              {...images.textareaProps}
               autoFocus
               value={draft}
               onChange={(e) => setDraft(e.target.value)}
@@ -266,6 +354,7 @@ function CommentItem({
               >
                 <X size={12} /> Cancel
               </button>
+              <div className="ml-auto">{images.picker}</div>
             </div>
           </div>
         ) : (
@@ -281,9 +370,9 @@ function CommentItem({
 export function TaskActivity({ taskId, onTaskRefClick }: { taskId: number; onTaskRefClick?: (ref: string) => void }) {
   const [tab, setTab] = useState<Tab>("comments");
   const [newComment, setNewComment] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
   const user = useAuthStore((s) => s.user);
+  const images = useCommentImages(taskId, setNewComment);
 
   const { data: comments = [] } = useQuery({
     queryKey: ["comments", taskId],
@@ -381,7 +470,7 @@ export function TaskActivity({ taskId, onTaskRefClick }: { taskId: number; onTas
             </div>
             <div className="flex-1">
               <textarea
-                ref={textareaRef}
+                {...images.textareaProps}
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
                 onKeyDown={(e) => {
@@ -391,11 +480,12 @@ export function TaskActivity({ taskId, onTaskRefClick }: { taskId: number; onTas
                 rows={newComment ? 3 : 1}
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent placeholder-gray-300 transition-all"
               />
-              {newComment && (
-                <div className="flex justify-end mt-1.5">
+              {(newComment || images.uploading) && (
+                <div className="flex items-center justify-end gap-3 mt-1.5">
+                  {images.picker}
                   <button
                     onClick={submitComment}
-                    disabled={createComment.isPending || !newComment.trim()}
+                    disabled={createComment.isPending || images.uploading || !newComment.trim()}
                     className="flex items-center gap-1.5 text-xs bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg font-medium transition-colors disabled:opacity-50"
                   >
                     <Send size={11} />
@@ -414,6 +504,7 @@ export function TaskActivity({ taskId, onTaskRefClick }: { taskId: number; onTas
               {comments.map((c) => (
                 <CommentItem
                   key={c.id}
+                  taskId={taskId}
                   comment={c}
                   currentUserId={user?.id ?? -1}
                   onUpdate={(body) => updateComment.mutate({ id: c.id, body })}

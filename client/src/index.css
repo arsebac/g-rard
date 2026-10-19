@@ -66,5 +66,6 @@
 .gerard-prose u { text-decoration: underline; }
 .gerard-prose s { text-decoration: line-through; }
 .gerard-prose a { color: #6366f1; text-decoration: underline; }
+.gerard-prose img { max-width: 100%; height: auto; border-radius: 6px; margin: 0.4em 0; }
 .gerard-prose .is-editor-empty:first-child::before { content: attr(data-placeholder); float: left; color: #d1d5db; pointer-events: none; height: 0; }
 
