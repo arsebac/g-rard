@@ -21,7 +21,7 @@ export function KanbanColumn({ status, tasks, onTaskClick, onAddTask, label, col
   const accentColor = color;
 
   return (
-    <div className="flex flex-col w-72 flex-shrink-0">
+    <div className="flex flex-col flex-1 min-w-56 max-w-80">
       {/* Header */}
       <div
         className="bg-white rounded-t-lg border border-b-0 border-gray-200 border-t-4 px-3 py-2.5 flex items-center justify-between"

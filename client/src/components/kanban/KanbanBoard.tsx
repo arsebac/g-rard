@@ -4,8 +4,11 @@ import {
   DragOverEvent,
   DragOverlay,
   DragStartEvent,
+  CollisionDetection,
   PointerSensor,
-  closestCenter,
+  UniqueIdentifier,
+  closestCorners,
+  pointerWithin,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
@@ -34,6 +37,18 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns 
   const visibleStatuses = columns && columns.length > 0
     ? columns.filter((c) => c.visible).map((c) => c.statusKey)
     : [...STATUSES];
+
+  // Prefer whatever is under the pointer; fall back to the nearest droppable.
+  const collisionDetection: CollisionDetection = (args) => {
+    const hits = pointerWithin(args);
+    return hits.length > 0 ? hits : closestCorners(args);
+  };
+
+  // `over` can be a column (status key) or a task card — resolve both to a status.
+  const resolveStatus = (overId: UniqueIdentifier, currentTasks: Task[]): Status | null => {
+    if (visibleStatuses.includes(overId as string)) return overId as Status;
+    return (currentTasks.find((t) => t.id === overId)?.status as Status) ?? null;
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -76,8 +91,7 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns 
     const draggedTask = currentTasks.find((t) => t.id === activeTaskId);
     if (!draggedTask) return;
 
-    // over is a column
-    const newStatus = STATUSES.includes(overId as Status) ? (overId as Status) : null;
+    const newStatus = resolveStatus(overId, currentTasks);
     if (newStatus && draggedTask.status !== newStatus) {
       setOptimisticTasks(
         currentTasks.map((t) => (t.id === activeTaskId ? { ...t, status: newStatus } : t))
@@ -99,10 +113,7 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns 
     const draggedTask = currentTasks.find((t) => t.id === activeTaskId);
     if (!draggedTask) return;
 
-    let newStatus = draggedTask.status;
-    if (STATUSES.includes(over.id as Status)) {
-      newStatus = over.id as Status;
-    }
+    const newStatus = resolveStatus(over.id, currentTasks) ?? draggedTask.status;
 
     const columnTasks = currentTasks
       .filter((t) => t.status === newStatus && t.id !== activeTaskId)
@@ -119,7 +130,8 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns 
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCenter}
+      collisionDetection={collisionDetection}
+      autoScroll={{ threshold: { x: 0.15, y: 0.15 }, acceleration: 20 }}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
