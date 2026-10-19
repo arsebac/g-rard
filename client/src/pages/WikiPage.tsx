@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { wikiApi, WikiPageSummary } from "@/api/wiki";
+import { attachmentsApi } from "@/api/attachments";
 import { AppShell } from "@/components/layout/AppShell";
-import { BookOpen, ChevronRight, Plus, Trash2, X, Download, Upload, Home, Loader2, Eye, Pencil, ArrowLeft } from "lucide-react";
+import { BookOpen, ChevronRight, Plus, Trash2, X, Download, Upload, Home, Loader2, Eye, Pencil, ArrowLeft, ImagePlus } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -212,6 +213,9 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
   const [editTitle, setEditTitle] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [editBody, setEditBody] = useState("");
+  const [uploading, setUploading] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { data: page, isLoading } = useQuery({
     queryKey: ["wiki-page", pageId],
@@ -248,6 +252,27 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
   const handleSaveBody = () => {
     updateMutation.mutate({ body: editBody });
     setIsReadOnly(true);
+  };
+
+  // Uploads images as page attachments and inserts Markdown image links at the cursor
+  const insertImages = async (list: FileList | null | undefined) => {
+    const files = Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
+    if (!files.length) return;
+    const textarea = textareaRef.current;
+    const start = textarea?.selectionStart ?? editBody.length;
+    const end = textarea?.selectionEnd ?? start;
+    setUploading(true);
+    try {
+      const links: string[] = [];
+      for (const file of files) {
+        const attachment = await attachmentsApi.upload("wiki_page", pageId, file);
+        links.push(`![${file.name.replace(/[[\]]/g, "")}](${attachmentsApi.getDownloadUrl(attachment.id)})`);
+      }
+      queryClient.invalidateQueries({ queryKey: ["attachments", "wiki_page", pageId] });
+      setEditBody((body) => body.slice(0, start) + links.join("\n\n") + body.slice(end));
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleEnterEdit = () => {
@@ -370,8 +395,20 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
       ) : (
         <div className="flex flex-col gap-3">
           <textarea
+            ref={textareaRef}
             value={editBody}
             onChange={(e) => setEditBody(e.target.value)}
+            onPaste={(e) => {
+              if (!Array.from(e.clipboardData.files).some((f) => f.type.startsWith("image/"))) return;
+              e.preventDefault();
+              insertImages(e.clipboardData.files);
+            }}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => {
+              if (!e.dataTransfer.files.length) return;
+              e.preventDefault();
+              insertImages(e.dataTransfer.files);
+            }}
             className="w-full min-h-[400px] font-mono text-sm border border-gray-200 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 resize-y"
             placeholder="Write the content in Markdown…"
             autoFocus
@@ -390,6 +427,26 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
             >
               Cancel
             </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+              title="Insert image (or paste / drop it in the text)"
+            >
+              {uploading ? <Loader2 size={14} className="animate-spin" /> : <ImagePlus size={14} />}
+              Image
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              hidden
+              onChange={(e) => {
+                insertImages(e.target.files);
+                e.target.value = "";
+              }}
+            />
           </div>
         </div>
       )}

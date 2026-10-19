@@ -106,7 +106,13 @@ export default async function attachmentRoutes(app: FastifyInstance) {
       if (!access) return reply.status(403).send({ error: "Access denied" });
     }
 
-    reply.header("Content-Disposition", `attachment; filename="${attachment.filename}"`);
+    // Raster images are served inline so Markdown descriptions and wiki pages can embed them.
+    // SVG stays a download: inline SVG can carry scripts.
+    const inline = /^image\/(png|jpe?g|gif|webp|avif)$/.test(attachment.mimeType);
+    const filename = encodeURIComponent(attachment.filename);
+    reply.header("Content-Type", attachment.mimeType || "application/octet-stream");
+    reply.header("Content-Disposition", `${inline ? "inline" : "attachment"}; filename*=UTF-8''${filename}`);
+    if (inline) reply.header("Cache-Control", "private, max-age=86400");
     return reply.send(storageService.getStream(attachment.storedPath));
   });
 

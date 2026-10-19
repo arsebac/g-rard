@@ -135,7 +135,7 @@ export default async function taskRoutes(app: FastifyInstance) {
       data: {
         ...rest,
         title: sanitizeHtml(title),
-        description: description ? sanitizeHtml(description) : null,
+        description: description || null,
         status: rest.status as TaskStatus,
         projectId: parseInt(projectId),
         createdBy: req.currentUserId,
@@ -236,7 +236,7 @@ export default async function taskRoutes(app: FastifyInstance) {
       data: {
         ...rest,
         ...(title !== undefined && { title: sanitizeHtml(title) }),
-        ...(description !== undefined && { description: description ? sanitizeHtml(description) : null }),
+        ...(description !== undefined && { description: description || null }),
         ...(rest.status && { status: rest.status as TaskStatus }),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),

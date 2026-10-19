@@ -109,6 +109,26 @@ describe("Routes Tasks", () => {
       expect(JSON.parse(response.payload).title).toBe("New Task");
     });
 
+    it("Stores the Markdown description verbatim", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (db.project.findUnique as any).mockResolvedValue({
+        id: 1,
+        members: [{ userId: 1, role: "member" }]
+      });
+      (db.task.findFirst as any).mockResolvedValue({ position: 1000 });
+      (db.task.create as any).mockResolvedValue({ id: 1, title: "New Task" });
+      const description = "## Notes\n\n- a & b <ok>\n- `code`\n\n![shot](/api/attachments/1/download)";
+
+      await app.inject({
+        method: "POST",
+        url: "/api/projects/1/tasks",
+        payload: { title: "New Task", description },
+        headers: { "x-api-key": "test-api-key" }
+      });
+
+      expect((db.task.create as any).mock.lastCall[0].data.description).toBe(description);
+    });
+
     it("Erreur 400 : Validation échouée", async () => {
       (db.user.findFirst as any).mockResolvedValue({ id: 1 });
       (db.project.findUnique as any).mockResolvedValue({ id: 1, members: [{ userId: 1, role: "member" }] });

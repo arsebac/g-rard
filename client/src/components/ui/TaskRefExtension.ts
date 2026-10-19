@@ -29,6 +29,8 @@ export const TaskRefExtension = Mark.create({
     return [
       {
         tag: "a[data-task-ref]",
+        // Must win over the Link mark's generic a[href] rule
+        priority: 100,
         getAttrs: (el) => ({ ref: (el as HTMLElement).getAttribute("data-task-ref") }),
       },
     ];
@@ -44,6 +46,23 @@ export const TaskRefExtension = Mark.create({
       0,
     ];
   },
+
+  // Markdown: refs are stored as plain text ("CUI-5") and turned back into
+  // the mark when the description is loaded.
+  markdownTokenName: "taskRef",
+  markdownTokenizer: {
+    name: "taskRef",
+    level: "inline",
+    start: (src: string) => src.search(/\b[A-Z]{2,5}-\d+\b/),
+    tokenize: (src: string) => {
+      const match = /^([A-Z]{2,5}-\d+)\b/.exec(src);
+      if (!match) return undefined;
+      return { type: "taskRef", raw: match[0], text: match[1] };
+    },
+  },
+  parseMarkdown: (token, helpers) =>
+    helpers.applyMark("taskRef", [{ type: "text", text: token.text }], { ref: token.text }),
+  renderMarkdown: (node, helpers) => helpers.renderChildren(node),
 
   addCommands() {
     return {

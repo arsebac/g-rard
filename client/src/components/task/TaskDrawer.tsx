@@ -6,6 +6,7 @@ import { projectsApi } from "@/api/projects";
 import { labelsApi } from "@/api/labels";
 import { ticketTypesApi } from "@/api/ticketTypes";
 import { sprintsApi } from "@/api/sprints";
+import { attachmentsApi } from "@/api/attachments";
 import { taskLinksApi, LINK_TYPES, LINK_TYPE_LABELS, LinkType } from "@/api/taskLinks";
 import {
   STATUS_LABELS,
@@ -425,6 +426,11 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                 defaultValue={fullTask.description ?? ""}
                 onSave={(description) => update({ description })}
                 placeholder="Add a description…"
+                onImageUpload={async (file) => {
+                  const attachment = await attachmentsApi.upload("task", fullTask.id, file);
+                  queryClient.invalidateQueries({ queryKey: ["attachments", "task", fullTask.id] });
+                  return attachmentsApi.getDownloadUrl(attachment.id);
+                }}
                 onTaskRefClick={async (ref) => {
                   const [key, num] = ref.split("-");
                   if (!key || !num) return;

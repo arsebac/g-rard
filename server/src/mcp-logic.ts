@@ -258,7 +258,7 @@ export function createMcpServer(serverUserId?: number) {
           properties: {
             projectId: { type: "number", description: "Project ID" },
             title: { type: "string", description: "Task title" },
-            description: { type: "string", description: "Task description" },
+            description: { type: "string", description: "Task description, in Markdown (GFM). Ticket refs like DEV-12 become links." },
             status: { type: "string", enum: ["a_faire", "en_cours", "termine", "bloque"], default: "a_faire" },
             priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"], default: "normale" },
             assigneeId: { type: "number" },
@@ -277,7 +277,7 @@ export function createMcpServer(serverUserId?: number) {
           properties: {
             id: { type: "number", description: "Task ID" },
             title: { type: "string" },
-            description: { type: "string" },
+            description: { type: "string", description: "Task description, in Markdown (GFM). Replaces the whole description." },
             status: { type: "string", enum: ["a_faire", "en_cours", "termine", "bloque"] },
             priority: { type: "string", enum: ["basse", "normale", "haute", "urgente"] },
             assigneeId: { type: ["number", "null"] },

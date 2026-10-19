@@ -1,11 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useEditor, EditorContent, Editor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import Underline from "@tiptap/extension-underline";
-import TextAlign from "@tiptap/extension-text-align";
 import Placeholder from "@tiptap/extension-placeholder";
-import Link from "@tiptap/extension-link";
-import { Check, X } from "lucide-react";
+import Image from "@tiptap/extension-image";
+import { Markdown } from "@tiptap/markdown";
+import { Check, ImagePlus, X } from "lucide-react";
 import { TaskRefExtension } from "./TaskRefExtension";
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
@@ -41,7 +40,7 @@ function Divider() {
   return <div className="w-px h-5 bg-gray-200 mx-0.5" />;
 }
 
-function Toolbar({ editor }: { editor: Editor }) {
+function Toolbar({ editor, onPickImage }: { editor: Editor; onPickImage?: () => void }) {
   return (
     <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 border-b border-gray-200 bg-gray-50 rounded-t-xl">
       {/* Titres */}
@@ -83,13 +82,6 @@ function Toolbar({ editor }: { editor: Editor }) {
         title="Italic (Ctrl+I)"
       >
         <span className="italic text-sm leading-none">I</span>
-      </ToolbarButton>
-      <ToolbarButton
-        active={editor.isActive("underline")}
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        title="Underline (Ctrl+U)"
-      >
-        <span className="underline text-sm leading-none">U</span>
       </ToolbarButton>
       <ToolbarButton
         active={editor.isActive("strike")}
@@ -161,33 +153,12 @@ function Toolbar({ editor }: { editor: Editor }) {
 
       <Divider />
 
-      {/* Alignement */}
-      <ToolbarButton
-        active={editor.isActive({ textAlign: "left" })}
-        onClick={() => editor.chain().focus().setTextAlign("left").run()}
-        title="Align left"
-      >
-        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
-          <rect x="1" y="3" width="14" height="2" rx="1" />
-          <rect x="1" y="7" width="9" height="2" rx="1" />
-          <rect x="1" y="11" width="12" height="2" rx="1" />
-        </svg>
-      </ToolbarButton>
-      <ToolbarButton
-        active={editor.isActive({ textAlign: "center" })}
-        onClick={() => editor.chain().focus().setTextAlign("center").run()}
-        title="Center"
-      >
-        <svg viewBox="0 0 16 16" className="w-4 h-4 fill-current">
-          <rect x="1" y="3" width="14" height="2" rx="1" />
-          <rect x="3.5" y="7" width="9" height="2" rx="1" />
-          <rect x="2" y="11" width="12" height="2" rx="1" />
-        </svg>
-      </ToolbarButton>
-
-      <Divider />
-
-      {/* Rule / reset */}
+      {/* Image / rule / reset */}
+      {onPickImage && (
+        <ToolbarButton active={false} onClick={onPickImage} title="Insert image">
+          <ImagePlus size={15} />
+        </ToolbarButton>
+      )}
       <ToolbarButton
         active={false}
         onClick={() => editor.chain().focus().setHorizontalRule().run()}
@@ -212,40 +183,87 @@ function Toolbar({ editor }: { editor: Editor }) {
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
+// Descriptions are stored as Markdown. Older ones were saved as Tiptap HTML:
+// load those as HTML, they are converted to Markdown on the next save.
+function contentType(value: string): "html" | "markdown" {
+  return /^\s*<(p|h[1-6]|ul|ol|blockquote|pre|hr|div)[\s>/]/i.test(value) ? "html" : "markdown";
+}
+
 interface RichTextEditorProps {
   defaultValue: string;
-  onSave?: (html: string) => void;
+  onSave?: (markdown: string) => void;
   placeholder?: string;
   onTaskRefClick?: (ref: string) => void;
   readOnly?: boolean;
+  /** Uploads an image and resolves with its URL; enables image paste/drop and the toolbar button. */
+  onImageUpload?: (file: File) => Promise<string>;
 }
 
-export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefClick, readOnly }: RichTextEditorProps) {
+export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefClick, readOnly, onImageUpload }: RichTextEditorProps) {
   const [dirty, setDirty] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const editorRef = useRef<Editor | null>(null);
+
+  const insertImages = async (files: File[], pos?: number) => {
+    const target = editorRef.current;
+    if (!target || !onImageUpload) return;
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const src = await onImageUpload(file);
+        const image = { type: "image", attrs: { src, alt: file.name } };
+        if (pos !== undefined) target.chain().focus().insertContentAt(pos, image).run();
+        else target.chain().focus().insertContent(image).run();
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const imageFiles = (list: FileList | null | undefined) =>
+    Array.from(list ?? []).filter((f) => f.type.startsWith("image/"));
 
   const editor = useEditor({
     editable: !readOnly,
     extensions: [
-      StarterKit,
-      Underline,
-      TextAlign.configure({ types: ["heading", "paragraph"] }),
+      // No underline: Markdown has no syntax for it
+      StarterKit.configure({ underline: false, link: { openOnClick: false } }),
       Placeholder.configure({ placeholder: placeholder ?? "Add a description…" }),
-      Link.configure({ openOnClick: false }),
+      Image,
+      Markdown,
       TaskRefExtension,
     ],
     content: defaultValue || "",
+    contentType: contentType(defaultValue || ""),
+    editorProps: {
+      handlePaste: (_view, event) => {
+        const files = imageFiles(event.clipboardData?.files);
+        if (!files.length || !onImageUpload) return false;
+        event.preventDefault();
+        insertImages(files);
+        return true;
+      },
+      handleDrop: (view, event) => {
+        const files = imageFiles(event.dataTransfer?.files);
+        if (!files.length || !onImageUpload) return false;
+        event.preventDefault();
+        const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+        insertImages(files, pos);
+        return true;
+      },
+    },
     onUpdate: ({ editor }) => {
       if (readOnly) return;
-      const current = editor.getHTML();
-      const clean = current === "<p></p>" ? "" : current;
-      setDirty(clean !== (defaultValue || ""));
+      setDirty(editor.getMarkdown().trim() !== (defaultValue || "").trim());
     },
   });
+  editorRef.current = editor;
 
   // sync when the task changes
   useEffect(() => {
     if (editor && !editor.isDestroyed) {
-      editor.commands.setContent(defaultValue || "");
+      editor.commands.setContent(defaultValue || "", { contentType: contentType(defaultValue || "") });
       editor.setEditable(!readOnly);
       setDirty(false);
     }
@@ -253,14 +271,13 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
 
   const commit = () => {
     if (!editor || !onSave) return;
-    const html = editor.getHTML();
-    onSave(html === "<p></p>" ? "" : html);
+    onSave(editor.getMarkdown().trim());
     setDirty(false);
   };
 
   const cancel = () => {
     if (!editor) return;
-    editor.commands.setContent(defaultValue || "");
+    editor.commands.setContent(defaultValue || "", { contentType: contentType(defaultValue || "") });
     setDirty(false);
   };
 
@@ -286,7 +303,26 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
           }
         }}
       >
-        {editor && !readOnly && <Toolbar editor={editor} />}
+        {editor && !readOnly && (
+          <Toolbar
+            editor={editor}
+            onPickImage={onImageUpload ? () => fileInputRef.current?.click() : undefined}
+          />
+        )}
+        {onImageUpload && (
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            hidden
+            onChange={(e) => {
+              insertImages(imageFiles(e.target.files));
+              e.target.value = "";
+            }}
+          />
+        )}
+        {uploading && <p className="px-3 py-1 text-xs text-gray-400">Uploading image…</p>}
         <EditorContent editor={editor} className={`gerard-prose ${readOnly ? "px-0 py-0" : ""}`} />
       </div>
 
