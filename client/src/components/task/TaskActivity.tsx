@@ -5,6 +5,8 @@ import { useAuthStore } from "@/store/auth";
 import { STATUS_LABELS, PRIORITY_LABELS } from "@/lib/utils";
 import { format, formatDistanceToNow } from "date-fns";
 import { fr } from "date-fns/locale";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   MessageSquare,
   History,
@@ -127,6 +129,61 @@ function formatAction(log: ActivityLog, users: { id: number; name: string }[]): 
   }
 }
 
+// ─── Markdown comment body ────────────────────────────────────────────────────
+
+const TASK_REF = /\b[A-Z]{2,5}-\d+\b/g;
+const TASK_REF_URL = "#task-ref:";
+
+interface MdNode { type: string; value?: string; url?: string; children?: MdNode[] }
+
+// Turns plain-text ticket refs ("DEV-12") into links, like descriptions do.
+// Code spans are separate nodes and link text is skipped, so neither is touched.
+function remarkTaskRefs() {
+  const walk = (node: MdNode) => {
+    if (!node.children || node.type === "link") return;
+    node.children = node.children.flatMap((child) => {
+      if (child.type !== "text" || !child.value) { walk(child); return [child]; }
+      const parts: MdNode[] = [];
+      let last = 0;
+      for (const m of child.value.matchAll(TASK_REF)) {
+        if (m.index > last) parts.push({ type: "text", value: child.value.slice(last, m.index) });
+        parts.push({ type: "link", url: TASK_REF_URL + m[0], children: [{ type: "text", value: m[0] }] });
+        last = m.index + m[0].length;
+      }
+      if (!parts.length) return [child];
+      if (last < child.value.length) parts.push({ type: "text", value: child.value.slice(last) });
+      return parts;
+    });
+  };
+  return walk;
+}
+
+function CommentBody({ body, onTaskRefClick }: { body: string; onTaskRefClick?: (ref: string) => void }) {
+  return (
+    <div className="gerard-prose !min-h-0 !p-0">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm, remarkTaskRefs]}
+        components={{
+          a: ({ href, children }) =>
+            href?.startsWith(TASK_REF_URL) ? (
+              <a
+                href={href}
+                className="task-ref-link"
+                onClick={(e) => { e.preventDefault(); onTaskRefClick?.(href.slice(TASK_REF_URL.length)); }}
+              >
+                {children}
+              </a>
+            ) : (
+              <a href={href} target="_blank" rel="noopener noreferrer">{children}</a>
+            ),
+        }}
+      >
+        {body}
+      </ReactMarkdown>
+    </div>
+  );
+}
+
 // ─── Individual comment component ────────────────────────────────────────────
 
 function CommentItem({
@@ -134,11 +191,13 @@ function CommentItem({
   currentUserId,
   onUpdate,
   onDelete,
+  onTaskRefClick,
 }: {
   comment: Comment;
   currentUserId: number;
   onUpdate: (body: string) => void;
   onDelete: () => void;
+  onTaskRefClick?: (ref: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(comment.body);
@@ -210,7 +269,7 @@ function CommentItem({
             </div>
           </div>
         ) : (
-          <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">{comment.body}</p>
+          <CommentBody body={comment.body} onTaskRefClick={onTaskRefClick} />
         )}
       </div>
     </div>
@@ -219,7 +278,7 @@ function CommentItem({
 
 // ─── Main export ──────────────────────────────────────────────────────────────
 
-export function TaskActivity({ taskId }: { taskId: number }) {
+export function TaskActivity({ taskId, onTaskRefClick }: { taskId: number; onTaskRefClick?: (ref: string) => void }) {
   const [tab, setTab] = useState<Tab>("comments");
   const [newComment, setNewComment] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -328,7 +387,7 @@ export function TaskActivity({ taskId }: { taskId: number }) {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitComment(); }
                 }}
-                placeholder="Add a comment… (Enter to send, Shift+Enter for a new line)"
+                placeholder="Add a comment in Markdown… (Enter to send, Shift+Enter for a new line)"
                 rows={newComment ? 3 : 1}
                 className="w-full text-sm border border-gray-200 rounded-xl px-3 py-2.5 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent placeholder-gray-300 transition-all"
               />
@@ -359,6 +418,7 @@ export function TaskActivity({ taskId }: { taskId: number }) {
                   currentUserId={user?.id ?? -1}
                   onUpdate={(body) => updateComment.mutate({ id: c.id, body })}
                   onDelete={() => deleteComment.mutate(c.id)}
+                  onTaskRefClick={onTaskRefClick}
                 />
               ))}
             </div>

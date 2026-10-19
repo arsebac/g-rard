@@ -299,6 +299,14 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
   const queryClient = useQueryClient();
   const [linkedTask, setLinkedTask] = useState<Task | null>(null);
 
+  const openTaskRef = async (ref: string) => {
+    const [key, num] = ref.split("-");
+    if (!key || !num) return;
+    try {
+      setLinkedTask(await tasksApi.getByRef(key, parseInt(num)));
+    } catch { /* unknown ref */ }
+  };
+
   const { data: users = [] } = useQuery({ queryKey: ["users"], queryFn: usersApi.list });
   const { data: project } = useQuery({
     queryKey: ["project", task.projectId],
@@ -431,14 +439,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
                   queryClient.invalidateQueries({ queryKey: ["attachments", "task", fullTask.id] });
                   return attachmentsApi.getDownloadUrl(attachment.id);
                 }}
-                onTaskRefClick={async (ref) => {
-                  const [key, num] = ref.split("-");
-                  if (!key || !num) return;
-                  try {
-                    const t = await tasksApi.getByRef(key, parseInt(num));
-                    setLinkedTask(t);
-                  } catch { /* ref invalide */ }
-                }}
+                onTaskRefClick={openTaskRef}
               />
             </div>
 
@@ -448,7 +449,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
             </div>
 
             <div className="pt-2 border-t border-gray-100">
-              <TaskActivity taskId={fullTask.id} />
+              <TaskActivity taskId={fullTask.id} onTaskRefClick={openTaskRef} />
             </div>
           </div>
 

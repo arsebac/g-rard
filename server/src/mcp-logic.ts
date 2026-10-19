@@ -354,7 +354,7 @@ export function createMcpServer(serverUserId?: number) {
           type: "object",
           properties: {
             taskId: { type: "number", description: "Task ID" },
-            body: { type: "string", description: "Comment body" },
+            body: { type: "string", description: "Comment body, in Markdown (GFM). Ticket refs like DEV-12 become links." },
           },
           required: ["taskId", "body"],
         },
