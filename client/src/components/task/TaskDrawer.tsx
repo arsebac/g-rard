@@ -30,6 +30,7 @@ import {
   Search,
   Layers,
   Repeat,
+  SlidersHorizontal,
 } from "lucide-react";
 import { TaskActivity } from "./TaskActivity";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
@@ -298,6 +299,7 @@ interface TaskDrawerProps {
 export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
   const queryClient = useQueryClient();
   const [linkedTask, setLinkedTask] = useState<Task | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const openTaskRef = async (ref: string) => {
     const [key, num] = ref.split("-");
@@ -377,16 +379,16 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
   if (!fullTask) return null;
 
   return (
-    <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center md:p-4">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="relative bg-white md:rounded-2xl shadow-2xl w-full max-w-4xl h-full md:h-auto md:max-h-[90vh] flex flex-col overflow-hidden">
 
         {linkedTask && <TaskDrawer task={linkedTask} onClose={() => setLinkedTask(null)} />}
 
         {/* Top bar */}
-        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 flex-shrink-0">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 px-4 md:px-6 py-3 border-b border-gray-100 flex-shrink-0">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             {fullTask.type && (
               <span
                 className="text-xs font-semibold px-2 py-0.5 rounded"
@@ -410,7 +412,7 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
               </span>
             )}
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 flex-shrink-0">
             <button onClick={() => deleteMutation.mutate()} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors" title="Delete task">
               <Trash2 size={15} />
             </button>
@@ -421,10 +423,10 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
         </div>
 
         {/* Body */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-col md:flex-row flex-1 min-h-0 overflow-y-auto md:overflow-hidden">
 
           {/* Left — title + description + links + activity */}
-          <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5 min-w-0">
+          <div className="flex-shrink-0 md:flex-shrink md:flex-1 md:overflow-y-auto px-4 md:px-6 py-5 flex flex-col gap-5 min-w-0">
             <EditableTitle value={fullTask.title} onSave={(title) => update({ title })} />
 
             <div>
@@ -453,10 +455,18 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
             </div>
           </div>
 
-          <div className="w-px bg-gray-100 flex-shrink-0" />
+          <div className="h-px md:h-auto md:w-px bg-gray-100 flex-shrink-0" />
 
           {/* Right — metadata */}
-          <div className="w-64 flex-shrink-0 overflow-y-auto px-5 py-5 flex flex-col gap-5 bg-gray-50/50">
+          {/* On mobile the metadata panel stacks below the content and is collapsible */}
+          <button
+            onClick={() => setDetailsOpen((o) => !o)}
+            className="md:hidden flex items-center justify-between px-4 py-3 text-sm font-medium text-gray-600 bg-gray-50/50 flex-shrink-0"
+          >
+            <span className="flex items-center gap-2"><SlidersHorizontal size={14} /> Details</span>
+            <ChevronDown size={16} className={`text-gray-400 transition-transform ${detailsOpen ? "rotate-180" : ""}`} />
+          </button>
+          <div className={`${detailsOpen ? "flex" : "hidden"} md:flex w-full md:w-64 flex-shrink-0 md:overflow-y-auto px-4 md:px-5 pt-1 md:pt-5 pb-5 flex-col gap-5 bg-gray-50/50`}>
 
             {/* Type de ticket */}
             {ticketTypes.length > 0 && (
