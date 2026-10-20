@@ -304,6 +304,9 @@ export function ProjectPage() {
     return rawTasks.filter((t) => t.title.toLowerCase().includes(q));
   }, [rawTasks, filters.search]);
 
+  const boardTasks = useMemo(() => tasks.filter((t) => !t.type?.isEpic), [tasks]);
+  const filterableTicketTypes = viewMode === "kanban" ? ticketTypes.filter((t) => !t.isEpic) : ticketTypes;
+
   const projectUsers = useMemo(() => {
     const ids = new Set(rawTasks.map((t) => t.assigneeId).filter(Boolean));
     return allUsers.filter((u) => ids.has(u.id));
@@ -450,11 +453,11 @@ export function ProjectPage() {
           />
 
           {/* Ticket type filter — hidden in backlog mode */}
-          {!isBacklog && ticketTypes.length > 0 && (
+          {!isBacklog && filterableTicketTypes.length > 0 && (
             <>
               <div className="w-px h-5 bg-gray-200" />
               <div className="flex items-center gap-1">
-                {ticketTypes.map((type: TicketType) => (
+                {filterableTicketTypes.map((type: TicketType) => (
                   <button
                     key={type.id}
                     onClick={() =>
@@ -497,7 +500,7 @@ export function ProjectPage() {
             <div className="text-sm text-gray-400">Loading...</div>
           ) : viewMode === "kanban" ? (
             <KanbanBoard
-              tasks={tasks}
+              tasks={boardTasks}
               projectId={id}
               onTaskClick={handleTaskSelect}
               onAddTask={handleAddTask}
