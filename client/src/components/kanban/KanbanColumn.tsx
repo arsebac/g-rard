@@ -3,7 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { Task } from "@/api/tasks";
 import { TaskCard } from "./TaskCard";
 import { STATUS_LABELS } from "@/lib/utils";
-import { Plus } from "lucide-react";
+import { Plus, Archive } from "lucide-react";
 
 interface KanbanColumnProps {
   status: string;
@@ -12,9 +12,11 @@ interface KanbanColumnProps {
   onAddTask: (status: string) => void;
   label?: string;
   color?: string;
+  onArchiveTask?: (task: Task) => void;
+  onClearColumn?: () => void;
 }
 
-export function KanbanColumn({ status, tasks, onTaskClick, onAddTask, label, color }: KanbanColumnProps) {
+export function KanbanColumn({ status, tasks, onTaskClick, onAddTask, label, color, onArchiveTask, onClearColumn }: KanbanColumnProps) {
   const { setNodeRef, isOver } = useDroppable({ id: status });
 
   const displayLabel = label ?? STATUS_LABELS[status];
@@ -35,13 +37,24 @@ export function KanbanColumn({ status, tasks, onTaskClick, onAddTask, label, col
             {tasks.length}
           </span>
         </div>
-        <button
-          onClick={() => onAddTask(status)}
-          className="text-gray-400 hover:text-indigo-600 transition-colors"
-          title="Add a task"
-        >
-          <Plus size={16} />
-        </button>
+        <div className="flex items-center gap-2">
+          {onClearColumn && (
+            <button
+              onClick={() => { if (confirm("Remove all done tasks from the board? They stay searchable and in the list view.")) onClearColumn(); }}
+              className="text-gray-400 hover:text-indigo-600 transition-colors"
+              title="Clear the column"
+            >
+              <Archive size={15} />
+            </button>
+          )}
+          <button
+            onClick={() => onAddTask(status)}
+            className="text-gray-400 hover:text-indigo-600 transition-colors"
+            title="Add a task"
+          >
+            <Plus size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Cards */}
@@ -54,7 +67,7 @@ export function KanbanColumn({ status, tasks, onTaskClick, onAddTask, label, col
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           <div className="flex flex-col gap-2">
             {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} onClick={onTaskClick} />
+              <TaskCard key={task.id} task={task} onClick={onTaskClick} onArchive={onArchiveTask} />
             ))}
           </div>
         </SortableContext>

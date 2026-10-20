@@ -6,6 +6,7 @@ import Image from "@tiptap/extension-image";
 import { Markdown } from "@tiptap/markdown";
 import { Check, ImagePlus, X } from "lucide-react";
 import { TaskRefExtension } from "./TaskRefExtension";
+import { markdownLexer } from "../../lib/markdownLexer";
 
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
@@ -231,7 +232,7 @@ export function RichTextEditor({ defaultValue, onSave, placeholder, onTaskRefCli
       StarterKit.configure({ underline: false, link: { openOnClick: false } }),
       Placeholder.configure({ placeholder: placeholder ?? "Add a description…" }),
       Image,
-      Markdown,
+      Markdown.configure({ marked: markdownLexer }),
       TaskRefExtension,
     ],
     content: defaultValue || "",

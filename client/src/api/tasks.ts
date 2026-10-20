@@ -22,6 +22,10 @@ export interface Task {
   parentId: number | null;
   sprintId: number | null;
   recurringTaskId: number | null;
+  completedAt: string | null;
+  archivedAt: string | null;
+  /** Computed by the API: hidden from the board by the project's done-task rule */
+  archived?: boolean;
   createdAt: string;
   updatedAt: string;
   assignee?: Pick<User, "id" | "name" | "avatarUrl"> | null;
@@ -87,6 +91,10 @@ export const tasksApi = {
   move: (id: number, status: Task["status"], position: number, sprintId?: number | null) =>
     api.patch<Task>(`/api/tasks/${id}/move`, { status, position, sprintId }),
   delete: (id: number) => api.delete(`/api/tasks/${id}`),
+  setArchived: (id: number, archived: boolean) =>
+    api.patch<Task>(`/api/tasks/${id}/archive`, { archived }),
+  archiveDone: (projectId: number) =>
+    api.post<{ count: number }>(`/api/projects/${projectId}/tasks/archive-done`, {}),
   getByRef: (key: string, number: number) =>
     api.get<Task>(`/api/tasks/ref/${key}/${number}`),
 };

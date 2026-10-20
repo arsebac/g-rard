@@ -44,6 +44,8 @@ model Project {
   color       String        @default("#6366f1") @db.VarChar(7)
   status      ProjectStatus @default(actif)
   isPublic    Boolean       @default(true) @map("is_public")
+  doneVisibility      DoneVisibility @default(manual) @map("done_visibility")
+  doneVisibilityHours Int            @default(168) @map("done_visibility_hours")
   createdBy   Int           @map("created_by")
   createdAt   DateTime      @default(now()) @map("created_at")
   updatedAt   DateTime      @updatedAt @map("updated_at")
@@ -61,6 +63,13 @@ model Project {
   notificationPreferences NotificationPreference[]
 
   @@map("projects")
+}
+
+enum DoneVisibility {
+  manual
+  immediate
+  delay
+  sprint_end
 }
 
 model ProjectMember {
@@ -117,6 +126,8 @@ model Task {
   parentId    Int?         @map("parent_id")
   sprintId        Int?         @map("sprint_id")
   recurringTaskId Int?         @map("recurring_task_id")
+  completedAt     DateTime?    @map("completed_at")
+  archivedAt      DateTime?    @map("archived_at")
   createdAt       DateTime     @default(now()) @map("created_at")
   updatedAt   DateTime     @updatedAt @map("updated_at")
 

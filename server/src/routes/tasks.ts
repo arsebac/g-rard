@@ -6,6 +6,7 @@ import { logActivity } from "../services/activity";
 import { nextTaskNumber } from "../services/projectKey";
 import { sanitizeHtml } from "../services/sanitize";
 import { TaskStatus } from "@prisma/client";
+import { completionFields, isTaskArchived } from "../services/doneVisibility";
 
 const createTaskSchema = z.object({
   title: z.string().min(1).max(500),
@@ -40,6 +41,13 @@ const moveTaskSchema = z.object({
   sprintId: z.number().optional().nullable(),
 });
 
+const DONE_VISIBILITY_SELECT = { doneVisibility: true, doneVisibilityHours: true } as const;
+
+async function withArchivedFlag<T extends { projectId: number; status: string; completedAt: Date | null; archivedAt: Date | null; sprint?: { status: string } | null }>(task: T) {
+  const settings = await db.project.findUnique({ where: { id: task.projectId }, select: DONE_VISIBILITY_SELECT });
+  return { ...task, archived: settings ? isTaskArchived(task, settings) : false };
+}
+
 async function validateTransition(projectId: number, fromStatus: string, toStatus: string) {
   if (fromStatus === toStatus) return true;
 
@@ -70,9 +78,13 @@ export default async function taskRoutes(app: FastifyInstance) {
         endDateFrom?: string;
         endDateTo?: string;
         sprintId?: string;
+        archived?: "exclude" | "only" | "all";
       };
 
-      const project = await db.project.findUnique({ where: { id: parseInt(projectId) }, select: { key: true } });
+      const project = await db.project.findUnique({
+        where: { id: parseInt(projectId) },
+        select: { key: true, ...DONE_VISIBILITY_SELECT },
+      });
       const tasks = await db.task.findMany({
         where: {
           projectId: parseInt(projectId),
@@ -106,9 +118,14 @@ export default async function taskRoutes(app: FastifyInstance) {
         include: TASK_INCLUDE,
         orderBy: [{ status: "asc" }, { position: "asc" }],
       });
-      // Inject project key into each task
+      // Inject project key and computed board visibility into each task
       const projectKey = project?.key ?? null;
-      return reply.send(tasks.map((t) => ({ ...t, projectKey })));
+      const now = new Date();
+      const annotated = tasks.map((t) => ({ ...t, projectKey, archived: project ? isTaskArchived(t, project, now) : false }));
+      const filtered = query.archived === "exclude" ? annotated.filter((t) => !t.archived)
+        : query.archived === "only" ? annotated.filter((t) => t.archived)
+        : annotated;
+      return reply.send(filtered);
     } catch (error) {
       req.log.error(error);
       throw error;
@@ -137,6 +154,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         title: sanitizeHtml(title),
         description: description || null,
         status: rest.status as TaskStatus,
+        ...(rest.status === "termine" && { completedAt: new Date() }),
         projectId: parseInt(projectId),
         createdBy: req.currentUserId,
         position,
@@ -181,7 +199,7 @@ export default async function taskRoutes(app: FastifyInstance) {
       },
     });
     if (!task) return reply.status(404).send({ error: "Task not found" });
-    return reply.send({ ...task, projectKey: project.key });
+    return reply.send({ ...(await withArchivedFlag(task)), projectKey: project.key });
   });
 
   app.get("/api/tasks/:id", { preHandler: requireAuth }, async (req, reply) => {
@@ -202,7 +220,7 @@ export default async function taskRoutes(app: FastifyInstance) {
     const access = await getProjectAccess(req.currentUserId, task.projectId);
     if (!access) return reply.status(403).send({ error: "Access denied" });
 
-    return reply.send(task);
+    return reply.send(await withArchivedFlag(task));
   });
 
   app.patch("/api/tasks/:id", { preHandler: requireAuth }, async (req, reply) => {
@@ -238,6 +256,7 @@ export default async function taskRoutes(app: FastifyInstance) {
         ...(title !== undefined && { title: sanitizeHtml(title) }),
         ...(description !== undefined && { description: description || null }),
         ...(rest.status && { status: rest.status as TaskStatus }),
+        ...completionFields(old.status, rest.status),
         ...(dueDate !== undefined && { dueDate: dueDate ? new Date(dueDate) : null }),
         ...(startDate !== undefined && { startDate: startDate ? new Date(startDate) : null }),
         ...(endDate !== undefined && { endDate: endDate ? new Date(endDate) : null }),
@@ -282,7 +301,48 @@ export default async function taskRoutes(app: FastifyInstance) {
     }
 
     await Promise.all(logs);
-    return reply.send(task);
+    return reply.send(await withArchivedFlag(task));
+  });
+
+  // Manually take a done task off the board, or put it back
+  app.patch("/api/tasks/:id/archive", { preHandler: requireAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const old = await db.task.findUnique({ where: { id: parseInt(id) } });
+    if (!old) return reply.status(404).send({ error: "Task not found" });
+
+    const access = await getProjectAccess(req.currentUserId, old.projectId);
+    if (!access) return reply.status(403).send({ error: "Access denied" });
+    if ((access as string) === "viewer") return reply.status(403).send({ error: "Viewers cannot perform write operations" });
+
+    const body = z.object({ archived: z.boolean() }).safeParse(req.body);
+    if (!body.success) return reply.status(400).send({ error: "Invalid data" });
+    if (body.data.archived && old.status !== "termine") {
+      return reply.status(400).send({ error: "Only done tasks can be removed from the board" });
+    }
+
+    const task = await db.task.update({
+      where: { id: old.id },
+      data: { archivedAt: body.data.archived ? new Date() : null },
+      include: TASK_INCLUDE,
+    });
+    await logActivity({
+      entityType: "task",
+      entityId: task.id,
+      actorId: req.currentUserId,
+      action: body.data.archived ? "task_archived" : "task_unarchived",
+      newValue: {},
+    });
+    return reply.send(await withArchivedFlag(task));
+  });
+
+  // Clear the done column in one click
+  app.post("/api/projects/:projectId/tasks/archive-done", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
+    const { projectId } = req.params as { projectId: string };
+    const result = await db.task.updateMany({
+      where: { projectId: parseInt(projectId), status: "termine", archivedAt: null },
+      data: { archivedAt: new Date() },
+    });
+    return reply.send({ count: result.count });
   });
 
   app.patch("/api/tasks/:id/move", { preHandler: requireAuth }, async (req, reply) => {
@@ -312,7 +372,8 @@ export default async function taskRoutes(app: FastifyInstance) {
     const task = await db.task.update({
       where: { id: parseInt(id) },
       data: { 
-        status: body.data.status as TaskStatus, 
+        status: body.data.status as TaskStatus,
+        ...completionFields(old.status, body.data.status),
         position: body.data.position,
         ...(body.data.sprintId !== undefined && { sprintId: body.data.sprintId }),
       },

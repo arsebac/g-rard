@@ -10,7 +10,7 @@ import {
   useSortable, arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { projectsApi, membersApi, type ProjectMemberRole } from "@/api/projects";
+import { projectsApi, membersApi, type ProjectMemberRole, type DoneVisibility } from "@/api/projects";
 import { labelsApi } from "@/api/labels";
 import { usersApi } from "@/api/users";
 import { useAuthStore } from "@/store/auth";
@@ -492,6 +492,94 @@ function TabColumns({ projectId }: { projectId: number }) {
       <p className="text-xs text-gray-400">
         Click on the name to rename it. Click on the color dot to change the color. The order here is the display order in the Kanban.
       </p>
+
+      <DoneVisibilitySettings projectId={projectId} />
+    </div>
+  );
+}
+
+const DONE_VISIBILITY_OPTIONS: { value: DoneVisibility; label: string; hint: string }[] = [
+  { value: "manual",     label: "Manually",            hint: "Done tasks stay until you remove them (card button, or clear the whole column)." },
+  { value: "immediate",  label: "Immediately",         hint: "A task leaves the board as soon as it is done." },
+  { value: "delay",      label: "After a delay",       hint: "A task stays on the board for a while after it is done." },
+  { value: "sprint_end", label: "At the end of sprint", hint: "Done tasks leave the board when their sprint is completed." },
+];
+
+function DoneVisibilitySettings({ projectId }: { projectId: number }) {
+  const queryClient = useQueryClient();
+  const { data: project } = useCurrentProject(projectId);
+  const [unit, setUnit] = useState<"hours" | "days">("days");
+  const [amount, setAmount] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!project || amount !== null) return;
+    const hours = project.doneVisibilityHours;
+    if (hours % 24 === 0) { setUnit("days"); setAmount(hours / 24); }
+    else { setUnit("hours"); setAmount(hours); }
+  }, [project, amount]);
+
+  const save = useMutation({
+    mutationFn: (data: { doneVisibility?: DoneVisibility; doneVisibilityHours?: number }) =>
+      projectsApi.update(projectId, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["project", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["project-key"] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", projectId] });
+    },
+  });
+
+  if (!project) return null;
+
+  const saveDelay = (value: number, u: "hours" | "days") => {
+    if (!Number.isFinite(value) || value < 1) return;
+    save.mutate({ doneVisibilityHours: Math.round(u === "days" ? value * 24 : value) });
+  };
+
+  return (
+    <div className="border-t border-gray-100 pt-4 flex flex-col gap-3">
+      <div>
+        <h3 className="text-sm font-semibold text-gray-800">Done tasks</h3>
+        <p className="text-xs text-gray-500 mt-0.5">
+          When should done tasks leave the board? They are never deleted: they remain in search, the list view, epics and links, and reopening one brings it back.
+        </p>
+      </div>
+      <div className="flex flex-col gap-2">
+        {DONE_VISIBILITY_OPTIONS.map((opt) => (
+          <label key={opt.value} className="flex items-start gap-2.5 cursor-pointer">
+            <input
+              type="radio"
+              name="doneVisibility"
+              className="mt-1"
+              checked={project.doneVisibility === opt.value}
+              onChange={() => save.mutate({ doneVisibility: opt.value })}
+            />
+            <span>
+              <span className="text-sm text-gray-800">{opt.label}</span>
+              <span className="block text-xs text-gray-400">{opt.hint}</span>
+              {opt.value === "delay" && project.doneVisibility === "delay" && amount !== null && (
+                <span className="flex items-center gap-2 mt-1.5">
+                  <input
+                    type="number"
+                    min={1}
+                    value={amount}
+                    onChange={(e) => setAmount(parseInt(e.target.value) || 1)}
+                    onBlur={() => saveDelay(amount, unit)}
+                    className="w-20 text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  />
+                  <select
+                    value={unit}
+                    onChange={(e) => { const u = e.target.value as "hours" | "days"; setUnit(u); saveDelay(amount, u); }}
+                    className="text-sm border border-gray-200 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                  >
+                    <option value="hours">hours</option>
+                    <option value="days">days</option>
+                  </select>
+                </span>
+              )}
+            </span>
+          </label>
+        ))}
+      </div>
     </div>
   );
 }

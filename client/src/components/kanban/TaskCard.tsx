@@ -4,14 +4,15 @@ import { Task } from "@/api/tasks";
 import { PRIORITY_COLORS, PRIORITY_LABELS, taskRef } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
 import { fr } from "date-fns/locale";
-import { MessageSquare, Calendar, AlertCircle, Repeat } from "lucide-react";
+import { MessageSquare, Calendar, AlertCircle, Repeat, Archive } from "lucide-react";
 
 interface TaskCardProps {
   task: Task;
   onClick: (task: Task) => void;
+  onArchive?: (task: Task) => void;
 }
 
-export function TaskCard({ task, onClick }: TaskCardProps) {
+export function TaskCard({ task, onClick, onArchive }: TaskCardProps) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: task.id });
 
@@ -32,8 +33,18 @@ export function TaskCard({ task, onClick }: TaskCardProps) {
       {...attributes}
       {...listeners}
       onClick={() => onClick(task)}
-      className="bg-white rounded-lg border border-gray-200 p-3 shadow-sm cursor-pointer hover:shadow-md hover:border-indigo-200 transition-all select-none"
+      className="group relative bg-white rounded-lg border border-gray-200 p-3 shadow-sm cursor-pointer hover:shadow-md hover:border-indigo-200 transition-all select-none"
     >
+      {onArchive && (
+        <button
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={(e) => { e.stopPropagation(); onArchive(task); }}
+          className="absolute top-2 right-2 p-1 rounded text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
+          title="Remove from board"
+        >
+          <Archive size={13} />
+        </button>
+      )}
       {/* Type badge + Labels */}
       <div className="flex flex-wrap items-center gap-1 mb-2">
         {task.type && (

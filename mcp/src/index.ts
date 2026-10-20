@@ -193,6 +193,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           },
           assigneeId: { type: "number", description: "Filter by assignee (user ID)" },
           parentId: { type: "number", description: "Filter by parent/epic task ID (list an epic's sub-tasks)" },
+          includeArchived: { type: "boolean", description: "Also return done tasks archived off the board (default false)" },
         },
         required: ["projectId"],
       },
@@ -590,16 +591,18 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
       // ── Tasks ─────────────────────────────────────────────────────────────
       case "list_tasks": {
-        const { projectId, status, assigneeId, parentId } = z
+        const { projectId, status, assigneeId, parentId, includeArchived } = z
           .object({
             projectId: z.number(),
             status: z.string().optional(),
             assigneeId: z.number().optional(),
             parentId: z.number().optional(),
+            includeArchived: z.boolean().optional(),
           })
           .parse(args);
 
         const params = new URLSearchParams();
+        if (!includeArchived) params.set("archived", "exclude");
         if (status) params.set("status", status);
         if (assigneeId) params.set("assigneeId", String(assigneeId));
         if (parentId) params.set("parentId", String(parentId));

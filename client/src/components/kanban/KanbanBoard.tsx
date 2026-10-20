@@ -68,7 +68,17 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns 
     },
   });
 
-  const displayedTasks = optimisticTasks ?? tasks;
+  const archiveDoneMutation = useMutation({
+    mutationFn: () => tasksApi.archiveDone(projectId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }),
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id: number) => tasksApi.setArchived(id, true),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["tasks", projectId] }),
+  });
+
+  const displayedTasks = (optimisticTasks ?? tasks).filter((t) => !t.archived);
 
   const tasksByStatus = visibleStatuses.reduce<Record<string, Task[]>>((acc, status) => {
     acc[status] = displayedTasks.filter((t) => t.status === status).sort((a, b) => a.position - b.position);
@@ -148,6 +158,8 @@ export function KanbanBoard({ tasks, projectId, onTaskClick, onAddTask, columns 
               tasks={tasksByStatus[status]}
               onTaskClick={onTaskClick}
               onAddTask={onAddTask}
+              onArchiveTask={status === "termine" ? (task) => archiveMutation.mutate(task.id) : undefined}
+              onClearColumn={status === "termine" && tasksByStatus[status].length > 0 ? () => archiveDoneMutation.mutate() : undefined}
             />
           );
         })}

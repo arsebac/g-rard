@@ -16,6 +16,8 @@ const createProjectSchema = z.object({
 
 const updateProjectSchema = createProjectSchema.partial().extend({
   status: z.enum(["actif", "archive"]).optional(),
+  doneVisibility: z.enum(["manual", "immediate", "delay", "sprint_end"]).optional(),
+  doneVisibilityHours: z.number().int().min(1).max(24 * 365).optional(),
 });
 
 export default async function projectRoutes(app: FastifyInstance) {

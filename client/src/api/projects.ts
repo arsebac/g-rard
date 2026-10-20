@@ -10,6 +10,8 @@ export interface Project {
   description: string | null;
   color: string;
   status: "actif" | "archive";
+  doneVisibility: DoneVisibility;
+  doneVisibilityHours: number;
   createdBy: number;
   createdAt: string;
   updatedAt: string;
@@ -19,6 +21,8 @@ export interface Project {
   columns?: ProjectColumn[];
   workflowTransitions?: WorkflowTransition[];
 }
+
+export type DoneVisibility = "manual" | "immediate" | "delay" | "sprint_end";
 
 export interface Label {
   id: number;

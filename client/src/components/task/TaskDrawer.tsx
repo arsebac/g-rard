@@ -18,6 +18,8 @@ import {
 import {
   X,
   Trash2,
+  Archive,
+  ArchiveRestore,
   Calendar,
   Flag,
   ChevronDown,
@@ -368,6 +370,15 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
     },
   });
 
+  const archiveMutation = useMutation({
+    mutationFn: (archived: boolean) => tasksApi.setArchived(task.id, archived),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["task", task.id] });
+      queryClient.invalidateQueries({ queryKey: ["tasks", task.projectId] });
+      queryClient.invalidateQueries({ queryKey: ["activity", task.id] });
+    },
+  });
+
   const deleteMutation = useMutation({
     mutationFn: () => tasksApi.delete(task.id),
     onSuccess: () => {
@@ -413,6 +424,20 @@ export function TaskDrawer({ task, onClose }: TaskDrawerProps) {
             )}
           </div>
           <div className="flex items-center gap-1 flex-shrink-0">
+            {fullTask.archived && !fullTask.archivedAt && (
+              <span className="text-xs text-gray-400 mr-1">Off board (project rule)</span>
+            )}
+            {fullTask.status === "termine" && !fullTask.archived && (
+              <button onClick={() => archiveMutation.mutate(true)} className="p-1.5 text-gray-400 hover:text-indigo-600 rounded-lg transition-colors" title="Remove from board">
+                <Archive size={15} />
+              </button>
+            )}
+            {fullTask.archivedAt && (
+              <button onClick={() => archiveMutation.mutate(false)} className="flex items-center gap-1 p-1.5 text-xs text-gray-500 hover:text-indigo-600 rounded-lg transition-colors" title="Back to board">
+                <ArchiveRestore size={15} />
+                <span className="hidden md:inline">Back to board</span>
+              </button>
+            )}
             <button onClick={() => deleteMutation.mutate()} className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg transition-colors" title="Delete task">
               <Trash2 size={15} />
             </button>

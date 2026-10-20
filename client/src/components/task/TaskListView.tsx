@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Task } from "@/api/tasks";
 import { STATUS_LABELS, STATUS_COLORS, PRIORITY_LABELS, PRIORITY_COLORS, taskRef } from "@/lib/utils";
 import { format, isPast, isToday } from "date-fns";
@@ -11,13 +12,23 @@ interface TaskListViewProps {
 
 const STATUS_ORDER: Task["status"][] = ["a_faire", "en_cours", "bloque", "termine"];
 
-export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
+export function TaskListView({ tasks: allTasks, onTaskClick }: TaskListViewProps) {
+  const [showArchived, setShowArchived] = useState(false);
+  const archivedCount = allTasks.filter((t) => t.archived).length;
+  const tasks = showArchived ? allTasks : allTasks.filter((t) => !t.archived);
   const grouped = STATUS_ORDER.map((status) => ({
     status,
     tasks: tasks.filter((t) => t.status === status),
   })).filter((g) => g.tasks.length > 0);
 
-  if (tasks.length === 0) {
+  const archivedToggle = archivedCount > 0 && (
+    <label className="flex items-center gap-2 text-xs text-gray-500 self-end cursor-pointer select-none">
+      <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
+      Show tasks removed from the board ({archivedCount})
+    </label>
+  );
+
+  if (tasks.length === 0 && !archivedToggle) {
     return (
       <div className="flex items-center justify-center h-48 text-sm text-gray-400">
         No tasks in this project
@@ -27,6 +38,7 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
 
   return (
     <div className="flex flex-col gap-6">
+      {archivedToggle}
       {grouped.map(({ status, tasks: groupTasks }) => (
         <div key={status}>
           <div className="flex items-center gap-2 mb-2">
@@ -69,7 +81,10 @@ export function TaskListView({ tasks, onTaskClick }: TaskListViewProps) {
                       {/* Titre + labels */}
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-gray-900">{task.title}</span>
+                          <span className={`font-medium ${task.archived ? "text-gray-400" : "text-gray-900"}`}>{task.title}</span>
+                          {task.archived && (
+                            <span className="text-xs px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">Off board</span>
+                          )}
                           {task.labels?.map(({ label }) => (
                             <span
                               key={label.id}

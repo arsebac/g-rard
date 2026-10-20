@@ -99,6 +99,8 @@ interface Project {
   key: string | null;
   description: string | null;
   color: string;
+  doneVisibility?: string;
+  doneVisibilityHours?: number;
   _count?: { tasks: number };
 }
 
@@ -119,6 +121,7 @@ interface Task {
   type?: { id: number; name: string; isEpic: boolean } | null;
   parentId?: number | null;
   parent?: { id: number; number: number; title: string; project?: { key: string | null } } | null;
+  archived?: boolean;
 }
 
 interface DocumentSpace {
@@ -188,6 +191,7 @@ function formatTask(t: Task) {
         }
       : null,
     labels: t.labels?.map((l) => l.label.name) ?? [],
+    archived: t.archived ?? false,
   };
 }
 
@@ -223,6 +227,7 @@ export function createMcpServer(serverUserId?: number) {
             },
             assigneeId: { type: "number", description: "Filter by assignee (user ID)" },
             parentId: { type: "number", description: "Filter by parent/epic task ID (list an epic's sub-tasks)" },
+            includeArchived: { type: "boolean", description: "Also return done tasks archived off the board (default false)" },
           },
           required: ["projectId"],
         },
@@ -284,6 +289,7 @@ export function createMcpServer(serverUserId?: number) {
             dueDate: { type: ["string", "null"] },
             typeId: { type: ["number", "null"], description: "Ticket type ID, or null to clear" },
             parentId: { type: ["number", "null"], description: "Parent/epic task ID, or null to unlink" },
+            archived: { type: "boolean", description: "true removes a done task from the board, false puts it back" },
           },
           required: ["id"],
         },
@@ -477,12 +483,15 @@ export function createMcpServer(serverUserId?: number) {
             key: p.key,
             description: p.description,
             taskCount: p._count?.tasks ?? 0,
+            doneVisibility: p.doneVisibility,
+            doneVisibilityHours: p.doneVisibilityHours,
           })));
         }
 
         case "list_tasks": {
-          const { projectId, status, assigneeId, parentId } = args as any;
+          const { projectId, status, assigneeId, parentId, includeArchived } = args as any;
           const params = new URLSearchParams();
+          if (!includeArchived) params.set("archived", "exclude");
           if (status) params.set("status", status);
           if (assigneeId) params.set("assigneeId", String(assigneeId));
           if (parentId) params.set("parentId", String(parentId));
@@ -519,8 +528,11 @@ export function createMcpServer(serverUserId?: number) {
         }
 
         case "update_task": {
-          const { id, ...body } = args as any;
-          const task = await mcpApiRequest<Task>("PATCH", `/api/tasks/${id}`, body, userId);
+          const { id, archived, ...body } = args as any;
+          let task: Task | undefined;
+          if (Object.keys(body).length > 0) task = await mcpApiRequest<Task>("PATCH", `/api/tasks/${id}`, body, userId);
+          if (archived !== undefined) task = await mcpApiRequest<Task>("PATCH", `/api/tasks/${id}/archive`, { archived }, userId);
+          task ??= await mcpApiRequest<Task>("GET", `/api/tasks/${id}`, undefined, userId);
           return ok(formatTask(task));
         }
 
