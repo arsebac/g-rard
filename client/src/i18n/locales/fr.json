@@ -173,6 +173,14 @@
     }
   },
 
+  "roadmap": {
+    "epic": "Epic",
+    "noEpics": "Aucune epic dans ce projet — créez un ticket de type Epic pour la voir sur la roadmap.",
+    "noDates": "Sans dates",
+    "unscheduled": "Epics non planifiées",
+    "unscheduledHint": "Ajoutez une date de début, de fin ou d'échéance à une epic ou à ses tickets pour la placer sur la frise."
+  },
+
   "epic": {
     "noEpic": "Sans Epic",
     "noTickets": "Aucun ticket"

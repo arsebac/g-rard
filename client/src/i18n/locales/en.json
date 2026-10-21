@@ -173,6 +173,14 @@
     }
   },
 
+  "roadmap": {
+    "epic": "Epic",
+    "noEpics": "No epics in this project yet — create an Epic ticket to see it on the roadmap.",
+    "noDates": "No dates",
+    "unscheduled": "Unscheduled epics",
+    "unscheduledHint": "Add a start, end or due date to an epic or its tickets to place it on the timeline."
+  },
+
   "epic": {
     "noEpic": "No Epic",
     "noTickets": "No tickets"
