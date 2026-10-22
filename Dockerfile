@@ -1,5 +1,5 @@
 # Stage 1: Base & Dependencies
-FROM node:20-alpine AS deps
+FROM node:22-alpine AS deps
 RUN apk add --no-cache openssl
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY mcp/package*.json ./mcp/
 RUN npm ci
 
 # Stage 2: Build
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 RUN apk add --no-cache openssl
 WORKDIR /app
 
@@ -32,7 +32,7 @@ RUN npm run build
 RUN npm prune --omit=dev
 
 # Stage 3: Production
-FROM node:20-alpine AS prod
+FROM node:22-alpine AS prod
 RUN apk add --no-cache openssl
 WORKDIR /app
 
