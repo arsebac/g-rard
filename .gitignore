@@ -5,5 +5,5 @@ uploads/
 *.tsbuildinfo
 .DS_Store
 *.stackdump
-.claude/settings.local.json
-.claude/scheduled_tasks.lock
+.claude/
+.gemini/
