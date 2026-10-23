@@ -13,7 +13,8 @@ export default defineConfig({
     env: {
       DATABASE_URL: "mysql://gerard:password@localhost:3306/gerard_test",
       SESSION_SECRET: "test-secret-32-chars-long-at-least-!",
-      GERARD_API_KEY: "test-api-key"
+      GERARD_API_KEY: "test-api-key",
+      GERARD_API_DEFAULT_USER_ID: "1"
     }
   },
 });

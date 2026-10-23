@@ -6,7 +6,9 @@ export const config = {
   sessionSecret: process.env.SESSION_SECRET ?? "dev-secret-change-in-production",
   uploadDir: process.env.UPLOAD_DIR ?? "./uploads",
   isDev: process.env.NODE_ENV !== "production",
-  apiKey: process.env.GERARD_API_KEY ?? null,
+  apiKey: process.env.GERARD_API_KEY || null,
+  // User an API-key request acts as when it sends no x-user-id. Unset means such requests are refused.
+  apiDefaultUserId: process.env.GERARD_API_DEFAULT_USER_ID ? Number(process.env.GERARD_API_DEFAULT_USER_ID) : null,
   // Self-service sign-up. Off unless explicitly enabled: accounts are created by hand.
   allowRegistration: process.env.ALLOW_REGISTRATION === "true",
   // Browser origins allowed to call the API with credentials. The UI is served

@@ -1,4 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
+import crypto from "crypto";
 import fp from "fastify-plugin";
 import { db } from "../db";
 import { config } from "../config";
@@ -145,25 +146,32 @@ export const requireProjectAdmin = async (req: FastifyRequest, reply: FastifyRep
   }
 };
 
-export const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
-  // Support API key authentication (for the MCP server)
-  const apiKey = req.headers["x-api-key"];
-  if (apiKey && config.apiKey && apiKey === config.apiKey) {
-    const userIdHeader = req.headers["x-user-id"];
-    if (userIdHeader) {
-      const userId = parseInt(String(userIdHeader));
-      if (!isNaN(userId)) {
-        req.currentUserId = userId;
-        return;
-      }
-    }
+function apiKeyMatches(supplied: unknown): boolean {
+  if (typeof supplied !== "string" || !config.apiKey) return false;
+  const a = Buffer.from(supplied);
+  const b = Buffer.from(config.apiKey);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
-    // Fallback to the first admin user as the actor for MCP requests
-    const firstUser = await db.user.findFirst({ orderBy: { id: "asc" } });
-    if (firstUser) {
-      req.currentUserId = firstUser.id;
-      return;
+export const requireAuth = async (req: FastifyRequest, reply: FastifyReply) => {
+  // API key authentication, for the MCP server and internal services. The
+  // caller names the user it acts for; without x-user-id only an explicitly
+  // configured default user is accepted.
+  if (req.headers["x-api-key"] !== undefined) {
+    if (!apiKeyMatches(req.headers["x-api-key"])) {
+      return reply.status(401).send({ error: "Invalid API key" });
     }
+    const header = req.headers["x-user-id"];
+    const userId = header !== undefined ? Number(header) : config.apiDefaultUserId;
+    if (!Number.isInteger(userId)) {
+      return reply.status(401).send({ error: "x-user-id is required with an API key" });
+    }
+    const user = await db.user.findFirst({ where: { id: userId as number }, select: { id: true } });
+    if (!user) {
+      return reply.status(401).send({ error: "Unknown user" });
+    }
+    req.currentUserId = user.id;
+    return;
   }
 
   // Cloudflare Access. When the app is reached through the tunnel, the signed

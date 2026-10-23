@@ -20,6 +20,7 @@ vi.mock("../db", () => ({
 vi.mock("../config", () => ({
   config: {
     apiKey: "test-api-key",
+    apiDefaultUserId: 1,
     sessionSecret: "a-very-secret-key-that-is-at-least-32-characters-long",
     uploadDir: "./uploads",
     isDev: true,

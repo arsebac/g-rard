@@ -242,4 +242,42 @@ describe("Routes Auth", () => {
       expect(stored).toEqual({ mcpTokenHash: hashMcpToken(second) });
     });
   });
+
+  describe("API key", () => {
+    const me = (headers: Record<string, string>) => app.inject({ method: "GET", url: "/api/auth/me", headers });
+
+    beforeEach(() => {
+      (db.user.findFirst as any).mockReset();
+      (db.user.findUnique as any).mockResolvedValue({ id: 2, name: "U2", email: "u2@example.com", avatarUrl: null });
+    });
+
+    it("refuses a wrong key outright", async () => {
+      expect((await me({ "x-api-key": "wrong" })).statusCode).toBe(401);
+      expect((await me({ "x-api-key": "test-api-key-but-longer" })).statusCode).toBe(401);
+      expect(db.user.findFirst).not.toHaveBeenCalled();
+    });
+
+    it("acts as the user named by x-user-id", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 2 });
+      expect((await me({ "x-api-key": "test-api-key", "x-user-id": "2" })).statusCode).toBe(200);
+      expect((db.user.findFirst as any).mock.calls[0][0].where).toEqual({ id: 2 });
+    });
+
+    it("refuses an unknown or malformed x-user-id", async () => {
+      (db.user.findFirst as any).mockResolvedValue(null);
+      expect((await me({ "x-api-key": "test-api-key", "x-user-id": "999" })).statusCode).toBe(401);
+      expect((await me({ "x-api-key": "test-api-key", "x-user-id": "abc" })).statusCode).toBe(401);
+    });
+
+    it("without x-user-id, refuses when no default user is configured", async () => {
+      const previous = config.apiDefaultUserId;
+      config.apiDefaultUserId = null;
+      try {
+        expect((await me({ "x-api-key": "test-api-key" })).statusCode).toBe(401);
+        expect(db.user.findFirst).not.toHaveBeenCalled();
+      } finally {
+        config.apiDefaultUserId = previous;
+      }
+    });
+  });
 });

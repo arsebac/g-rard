@@ -6,6 +6,11 @@ import { createServer } from "./app";
 
 async function start() {
   console.log("Starting Gérard server...");
+
+  if (!config.isDev && config.apiKey && (config.apiKey.length < 32 || config.apiKey === "change-me-in-production")) {
+    console.error("GERARD_API_KEY is too weak: use at least 32 random characters (openssl rand -hex 32).");
+    process.exit(1);
+  }
   console.log(`Current working directory: ${process.cwd()}`);
 
   try {
