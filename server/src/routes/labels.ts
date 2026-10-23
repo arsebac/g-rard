@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember, ensureProjectAccess, ensureTaskAccess } from "../plugins/auth";
 
 const labelSchema = z.object({
   name: z.string().min(1).max(100),
@@ -11,7 +11,7 @@ const labelSchema = z.object({
 export default async function labelRoutes(app: FastifyInstance) {
   // ─── Labels du projet ──────────────────────────────────────────────────────
 
-  app.get("/api/projects/:id/labels", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:id/labels", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const labels = await db.label.findMany({
       where: { projectId: parseInt(id) },
@@ -20,7 +20,7 @@ export default async function labelRoutes(app: FastifyInstance) {
     return reply.send(labels);
   });
 
-  app.post("/api/projects/:id/labels", { preHandler: requireAuth }, async (req, reply) => {
+  app.post("/api/projects/:id/labels", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const body = labelSchema.safeParse(req.body);
     if (!body.success) {
@@ -38,6 +38,9 @@ export default async function labelRoutes(app: FastifyInstance) {
     if (!body.success) {
       return reply.status(400).send({ error: "Données invalides" });
     }
+    const existing = await db.label.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return reply.status(404).send({ error: "Label not found" });
+    if (!(await ensureProjectAccess(req, reply, existing.projectId, "write"))) return reply;
     const label = await db.label.update({
       where: { id: parseInt(id) },
       data: body.data,
@@ -47,6 +50,9 @@ export default async function labelRoutes(app: FastifyInstance) {
 
   app.delete("/api/labels/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    const existing = await db.label.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) return reply.status(404).send({ error: "Label not found" });
+    if (!(await ensureProjectAccess(req, reply, existing.projectId, "write"))) return reply;
     await db.label.delete({ where: { id: parseInt(id) } });
     return reply.send({ ok: true });
   });
@@ -55,6 +61,13 @@ export default async function labelRoutes(app: FastifyInstance) {
 
   app.post("/api/tasks/:id/labels/:labelId", { preHandler: requireAuth }, async (req, reply) => {
     const { id, labelId } = req.params as { id: string; labelId: string };
+    const task = await ensureTaskAccess(req, reply, parseInt(id), "write");
+    if (!task) return reply;
+    const label = await db.label.findUnique({ where: { id: parseInt(labelId) } });
+    if (!label) return reply.status(404).send({ error: "Label not found" });
+    if (label.projectId !== task.projectId) {
+      return reply.status(400).send({ error: "Label belongs to another project" });
+    }
     await db.taskLabel.upsert({
       where: { taskId_labelId: { taskId: parseInt(id), labelId: parseInt(labelId) } },
       create: { taskId: parseInt(id), labelId: parseInt(labelId) },
@@ -65,6 +78,7 @@ export default async function labelRoutes(app: FastifyInstance) {
 
   app.delete("/api/tasks/:id/labels/:labelId", { preHandler: requireAuth }, async (req, reply) => {
     const { id, labelId } = req.params as { id: string; labelId: string };
+    if (!(await ensureTaskAccess(req, reply, parseInt(id), "write"))) return reply;
     await db.taskLabel.deleteMany({
       where: { taskId: parseInt(id), labelId: parseInt(labelId) },
     });
