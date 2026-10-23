@@ -1,7 +1,7 @@
-import { FastifyInstance } from "fastify";
+import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, ensureProjectAccess, ProjectAccessLevel } from "../plugins/auth";
 import { sanitizeHtml } from "../services/sanitize";
 
 // Génère un slug depuis un titre
@@ -41,10 +41,24 @@ const updatePageSchema = z.object({
   body: z.string().optional().nullable(),
 });
 
+// Pages without a project form the shared wiki, open to every signed-in user.
+async function canAccessPage(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  projectId: number | null | undefined,
+  level: ProjectAccessLevel
+): Promise<boolean> {
+  if (projectId == null) return true;
+  return ensureProjectAccess(req, reply, projectId, level);
+}
+
 export default async function wikiRoutes(app: FastifyInstance) {
   // GET /api/wiki — toutes les pages
-  app.get("/api/wiki", { preHandler: requireAuth }, async (_req, reply) => {
+  app.get("/api/wiki", { preHandler: requireAuth }, async (req, reply) => {
     const pages = await db.wikiPage.findMany({
+      where: {
+        OR: [{ projectId: null }, { project: { members: { some: { userId: req.currentUserId } } } }],
+      },
       select: {
         id: true,
         title: true,
@@ -60,7 +74,7 @@ export default async function wikiRoutes(app: FastifyInstance) {
   });
 
   // GET /api/projects/:id/wiki — pages d'un projet
-  app.get("/api/projects/:id/wiki", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:id/wiki", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const { id } = req.params as { id: string };
     const pages = await db.wikiPage.findMany({
       where: { projectId: parseInt(id) },
@@ -86,6 +100,13 @@ export default async function wikiRoutes(app: FastifyInstance) {
     }
 
     const { title, projectId, parentId, body: content } = body.data;
+
+    if (projectId && !(await ensureProjectAccess(req, reply, projectId, "write"))) return reply;
+    if (parentId) {
+      const parent = await db.wikiPage.findUnique({ where: { id: parentId }, select: { projectId: true } });
+      if (!parent) return reply.status(404).send({ error: "Parent page not found" });
+      if (!(await canAccessPage(req, reply, parent.projectId, "write"))) return reply;
+    }
     const baseSlug = slugify(title);
     const slug = await uniqueSlug(baseSlug);
 
@@ -117,6 +138,7 @@ export default async function wikiRoutes(app: FastifyInstance) {
       },
     });
     if (!page) return reply.status(404).send({ error: "Page introuvable" });
+    if (!(await canAccessPage(req, reply, page.projectId, "read"))) return reply;
     return reply.send(page);
   });
 
@@ -127,6 +149,10 @@ export default async function wikiRoutes(app: FastifyInstance) {
     if (!body.success) {
       return reply.status(400).send({ error: "Données invalides", details: body.error.flatten() });
     }
+
+    const existing = await db.wikiPage.findUnique({ where: { id: parseInt(id) }, select: { projectId: true } });
+    if (!existing) return reply.status(404).send({ error: "Page not found" });
+    if (!(await canAccessPage(req, reply, existing.projectId, "write"))) return reply;
 
     const data: Record<string, unknown> = {};
     if (body.data.title !== undefined) {
@@ -149,6 +175,10 @@ export default async function wikiRoutes(app: FastifyInstance) {
   // DELETE /api/wiki/pages/:id — supprimer une page
   app.delete("/api/wiki/pages/:id", { preHandler: requireAuth }, async (req, reply) => {
     const { id } = req.params as { id: string };
+    const existing = await db.wikiPage.findUnique({ where: { id: parseInt(id) }, select: { projectId: true } });
+    if (!existing) return reply.status(404).send({ error: "Page not found" });
+    if (!(await canAccessPage(req, reply, existing.projectId, "write"))) return reply;
+
     // Détacher les enfants avant suppression
     await db.wikiPage.updateMany({
       where: { parentId: parseInt(id) },
@@ -163,6 +193,7 @@ export default async function wikiRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const page = await db.wikiPage.findUnique({ where: { id: parseInt(id) } });
     if (!page) return reply.status(404).send({ error: "Page introuvable" });
+    if (!(await canAccessPage(req, reply, page.projectId, "read"))) return reply;
 
     const filename = `${page.slug}.md`;
     reply.header("Content-Disposition", `attachment; filename="${filename}"`);
