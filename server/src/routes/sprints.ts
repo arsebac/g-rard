@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth, requireProjectViewer, requireProjectMember } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember, ensureProjectAccess } from "../plugins/auth";
 
 const sprintSchema = z.object({
   name: z.string().min(1).max(255),
@@ -57,6 +57,7 @@ export default async function sprintRoutes(app: FastifyInstance) {
 
     const oldSprint = await db.sprint.findUnique({ where: { id: parseInt(id) } });
     if (!oldSprint) return reply.status(404).send({ error: "Sprint introuvable" });
+    if (!(await ensureProjectAccess(req, reply, oldSprint.projectId, "write"))) return reply;
 
     const sprint = await db.sprint.update({
       where: { id: parseInt(id) },
@@ -75,6 +76,7 @@ export default async function sprintRoutes(app: FastifyInstance) {
     const { id } = req.params as { id: string };
     const sprint = await db.sprint.findUnique({ where: { id: parseInt(id) } });
     if (!sprint) return reply.status(404).send({ error: "Sprint introuvable" });
+    if (!(await ensureProjectAccess(req, reply, sprint.projectId, "write"))) return reply;
 
     // Détacher les tâches avant suppression (Prisma SetNull le fera via le schéma, mais on s'assure)
     await db.sprint.delete({ where: { id: parseInt(id) } });

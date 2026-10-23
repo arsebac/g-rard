@@ -146,4 +146,52 @@ describe("Routes TaskLinks", () => {
       expect(response.statusCode).toBe(401);
     });
   });
+
+  describe("Project access", () => {
+    const headers = { "x-api-key": "test-api-key" };
+    // Task 1 lives in project 1, task 2 in project 2.
+    function access(roles: Record<number, "admin" | "member" | "viewer" | null>) {
+      (db.task.findUnique as any).mockImplementation(async ({ where }: any) => ({ id: where.id, projectId: where.id }));
+      (db.project.findUnique as any).mockImplementation(async ({ where }: any) => {
+        const role = roles[where.id];
+        return { id: where.id, members: role ? [{ userId: 1, role }] : [] };
+      });
+    }
+
+    it("non-member can neither list nor create links", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (db.taskLink.create as any).mockClear();
+      access({ 1: null });
+      expect((await app.inject({ method: "GET", url: "/api/tasks/1/links", headers })).statusCode).toBe(403);
+      const response = await app.inject({
+        method: "POST", url: "/api/tasks/1/links", headers,
+        payload: { targetId: 2, linkType: "relates_to" },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(db.taskLink.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses to link to a task in an inaccessible project", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (db.taskLink.create as any).mockClear();
+      access({ 1: "member", 2: null });
+      const response = await app.inject({
+        method: "POST", url: "/api/tasks/1/links", headers,
+        payload: { targetId: 2, linkType: "relates_to" },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(db.taskLink.create).not.toHaveBeenCalled();
+    });
+
+    it("links to hidden projects are filtered out of the listing", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      access({ 1: "viewer" });
+      (db.taskLink.findMany as any).mockResolvedValue([]);
+      expect((await app.inject({ method: "GET", url: "/api/tasks/1/links", headers })).statusCode).toBe(200);
+      const [fromCall, toCall] = (db.taskLink.findMany as any).mock.calls.slice(-2).map((c: any) => c[0].where);
+      const visible = { project: { members: { some: { userId: 1 } } } };
+      expect(fromCall.target).toEqual(visible);
+      expect(toCall.source).toEqual(visible);
+    });
+  });
 });

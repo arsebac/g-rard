@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth, getProjectAccess } from "../plugins/auth";
+import { requireAuth, getProjectAccess, ensureTaskAccess } from "../plugins/auth";
 import { TaskLinkType } from "@prisma/client";
 
 const LINK_TYPES = [
@@ -43,16 +43,17 @@ export default async function taskLinkRoutes(app: FastifyInstance) {
   app.get("/api/tasks/:id/links", { preHandler: requireAuth }, async (req, reply) => {
     const taskId = parseInt((req.params as any).id);
 
-    const task = await db.task.findUnique({ where: { id: taskId } });
-    if (!task) return reply.status(404).send({ error: "Tâche introuvable" });
+    if (!(await ensureTaskAccess(req, reply, taskId, "read"))) return reply;
 
+    // Links to tasks in projects the user cannot see are left out.
+    const visible = { project: { members: { some: { userId: req.currentUserId } } } };
     const [from, to] = await Promise.all([
       db.taskLink.findMany({
-        where: { sourceId: taskId },
+        where: { sourceId: taskId, target: visible },
         include: { target: { include: { project: { select: { key: true } }, type: true } } },
       }),
       db.taskLink.findMany({
-        where: { targetId: taskId },
+        where: { targetId: taskId, source: visible },
         include: { source: { include: { project: { select: { key: true } }, type: true } } },
       }),
     ]);
@@ -85,6 +86,9 @@ export default async function taskLinkRoutes(app: FastifyInstance) {
     // Éviter auto-lien
     if (body.data.targetId === sourceId)
       return reply.status(400).send({ error: "Impossible de lier un ticket à lui-même" });
+
+    if (!(await ensureTaskAccess(req, reply, sourceId, "write"))) return reply;
+    if (!(await ensureTaskAccess(req, reply, body.data.targetId, "write"))) return reply;
 
     const link = await db.taskLink.create({
       data: {
