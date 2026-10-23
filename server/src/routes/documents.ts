@@ -367,7 +367,7 @@ export default async function documentRoutes(app: FastifyInstance) {
       return reply.status(201).send(doc);
     } catch (err: any) {
       app.log.error(err);
-      return reply.status(500).send({ error: err.message || "Error while saving the file" });
+      return reply.status(500).send({ error: "Error while saving the file" });
     }
   });
 

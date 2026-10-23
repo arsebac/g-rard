@@ -18,7 +18,19 @@ const registerSchema = z.object({
 });
 
 export default async function authRoutes(app: FastifyInstance) {
-  app.post("/api/auth/login", async (req, reply) => {
+  // Counted per targeted account rather than per IP: behind the tunnel every
+  // request shares the proxy's address, and on the LAN forwarded headers can be forged.
+  const loginRateLimit = {
+    max: 10,
+    timeWindow: "1 minute",
+    hook: "preHandler" as const,
+    keyGenerator: (req: { body?: unknown }) => {
+      const email = (req.body as { email?: unknown } | undefined)?.email;
+      return `login:${typeof email === "string" ? email.trim().toLowerCase() : ""}`;
+    },
+  };
+
+  app.post("/api/auth/login", { config: { rateLimit: loginRateLimit } }, async (req, reply) => {
     const body = loginSchema.safeParse(req.body);
     if (!body.success) {
       return reply.status(400).send({ error: "Invalid data" });

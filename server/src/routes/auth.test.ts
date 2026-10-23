@@ -198,4 +198,22 @@ describe("Routes Auth", () => {
     });
   });
 
+
+  describe("Login rate limit", () => {
+    const attempt = (email: string) =>
+      app.inject({ method: "POST", url: "/api/auth/login", payload: { email, password: "wrong" } });
+
+    it("blocks the 11th attempt on the same account within a minute", async () => {
+      (db.user.findUnique as any).mockResolvedValue(null);
+      for (let i = 0; i < 10; i++) {
+        expect((await attempt("Victim@Example.com")).statusCode).toBe(401);
+      }
+      expect((await attempt("victim@example.com")).statusCode).toBe(429);
+    });
+
+    it("does not throttle another account", async () => {
+      (db.user.findUnique as any).mockResolvedValue(null);
+      expect((await attempt("other@example.com")).statusCode).toBe(401);
+    });
+  });
 });

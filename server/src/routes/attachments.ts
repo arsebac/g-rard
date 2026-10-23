@@ -87,7 +87,7 @@ export default async function attachmentRoutes(app: FastifyInstance) {
       return reply.status(201).send(attachment);
     } catch (err: any) {
       app.log.error(err);
-      return reply.status(500).send({ error: err.message || "Error while saving the file" });
+      return reply.status(500).send({ error: "Error while saving the file" });
     }
   });
 

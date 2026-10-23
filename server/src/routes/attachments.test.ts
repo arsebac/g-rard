@@ -38,6 +38,7 @@ vi.mock("../plugins/auth", async (importOriginal) => {
 
 import { db } from "../db";
 import { getProjectAccess } from "../plugins/auth";
+import { storageService } from "../services/storage";
 
 describe("Attachments Routes", () => {
   let app: FastifyInstance;
@@ -159,5 +160,29 @@ describe("Attachments Routes", () => {
 
       expect(response.statusCode).toBe(403);
     });
+  });
+
+  it("does not leak the internal error message on a failed upload", async () => {
+    (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+    (db.task.findUnique as any).mockResolvedValue({ projectId: 1 });
+    (getProjectAccess as any).mockResolvedValue("member");
+    (storageService.saveFile as any).mockRejectedValueOnce(new Error("EACCES: permission denied, open '/app/uploads/2026/10/x'"));
+
+    const boundary = "----gerardtest";
+    const payload =
+      `--${boundary}\r\nContent-Disposition: form-data; name="entityType"\r\n\r\ntask\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="entityId"\r\n\r\n1\r\n` +
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="a.txt"\r\nContent-Type: text/plain\r\n\r\nhi\r\n` +
+      `--${boundary}--\r\n`;
+    const response = await app.inject({
+      method: "POST",
+      url: "/api/attachments",
+      payload,
+      headers: { "x-api-key": "test-api-key", "content-type": `multipart/form-data; boundary=${boundary}` },
+    });
+
+    expect(response.statusCode).toBe(500);
+    expect(response.payload).not.toContain("/app/uploads");
+    expect(response.payload).not.toContain("EACCES");
   });
 });

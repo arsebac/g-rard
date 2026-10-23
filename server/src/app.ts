@@ -53,13 +53,13 @@ export async function createServer() {
     hsts: false, // Disable HSTS to prevent browser from forcing HTTPS
   });
 
-  // 2. Rate Limiting (disabled in test to avoid 429 errors)
-  if (process.env.NODE_ENV !== "test") {
-    await app.register(rateLimit, {
-      max: 1000,
-      timeWindow: '1 minute',
-    });
-  }
+  // 2. Rate Limiting. The global limit is off in tests to avoid 429 errors;
+  // per-route limits (login) stay on everywhere.
+  await app.register(rateLimit, {
+    global: process.env.NODE_ENV !== "test",
+    max: 1000,
+    timeWindow: '1 minute',
+  });
 
   await app.register(cors, {
     origin: config.corsOrigins,
@@ -117,8 +117,11 @@ export async function createServer() {
     const isClientError = statusCode >= 400 && statusCode < 500;
     request.log.error(error);
 
+    if (!isClientError) {
+      return reply.status(statusCode).send({ error: "An internal server error occurred" });
+    }
     reply.status(statusCode).send({
-      error: isClientError ? message : "An internal server error occurred",
+      error: message,
       code: error.code,
       details: (error as any).details || undefined,
     });
