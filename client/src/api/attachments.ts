@@ -32,6 +32,4 @@ export const attachmentsApi = {
   delete: (id: number) => api.delete(`/api/attachments/${id}`),
 
   getDownloadUrl: (id: number) => `${api.baseURL}/api/attachments/${id}/download`,
-  
-  getPublicUrl: (storedPath: string) => `${api.baseURL}/uploads/${storedPath}`,
 };

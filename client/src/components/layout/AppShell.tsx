@@ -3,7 +3,6 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { projectsApi } from "@/api/projects";
 import { authApi } from "@/api/auth";
 import { usersApi } from "@/api/users";
-import { attachmentsApi } from "@/api/attachments";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 import { BookOpen, FolderOpen, LayoutDashboard, LogOut, Plus, Camera, Loader2, Menu, X, Search } from "lucide-react";
@@ -66,7 +65,7 @@ export function AppShell({ children }: AppShellProps) {
     }
   };
 
-  const avatarUrl = user?.avatarUrl ? attachmentsApi.getPublicUrl(user.avatarUrl) : null;
+  const avatarUrl = user ? usersApi.avatarSrc(user) : null;
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">

@@ -5,10 +5,20 @@ import bcrypt from "bcrypt";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { storageService } from "../services/storage";
+import path from "path";
 
 const updateUserSchema = z.object({
   name: z.string().min(1).max(100).optional(),
 });
+
+// Avatars are served by extension, so only raster image types are accepted.
+const AVATAR_TYPES: Record<string, string> = {
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
+};
 
 const changePasswordSchema = z.object({
   currentPassword: z.string().min(1),
@@ -68,6 +78,17 @@ export default async function userRoutes(app: FastifyInstance) {
     return reply.send({ ok: true });
   });
 
+  app.get("/api/users/:id/avatar", { preHandler: requireAuth }, async (req, reply) => {
+    const { id } = req.params as { id: string };
+    const user = await db.user.findUnique({ where: { id: parseInt(id) }, select: { avatarUrl: true } });
+    const contentType = user?.avatarUrl ? AVATAR_TYPES[path.extname(user.avatarUrl).toLowerCase()] : undefined;
+    if (!user?.avatarUrl || !contentType) return reply.status(404).send({ error: "No avatar" });
+
+    reply.header("Content-Type", contentType);
+    reply.header("Cache-Control", "private, max-age=3600");
+    return reply.send(storageService.getStream(user.avatarUrl));
+  });
+
   // POST /api/users/me/avatar — upload d'avatar
   app.post("/api/users/me/avatar", { preHandler: requireAuth }, async (req, reply) => {
     let data: Awaited<ReturnType<typeof req.file>> | undefined;
@@ -77,6 +98,12 @@ export default async function userRoutes(app: FastifyInstance) {
       return reply.status(400).send({ error: "Fichier requis" });
     }
     if (!data) return reply.status(400).send({ error: "Fichier requis" });
+
+    const expectedType = AVATAR_TYPES[path.extname(data.filename).toLowerCase()];
+    if (!expectedType || data.mimetype !== expectedType) {
+      data.file.resume();
+      return reply.status(400).send({ error: "Avatar must be a PNG, JPEG, WebP or GIF image" });
+    }
 
     // Supprimer l'ancien avatar si nécessaire
     const user = await db.user.findUnique({ where: { id: req.currentUserId } });

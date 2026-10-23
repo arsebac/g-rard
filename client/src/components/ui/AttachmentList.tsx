@@ -62,7 +62,6 @@ export function AttachmentList({ entityType, entityId }: AttachmentListProps) {
         <div className="grid grid-cols-1 gap-2">
           {attachments.map((attachment) => {
             const isImage = attachment.mimeType.startsWith("image/");
-            const publicUrl = attachmentsApi.getPublicUrl(attachment.storedPath);
             const downloadUrl = attachmentsApi.getDownloadUrl(attachment.id);
 
             return (
@@ -73,7 +72,7 @@ export function AttachmentList({ entityType, entityId }: AttachmentListProps) {
                 {/* Preview / Icon */}
                 <div className="w-10 h-10 rounded bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0 border border-gray-100">
                   {isImage ? (
-                    <img src={publicUrl} alt="" className="w-full h-full object-cover" />
+                    <img src={downloadUrl} alt="" className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-gray-400">{getFileIcon(attachment.mimeType)}</span>
                   )}

@@ -785,7 +785,9 @@ const ROLE_BADGE: Record<ProjectMemberRole, string> = {
   viewer: "bg-amber-50 text-amber-700 border border-amber-200",
 };
 
-function MemberAvatar({ name, avatarUrl }: { name: string; avatarUrl: string | null }) {
+function MemberAvatar({ user }: { user: { id: number; name: string; avatarUrl: string | null } }) {
+  const { name } = user;
+  const avatarUrl = usersApi.avatarSrc(user);
   if (avatarUrl) {
     return <img src={avatarUrl} alt={name} className="w-8 h-8 rounded-full object-cover flex-shrink-0" />;
   }
@@ -877,7 +879,7 @@ function TabMembers({ projectId }: { projectId: number }) {
               key={m.userId}
               className="flex items-center gap-3 px-3 py-2.5 rounded-xl border border-gray-100 bg-gray-50"
             >
-              <MemberAvatar name={m.user.name} avatarUrl={m.user.avatarUrl} />
+              <MemberAvatar user={m.user} />
               <span className="flex-1 text-sm font-medium text-gray-800">
                 {m.user.name}
                 {isMe && <span className="ml-1.5 text-xs text-gray-400">(you)</span>}

@@ -4,7 +4,6 @@ import rateLimit from "@fastify/rate-limit";
 import cookie from "@fastify/cookie";
 import session from "@fastify/session";
 import cors from "@fastify/cors";
-import path from "path";
 import { config } from "./config";
 import authPlugin from "./plugins/auth";
 import multipartPlugin from "./plugins/multipart";
@@ -84,13 +83,6 @@ export async function createServer() {
       sameSite: 'lax',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     },
-  });
-
-  const staticPlugin = await import("@fastify/static");
-  await app.register(staticPlugin.default, {
-    root: path.resolve(config.uploadDir),
-    prefix: "/uploads/",
-    decorateReply: false,
   });
 
   await app.register(authPlugin);

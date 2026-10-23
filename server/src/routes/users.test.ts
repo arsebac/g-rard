@@ -2,6 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { createServer } from "../app";
 import { FastifyInstance } from "fastify";
 import bcrypt from "bcrypt";
+import { Readable } from "stream";
 
 // Mocking Prisma
 vi.mock("../db", () => ({
@@ -28,10 +29,20 @@ vi.mock("../services/storage", () => ({
   storageService: {
     saveFile: vi.fn().mockResolvedValue("path/to/avatar.png"),
     deleteFile: vi.fn().mockResolvedValue(undefined),
+    getStream: vi.fn(() => Readable.from([Buffer.from("PNGDATA")])),
   },
 }));
 
 import { db } from "../db";
+import { storageService } from "../services/storage";
+
+function multipartFile(filename: string, contentType: string) {
+  const boundary = "----gerardtest";
+  const body =
+    `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+    `Content-Type: ${contentType}\r\n\r\n<script>alert(1)</script>\r\n--${boundary}--\r\n`;
+  return { payload: body, headers: { "content-type": `multipart/form-data; boundary=${boundary}` } };
+}
 
 describe("Routes Users", () => {
   let app: FastifyInstance;
@@ -182,6 +193,50 @@ describe("Routes Users", () => {
       });
 
       expect(response.statusCode).toBe(400);
+    });
+  });
+
+  describe("Uploaded files are not public", () => {
+    const headers = { "x-api-key": "test-api-key" };
+
+    it("GET /uploads/* is no longer served", async () => {
+      const response = await app.inject({ method: "GET", url: "/uploads/2026/10/anything.html" });
+      expect(response.statusCode).toBe(404);
+    });
+
+    it("refuses a non-image avatar", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (storageService.saveFile as any).mockClear();
+      for (const [name, type] of [["x.html", "text/html"], ["x.svg", "image/svg+xml"], ["x.png", "text/html"]]) {
+        const file = multipartFile(name, type);
+        const response = await app.inject({
+          method: "POST", url: "/api/users/me/avatar", payload: file.payload,
+          headers: { ...headers, ...file.headers },
+        });
+        expect(response.statusCode, name).toBe(400);
+      }
+      expect(storageService.saveFile).not.toHaveBeenCalled();
+    });
+
+    it("GET /api/users/:id/avatar requires a session", async () => {
+      const response = await app.inject({ method: "GET", url: "/api/users/1/avatar" });
+      expect(response.statusCode).toBe(401);
+    });
+
+    it("GET /api/users/:id/avatar serves the stored image with its type", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (db.user.findUnique as any).mockResolvedValue({ avatarUrl: "2026/10/abc.png" });
+      const response = await app.inject({ method: "GET", url: "/api/users/1/avatar", headers });
+      expect(response.statusCode).toBe(200);
+      expect(response.headers["content-type"]).toBe("image/png");
+      expect(response.headers["x-content-type-options"]).toBe("nosniff");
+    });
+
+    it("GET /api/users/:id/avatar gives 404 without an avatar", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (db.user.findUnique as any).mockResolvedValue({ avatarUrl: null });
+      const response = await app.inject({ method: "GET", url: "/api/users/2/avatar", headers });
+      expect(response.statusCode).toBe(404);
     });
   });
 });

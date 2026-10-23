@@ -182,7 +182,7 @@ function UserAvatar({
       }`}
     >
       {user.avatarUrl ? (
-        <img src={user.avatarUrl} alt={user.name} className="w-full h-full rounded-full object-cover" />
+        <img src={usersApi.avatarSrc(user) ?? undefined} alt={user.name} className="w-full h-full rounded-full object-cover" />
       ) : (
         <span className="w-full h-full rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center">
           {initials}
