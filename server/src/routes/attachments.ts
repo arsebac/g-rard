@@ -2,6 +2,7 @@ import { FastifyInstance } from "fastify";
 import { db } from "../db";
 import { requireAuth, getProjectAccess } from "../plugins/auth";
 import { storageService } from "../services/storage";
+import { setDownloadHeaders } from "../services/download";
 import { AttachmentType } from "@prisma/client";
 
 /**
@@ -107,12 +108,10 @@ export default async function attachmentRoutes(app: FastifyInstance) {
     }
 
     // Raster images are served inline so Markdown descriptions and wiki pages can embed them.
-    // SVG stays a download: inline SVG can carry scripts.
-    const inline = /^image\/(png|jpe?g|gif|webp|avif)$/.test(attachment.mimeType);
-    const filename = encodeURIComponent(attachment.filename);
-    reply.header("Content-Type", attachment.mimeType || "application/octet-stream");
-    reply.header("Content-Disposition", `${inline ? "inline" : "attachment"}; filename*=UTF-8''${filename}`);
-    if (inline) reply.header("Cache-Control", "private, max-age=86400");
+    const isImage = /^image\/(png|jpe?g|gif|webp|avif)$/.test(attachment.mimeType);
+    if (setDownloadHeaders(reply, attachment.filename, attachment.mimeType, isImage)) {
+      reply.header("Cache-Control", "private, max-age=86400");
+    }
     return reply.send(storageService.getStream(attachment.storedPath));
   });
 

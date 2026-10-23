@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { storageService } from "../services/storage";
+import { setDownloadHeaders } from "../services/download";
 import { DocumentSpaceMemberRole } from "@prisma/client";
 
 // ─── Permission helper ────────────────────────────────────────────────────────
@@ -402,9 +403,7 @@ export default async function documentRoutes(app: FastifyInstance) {
     if (!role) return reply.status(403).send({ error: "Access denied" });
 
     const { inline } = req.query as { inline?: string };
-    const disposition = inline === "1" ? "inline" : "attachment";
-    reply.header("Content-Disposition", `${disposition}; filename="${doc.filename}"`);
-    reply.header("Content-Type", doc.mimeType);
+    setDownloadHeaders(reply, doc.filename, doc.mimeType, inline === "1");
     return reply.send(storageService.getStream(doc.storedPath));
   });
 
