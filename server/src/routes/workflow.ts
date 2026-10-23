@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember } from "../plugins/auth";
 
 const STATUSES = ["a_faire", "en_cours", "termine", "bloque"] as const;
 
@@ -18,7 +18,7 @@ const saveSchema = z.object({
 export default async function workflowRoutes(app: FastifyInstance) {
   // GET /api/projects/:id/workflow
   // Retourne les transitions autorisées. Si vide → toutes autorisées.
-  app.get("/api/projects/:id/workflow", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:id/workflow", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
     const transitions = await db.workflowTransition.findMany({
       where: { projectId },
@@ -27,7 +27,7 @@ export default async function workflowRoutes(app: FastifyInstance) {
   });
 
   // PUT /api/projects/:id/workflow  (remplace toutes les transitions)
-  app.put("/api/projects/:id/workflow", { preHandler: requireAuth }, async (req, reply) => {
+  app.put("/api/projects/:id/workflow", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
     const body = saveSchema.safeParse(req.body);
     if (!body.success) return reply.status(400).send({ error: "Données invalides" });

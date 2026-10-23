@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, requireProjectViewer, requireProjectMember } from "../plugins/auth";
 
 const DEFAULT_COLUMNS = [
   { statusKey: "a_faire",  label: "À faire",   color: "#94a3b8", position: 0, visible: true },
@@ -32,7 +32,7 @@ const reorderSchema = z.object({
 
 export default async function projectColumnRoutes(app: FastifyInstance) {
   // GET /api/projects/:id/columns
-  app.get("/api/projects/:id/columns", { preHandler: requireAuth }, async (req, reply) => {
+  app.get("/api/projects/:id/columns", { preHandler: [requireAuth, requireProjectViewer] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
     await ensureDefaultColumns(projectId);
     const columns = await db.projectColumn.findMany({
@@ -43,7 +43,7 @@ export default async function projectColumnRoutes(app: FastifyInstance) {
   });
 
   // PATCH /api/projects/:id/columns/:statusKey
-  app.patch("/api/projects/:id/columns/:statusKey", { preHandler: requireAuth }, async (req, reply) => {
+  app.patch("/api/projects/:id/columns/:statusKey", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
     const { statusKey } = req.params as { statusKey: string };
     const body = columnUpdateSchema.safeParse(req.body);
@@ -57,7 +57,7 @@ export default async function projectColumnRoutes(app: FastifyInstance) {
   });
 
   // PATCH /api/projects/:id/columns/reorder
-  app.patch("/api/projects/:id/columns/reorder", { preHandler: requireAuth }, async (req, reply) => {
+  app.patch("/api/projects/:id/columns/reorder", { preHandler: [requireAuth, requireProjectMember] }, async (req, reply) => {
     const projectId = parseInt((req.params as any).id);
     const body = reorderSchema.safeParse(req.body);
     if (!body.success) return reply.status(400).send({ error: "Données invalides" });
