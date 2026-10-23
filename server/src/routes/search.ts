@@ -50,6 +50,7 @@ export default async function searchRoutes(app: FastifyInstance) {
             FROM tasks t
             JOIN projects p ON p.id = t.project_id
             WHERE MATCH(t.title, t.description) AGAINST (${q} IN BOOLEAN MODE)
+              AND t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id = ${req.currentUserId})
               AND t.project_id = ${projectId}
             ORDER BY t.number DESC
             LIMIT 30
@@ -63,6 +64,7 @@ export default async function searchRoutes(app: FastifyInstance) {
             FROM tasks t
             JOIN projects p ON p.id = t.project_id
             WHERE MATCH(t.title, t.description) AGAINST (${q} IN BOOLEAN MODE)
+              AND t.project_id IN (SELECT pm.project_id FROM project_members pm WHERE pm.user_id = ${req.currentUserId})
             ORDER BY p.id, t.number DESC
             LIMIT 30
           `
@@ -74,6 +76,7 @@ export default async function searchRoutes(app: FastifyInstance) {
       const tasks = await db.task.findMany({
         where: {
           ...(projectId !== undefined ? { projectId } : {}),
+          project: { members: { some: { userId: req.currentUserId } } },
           OR: [
             { title: { contains: q } },
             { description: { contains: q } },

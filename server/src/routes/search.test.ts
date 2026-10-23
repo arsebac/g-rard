@@ -103,4 +103,30 @@ describe("Search Routes", () => {
       expect(response.statusCode).toBe(401);
     });
   });
+
+  describe("Project membership", () => {
+    const headers = { "x-api-key": "test-api-key" };
+
+    it("FULLTEXT queries only cover the user's projects", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 7 });
+      (db.$queryRaw as any).mockResolvedValue([]);
+
+      for (const query of [{ q: "test" }, { q: "test", projectId: "10" }]) {
+        await app.inject({ method: "GET", url: "/api/search", query, headers });
+        const sql = (db.$queryRaw as any).mock.calls.at(-1)[0];
+        expect(sql.sql).toContain("FROM project_members pm WHERE pm.user_id = ?");
+        expect(sql.values).toContain(7);
+      }
+    });
+
+    it("LIKE fallback only covers the user's projects", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 7 });
+      (db.$queryRaw as any).mockRejectedValue(new Error("Index not ready"));
+      (db.task.findMany as any).mockResolvedValue([]);
+
+      await app.inject({ method: "GET", url: "/api/search", query: { q: "test" }, headers });
+      const where = (db.task.findMany as any).mock.calls.at(-1)[0].where;
+      expect(where.project).toEqual({ members: { some: { userId: 7 } } });
+    });
+  });
 });
