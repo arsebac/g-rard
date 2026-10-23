@@ -1,7 +1,7 @@
 import { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { db } from "../db";
-import { requireAuth } from "../plugins/auth";
+import { requireAuth, ensureTaskAccess } from "../plugins/auth";
 import { logActivity } from "../services/activity";
 
 const bodySchema = z.object({ body: z.string().min(1) });
@@ -9,6 +9,7 @@ const bodySchema = z.object({ body: z.string().min(1) });
 export default async function commentRoutes(app: FastifyInstance) {
   app.get("/api/tasks/:taskId/comments", { preHandler: requireAuth }, async (req, reply) => {
     const { taskId } = req.params as { taskId: string };
+    if (!(await ensureTaskAccess(req, reply, parseInt(taskId), "read"))) return reply;
     const comments = await db.comment.findMany({
       where: { taskId: parseInt(taskId) },
       include: { author: { select: { id: true, name: true, avatarUrl: true } } },
@@ -21,6 +22,7 @@ export default async function commentRoutes(app: FastifyInstance) {
     const { taskId } = req.params as { taskId: string };
     const parsed = bodySchema.safeParse(req.body);
     if (!parsed.success) return reply.status(400).send({ error: "Données invalides" });
+    if (!(await ensureTaskAccess(req, reply, parseInt(taskId), "write"))) return reply;
 
     const comment = await db.comment.create({
       data: { taskId: parseInt(taskId), authorId: req.currentUserId, body: parsed.data.body },
@@ -75,6 +77,7 @@ export default async function commentRoutes(app: FastifyInstance) {
 
   app.get("/api/tasks/:taskId/activity", { preHandler: requireAuth }, async (req, reply) => {
     const { taskId } = req.params as { taskId: string };
+    if (!(await ensureTaskAccess(req, reply, parseInt(taskId), "read"))) return reply;
     const logs = await db.activityLog.findMany({
       where: { entityType: "task", entityId: parseInt(taskId) },
       include: { actor: { select: { id: true, name: true, avatarUrl: true } } },

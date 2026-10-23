@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { createServer } from "../app";
 import { FastifyInstance } from "fastify";
 import { db } from "../db";
@@ -6,6 +6,8 @@ import { db } from "../db";
 vi.mock("../db", () => ({
   db: {
     user: { findFirst: vi.fn() },
+    task: { findUnique: vi.fn() },
+    project: { findUnique: vi.fn() },
     comment: { 
       findMany: vi.fn(),
       findUnique: vi.fn(),
@@ -21,8 +23,16 @@ vi.mock("../services/activity", () => ({
   logActivity: vi.fn().mockResolvedValue(undefined),
 }));
 
+// Task 1 lives in project 10, where the current user (id 1) holds `role`.
+function memberOf(role: "admin" | "member" | "viewer" | null) {
+  (db.task.findUnique as any).mockResolvedValue({ id: 1, projectId: 10 });
+  (db.project.findUnique as any).mockResolvedValue({ id: 10, members: role ? [{ userId: 1, role }] : [] });
+}
+
 describe("Routes Comments", () => {
   let app: FastifyInstance;
+
+  beforeEach(() => memberOf("member"));
 
   beforeAll(async () => {
     app = await createServer();
@@ -187,6 +197,35 @@ describe("Routes Comments", () => {
 
       expect(response.statusCode).toBe(200);
       expect(JSON.parse(response.payload)).toHaveLength(1);
+    });
+  });
+
+  describe("Project access", () => {
+    const headers = { "x-api-key": "test-api-key" };
+
+    beforeEach(() => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (db.comment.create as any).mockClear();
+    });
+
+    it("non-member can neither read nor comment", async () => {
+      memberOf(null);
+      expect((await app.inject({ method: "GET", url: "/api/tasks/1/comments", headers })).statusCode).toBe(403);
+      expect((await app.inject({ method: "GET", url: "/api/tasks/1/activity", headers })).statusCode).toBe(403);
+      expect((await app.inject({ method: "POST", url: "/api/tasks/1/comments", payload: { body: "hi" }, headers })).statusCode).toBe(403);
+      expect(db.comment.create).not.toHaveBeenCalled();
+    });
+
+    it("viewer can read but not comment", async () => {
+      memberOf("viewer");
+      (db.comment.findMany as any).mockResolvedValue([]);
+      expect((await app.inject({ method: "GET", url: "/api/tasks/1/comments", headers })).statusCode).toBe(200);
+      expect((await app.inject({ method: "POST", url: "/api/tasks/1/comments", payload: { body: "hi" }, headers })).statusCode).toBe(403);
+    });
+
+    it("unknown task gives 404", async () => {
+      (db.task.findUnique as any).mockResolvedValue(null);
+      expect((await app.inject({ method: "GET", url: "/api/tasks/999/comments", headers })).statusCode).toBe(404);
     });
   });
 });
