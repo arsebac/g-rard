@@ -12,7 +12,7 @@ vi.mock("./cfAccess", () => ({
 
 import { db } from "../db";
 import { isAccessEnabled, verifyAccessToken } from "./cfAccess";
-import { authenticateMcpRequest } from "./mcpAuth";
+import { authenticateMcpRequest, generateMcpToken, hashMcpToken } from "./mcpAuth";
 
 const request = (headers: Record<string, string> = {}, query: Record<string, unknown> = {}) =>
   ({ headers, query }) as unknown as FastifyRequest;
@@ -26,7 +26,7 @@ describe("MCP request authentication", () => {
 
   const tokenMatches = (token: string, userId: number) =>
     vi.mocked(db.user.findUnique).mockImplementation(async (args: any) =>
-      args.where.mcpToken === token ? ({ id: userId } as any) : null
+      args.where.mcpTokenHash === hashMcpToken(token) ? ({ id: userId } as any) : null
     );
 
   it("accepts the token as an Authorization Bearer header", async () => {
@@ -110,5 +110,20 @@ describe("MCP request authentication", () => {
 
   it("rejects a request carrying no credentials at all", async () => {
     expect(await authenticateMcpRequest(request())).toBeNull();
+  });
+
+  it("looks tokens up by hash, never in clear", async () => {
+    tokenMatches("secret", 7);
+    await authenticateMcpRequest(request({ authorization: "Bearer secret" }));
+    const where = (vi.mocked(db.user.findUnique).mock.calls[0][0] as any).where;
+    expect(where).toEqual({ mcpTokenHash: hashMcpToken("secret") });
+    expect(JSON.stringify(where)).not.toContain('"secret"');
+  });
+
+  it("generates long, random, URL-safe tokens", () => {
+    const a = generateMcpToken();
+    const b = generateMcpToken();
+    expect(a).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(a).not.toBe(b);
   });
 });

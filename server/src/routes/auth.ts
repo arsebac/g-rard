@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
 import { config } from "../config";
+import { generateMcpToken, hashMcpToken } from "../services/mcpAuth";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -103,25 +104,23 @@ export default async function authRoutes(app: FastifyInstance) {
     return reply.send(user);
   });
 
+  // The token itself is never stored, so it can only be shown when it is created.
   app.get("/api/auth/mcp-token", { preHandler: requireAuth }, async (req, reply) => {
-    let user = await db.user.findUnique({
+    const user = await db.user.findUnique({
       where: { id: req.currentUserId },
-      select: { mcpToken: true },
+      select: { mcpTokenHash: true },
     });
+    if (!user) return reply.status(401).send({ error: "User not found" });
+    return reply.send({ hasToken: user.mcpTokenHash !== null });
+  });
 
-    if (!user) {
-      return reply.status(401).send({ error: "User not found" });
-    }
-
-    if (!user.mcpToken) {
-      const newToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-      await db.user.update({
-        where: { id: req.currentUserId },
-        data: { mcpToken: newToken },
-      });
-      return reply.send({ mcpToken: newToken });
-    }
-
-    return reply.send({ mcpToken: user.mcpToken });
+  // Creates a new token, replacing (and so revoking) any previous one.
+  app.post("/api/auth/mcp-token", { preHandler: requireAuth }, async (req, reply) => {
+    const mcpToken = generateMcpToken();
+    await db.user.update({
+      where: { id: req.currentUserId },
+      data: { mcpTokenHash: hashMcpToken(mcpToken) },
+    });
+    return reply.status(201).send({ mcpToken });
   });
 }

@@ -52,7 +52,7 @@ L'IA a accès à tous les outils de Gérard avec **vos propres droits d'accès**
 
 - **Droits Identiques** : L'IA ne peut voir ou modifier que ce que vous êtes autorisé à voir ou modifier dans l'interface web.
 - **Isolation** : Chaque session MCP est isolée et liée à un jeton unique.
-- **Révocation** : Si vous pensez que votre token est compromis, vous pouvez en générer un nouveau (bientôt disponible via l'interface) ou demander à un administrateur de réinitialiser votre champ `mcp_token` dans la base de données.
+- **Révocation** : Si vous pensez que votre token est compromis, cliquez sur « Remplacer le jeton » sur `/mcp-auth` : l'ancien cesse aussitôt de fonctionner. Le jeton n'est stocké que haché (SHA-256) et ne s'affiche qu'à sa création.
 
 ## Installation technique (pour les administrateurs)
 

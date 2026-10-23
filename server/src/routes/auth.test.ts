@@ -4,6 +4,7 @@ import { FastifyInstance } from "fastify";
 import bcrypt from "bcrypt";
 import { db } from "../db";
 import { config } from "../config";
+import { hashMcpToken } from "../services/mcpAuth";
 
 vi.mock("../db", () => ({
   db: {
@@ -11,6 +12,7 @@ vi.mock("../db", () => ({
       findUnique: vi.fn(),
       create: vi.fn(),
       findFirst: vi.fn(),
+      update: vi.fn(),
     },
   },
 }));
@@ -214,6 +216,30 @@ describe("Routes Auth", () => {
     it("does not throttle another account", async () => {
       (db.user.findUnique as any).mockResolvedValue(null);
       expect((await attempt("other@example.com")).statusCode).toBe(401);
+    });
+  });
+
+  describe("MCP token", () => {
+    const headers = { "x-api-key": "test-api-key" };
+
+    it("GET only tells whether a token exists", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (db.user.findUnique as any).mockResolvedValue({ mcpTokenHash: "a".repeat(64) });
+      const response = await app.inject({ method: "GET", url: "/api/auth/mcp-token", headers });
+      expect(response.statusCode).toBe(200);
+      expect(JSON.parse(response.payload)).toEqual({ hasToken: true });
+    });
+
+    it("POST returns a fresh token once and stores only its hash", async () => {
+      (db.user.findFirst as any).mockResolvedValue({ id: 1 });
+      (db.user.update as any).mockResolvedValue({});
+      const first = JSON.parse((await app.inject({ method: "POST", url: "/api/auth/mcp-token", headers })).payload).mcpToken;
+      const second = JSON.parse((await app.inject({ method: "POST", url: "/api/auth/mcp-token", headers })).payload).mcpToken;
+
+      expect(first).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(second).not.toBe(first);
+      const stored = (db.user.update as any).mock.calls.at(-1)[0].data;
+      expect(stored).toEqual({ mcpTokenHash: hashMcpToken(second) });
     });
   });
 });

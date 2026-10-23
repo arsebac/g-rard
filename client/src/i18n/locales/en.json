@@ -379,5 +379,20 @@
       "remove": "Remove",
       "manage": "Manage access"
     }
+  },
+
+  "mcpAuth": {
+    "title": "MCP authentication",
+    "intro": "A personal token lets an MCP client (such as Claude Code) act with your account.",
+    "loadError": "Could not load your MCP token status. Please sign in.",
+    "generateError": "Could not create a token.",
+    "hasToken": "You already have a token. It is stored hashed, so it cannot be shown again.",
+    "noToken": "You have no token yet.",
+    "generate": "Create a token",
+    "regenerate": "Replace the token",
+    "regenerateConfirm": "The current token will stop working immediately. Continue?",
+    "copyNow": "Copy this token now: it will not be shown again.",
+    "howTo": "How to use it",
+    "howToText": "Send the token in the Authorization header:"
   }
 }

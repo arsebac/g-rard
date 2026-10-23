@@ -1,6 +1,17 @@
 import { FastifyRequest } from "fastify";
+import crypto from "crypto";
 import { db } from "../db";
 import { isAccessEnabled, verifyAccessToken } from "./cfAccess";
+
+/** Only the SHA-256 of a token is stored, so a database leak does not hand out working tokens. */
+export function hashMcpToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}
+
+/** A fresh token: 256 random bits, URL-safe. */
+export function generateMcpToken(): string {
+  return crypto.randomBytes(32).toString("base64url");
+}
 
 /** How a request proved who it is. Kept for logging and for deprecation notices. */
 export type McpAuthMethod = "bearer" | "header" | "cloudflare-access";
@@ -57,7 +68,7 @@ function readSuppliedToken(req: FastifyRequest): SuppliedToken | null {
 export async function authenticateMcpRequest(req: FastifyRequest): Promise<McpIdentity | null> {
   const supplied = readSuppliedToken(req);
   if (supplied) {
-    const user = await db.user.findUnique({ where: { mcpToken: supplied.token } });
+    const user = await db.user.findUnique({ where: { mcpTokenHash: hashMcpToken(supplied.token) } });
     if (user) return { userId: user.id, method: supplied.method };
     console.warn(`[MCP] Unknown token supplied via ${supplied.method}; trying the remaining credentials`);
   }

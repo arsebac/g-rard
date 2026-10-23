@@ -379,5 +379,20 @@
       "remove": "Retirer",
       "manage": "Gérer les accès"
     }
+  },
+
+  "mcpAuth": {
+    "title": "Authentification MCP",
+    "intro": "Un jeton personnel permet à un client MCP (comme Claude Code) d'agir avec votre compte.",
+    "loadError": "Impossible de récupérer l'état de votre jeton MCP. Veuillez vous connecter.",
+    "generateError": "Impossible de créer un jeton.",
+    "hasToken": "Vous avez déjà un jeton. Il est stocké haché et ne peut donc plus être affiché.",
+    "noToken": "Vous n'avez pas encore de jeton.",
+    "generate": "Créer un jeton",
+    "regenerate": "Remplacer le jeton",
+    "regenerateConfirm": "Le jeton actuel cessera immédiatement de fonctionner. Continuer ?",
+    "copyNow": "Copiez ce jeton maintenant : il ne sera plus affiché.",
+    "howTo": "Comment l'utiliser ?",
+    "howToText": "Envoyez le jeton dans l'en-tête Authorization :"
   }
 }
