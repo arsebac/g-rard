@@ -41,10 +41,10 @@ describe("MCP request authentication", () => {
     expect(result).toEqual({ userId: 7, method: "header" });
   });
 
-  it("still accepts the legacy query string token", async () => {
+  it("refuses a token in the query string", async () => {
     tokenMatches("secret", 7);
     const result = await authenticateMcpRequest(request({}, { token: "secret" }));
-    expect(result).toEqual({ userId: 7, method: "query" });
+    expect(result).toBeNull();
   });
 
   it("falls through to Access when the Authorization header is not one of our tokens", async () => {

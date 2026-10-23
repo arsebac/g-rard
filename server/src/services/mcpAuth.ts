@@ -3,7 +3,7 @@ import { db } from "../db";
 import { isAccessEnabled, verifyAccessToken } from "./cfAccess";
 
 /** How a request proved who it is. Kept for logging and for deprecation notices. */
-export type McpAuthMethod = "bearer" | "header" | "query" | "cloudflare-access";
+export type McpAuthMethod = "bearer" | "header" | "cloudflare-access";
 
 export interface McpIdentity {
   userId: number;
@@ -12,16 +12,16 @@ export interface McpIdentity {
 
 interface SuppliedToken {
   token: string;
-  method: Extract<McpAuthMethod, "bearer" | "header" | "query">;
+  method: Extract<McpAuthMethod, "bearer" | "header">;
 }
 
 /**
  * Reads the MCP token a client sent, in order of preference.
  *
  * `Authorization: Bearer` is the standard form and the one to prefer: every MCP
- * client supports it and it keeps the token out of URLs, hence out of proxy
- * access logs. The other two forms predate it and are kept so that existing
- * configurations keep working.
+ * client supports it. `x-mcp-token` predates it and is kept for existing
+ * configurations. A token in the query string is refused: URLs end up in
+ * proxy and access logs.
  */
 function readSuppliedToken(req: FastifyRequest): SuppliedToken | null {
   const authorization = req.headers.authorization;
@@ -33,11 +33,6 @@ function readSuppliedToken(req: FastifyRequest): SuppliedToken | null {
   const headerToken = req.headers["x-mcp-token"];
   if (typeof headerToken === "string" && headerToken) {
     return { token: headerToken, method: "header" };
-  }
-
-  const queryToken = (req.query as { token?: unknown } | undefined)?.token;
-  if (typeof queryToken === "string" && queryToken) {
-    return { token: queryToken, method: "query" };
   }
 
   return null;

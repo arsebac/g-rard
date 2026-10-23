@@ -39,7 +39,7 @@ const McpAuthPage: React.FC = () => {
           Configurez votre client MCP avec l'URL suivante :
           <br />
           <code className="bg-white px-1 rounded border border-blue-200 block mt-2 p-2">
-            {window.location.origin}/mcp?token={token}
+            claude mcp add --transport http gerard {window.location.origin}/mcp --header "Authorization: Bearer {token}"
           </code>
         </p>
       </div>

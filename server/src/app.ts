@@ -88,13 +88,14 @@ export async function createServer() {
   await app.register(authPlugin);
   await app.register(multipartPlugin);
 
-  // Global logging hooks
+  // Global logging hooks. The query string is left out: it can carry credentials.
+  const pathOf = (url: string) => url.split("?")[0];
   app.addHook("onRequest", async (request, reply) => {
-    console.log(`[REQ] ${request.id} - ${request.method} ${request.url}`);
+    console.log(`[REQ] ${request.id} - ${request.method} ${pathOf(request.url)}`);
   });
 
   app.addHook("onResponse", async (request, reply) => {
-    console.log(`[RES] ${request.id} - ${request.method} ${request.url} - ${reply.statusCode} (${reply.elapsedTime.toFixed(2)}ms)`);
+    console.log(`[RES] ${request.id} - ${request.method} ${pathOf(request.url)} - ${reply.statusCode} (${reply.elapsedTime.toFixed(2)}ms)`);
   });
 
   // Global error handler

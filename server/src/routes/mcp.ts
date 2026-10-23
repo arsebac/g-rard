@@ -23,15 +23,8 @@ export default async function mcpRoutes(app: FastifyInstance) {
       return reply.status(401).send({ error: "No valid credentials" });
     }
 
-    if (identity.method === "query") {
-      console.warn(
-        `[MCP] ${request.id} - Token in the query string is deprecated and ends up in proxy logs. ` +
-          `Send it as "Authorization: Bearer <token>" instead.`
-      );
-    }
-
     console.log(
-      `[MCP] ${request.id} - ${request.method} ${request.url} for user ${identity.userId} via ${identity.method}`
+      `[MCP] ${request.id} - ${request.method} ${request.url.split("?")[0]} for user ${identity.userId} via ${identity.method}`
     );
 
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });

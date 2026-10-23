@@ -9,7 +9,7 @@ Contrairement aux versions précédentes, l'authentification MCP est désormais 
 ### Comment obtenir votre token :
 1. Connectez-vous à l'interface web de Gérard.
 2. Accédez à la page `/mcp-auth` (cliquez sur l'URL d'authentification ou naviguez directement vers `http://votre-instance/mcp-auth`).
-3. Copiez le token affiché ou l'URL de connexion complète.
+3. Copiez le token affiché.
 
 ## Configuration des clients MCP
 
@@ -17,8 +17,11 @@ Contrairement aux versions précédentes, l'authentification MCP est désormais 
 Pour utiliser Gérard avec Claude Code, ajoutez le serveur via son URL :
 
 ```bash
-claude mcp add gerard http://localhost:3000/mcp?token=VOTRE_TOKEN_PERSONNEL
+claude mcp add --transport http gerard http://localhost:3000/mcp \
+  --header "Authorization: Bearer VOTRE_TOKEN_PERSONNEL"
 ```
+
+Le token se passe toujours dans l'en-tête `Authorization` : un token dans l'URL (`?token=`) est refusé, car les URL finissent dans les journaux des proxys.
 
 ### 2. Claude Desktop
 Modifiez votre fichier de configuration `claude_desktop_config.json` pour ajouter Gérard en tant que serveur SSE :
@@ -27,7 +30,8 @@ Modifiez votre fichier de configuration `claude_desktop_config.json` pour ajoute
 {
   "mcpServers": {
     "gerard": {
-      "url": "http://localhost:3000/mcp?token=VOTRE_TOKEN_PERSONNEL"
+      "url": "http://localhost:3000/mcp",
+      "headers": { "Authorization": "Bearer VOTRE_TOKEN_PERSONNEL" }
     }
   }
 }
