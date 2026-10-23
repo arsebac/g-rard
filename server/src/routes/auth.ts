@@ -4,6 +4,7 @@ import { z } from "zod";
 import bcrypt from "bcrypt";
 import { db } from "../db";
 import { requireAuth } from "../plugins/auth";
+import { config } from "../config";
 
 const loginSchema = z.object({
   email: z.string().email(),
@@ -43,7 +44,12 @@ export default async function authRoutes(app: FastifyInstance) {
     });
   });
 
+  app.get("/api/auth/config", async () => ({ registration: config.allowRegistration }));
+
   app.post("/api/auth/register", async (req, reply) => {
+    if (!config.allowRegistration) {
+      return reply.status(403).send({ error: "Registration is disabled" });
+    }
     const body = registerSchema.safeParse(req.body);
     if (!body.success) {
       return reply.status(400).send({ error: "Invalid data", details: body.error.flatten() });

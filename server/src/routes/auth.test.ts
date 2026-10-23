@@ -1,8 +1,9 @@
-import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach, vi } from "vitest";
 import { createServer } from "../app";
 import { FastifyInstance } from "fastify";
 import bcrypt from "bcrypt";
 import { db } from "../db";
+import { config } from "../config";
 
 vi.mock("../db", () => ({
   db: {
@@ -91,6 +92,28 @@ describe("Routes Auth", () => {
   });
 
   describe("POST /api/auth/register", () => {
+    beforeEach(() => {
+      config.allowRegistration = true;
+    });
+
+    afterEach(() => {
+      config.allowRegistration = false;
+    });
+
+    it("Error 403: registration disabled by default", async () => {
+      config.allowRegistration = false;
+      (db.user.create as any).mockClear();
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/auth/register",
+        payload: { name: "Eve", email: "eve@example.com", password: "password123" },
+      });
+      expect(response.statusCode).toBe(403);
+      expect(db.user.create).not.toHaveBeenCalled();
+      const cfg = await app.inject({ method: "GET", url: "/api/auth/config" });
+      expect(JSON.parse(cfg.payload)).toEqual({ registration: false });
+    });
+
     it("Happy Path: Successful registration", async () => {
       (db.user.findUnique as any).mockResolvedValue(null);
       (bcrypt.hash as any).mockResolvedValue("hashed_new");

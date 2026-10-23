@@ -7,6 +7,8 @@ export const config = {
   uploadDir: process.env.UPLOAD_DIR ?? "./uploads",
   isDev: process.env.NODE_ENV !== "production",
   apiKey: process.env.GERARD_API_KEY ?? null,
+  // Self-service sign-up. Off unless explicitly enabled: accounts are created by hand.
+  allowRegistration: process.env.ALLOW_REGISTRATION === "true",
   // Browser origins allowed to call the API with credentials. The UI is served
   // by this same server, so only its own hostnames need to be listed.
   corsOrigins: (process.env.CORS_ORIGINS || "http://gerard.local,https://gerard.duckies.men,http://localhost:5173")

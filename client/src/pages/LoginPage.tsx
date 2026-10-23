@@ -1,8 +1,8 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { authApi } from "@/api/auth";
 import { useAuthStore } from "@/store/auth";
-import { Zap } from "lucide-react";
 
 type Mode = "login" | "register";
 
@@ -11,6 +11,8 @@ export function LoginPage() {
   const setUser = useAuthStore((s) => s.setUser);
 
   const [mode, setMode] = useState<Mode>("login");
+  const { data: authConfig } = useQuery({ queryKey: ["auth-config"], queryFn: authApi.config });
+  const registrationOpen = authConfig?.registration === true;
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -42,18 +44,6 @@ export function LoginPage() {
     }
   };
 
-  const handleQuickLogin = async () => {
-    setError("");
-    setLoading(true);
-    try {
-      await doLogin("test@test.com", "testtest");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 to-gray-100">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
@@ -62,7 +52,7 @@ export function LoginPage() {
           <p className="text-sm text-gray-400">Home project management</p>
         </div>
 
-        {/* Onglets */}
+        {registrationOpen && (
         <div className="flex rounded-lg bg-gray-100 p-1 mb-6 gap-1">
           <button
             type="button"
@@ -83,6 +73,7 @@ export function LoginPage() {
             Register
           </button>
         </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-3">
           {mode === "register" && (
@@ -143,18 +134,6 @@ export function LoginPage() {
           </button>
         </form>
 
-        {/* Quick access test */}
-        <div className="mt-4 pt-4 border-t border-gray-100">
-          <button
-            type="button"
-            onClick={handleQuickLogin}
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 text-sm text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg py-2 px-3 transition-colors disabled:opacity-50"
-          >
-            <Zap size={14} />
-            Quick access — test account
-          </button>
-        </div>
       </div>
     </div>
   );

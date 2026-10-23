@@ -9,6 +9,7 @@ export interface User {
 
 export const authApi = {
   me: () => api.get<User>("/api/auth/me"),
+  config: () => api.get<{ registration: boolean }>("/api/auth/config"),
   login: (email: string, password: string) =>
     api.post<User>("/api/auth/login", { email, password }),
   logout: () => api.post<void>("/api/auth/logout"),
