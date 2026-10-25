@@ -11,18 +11,7 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
-    },
-    "./context": {
-      "types": "./dist/context.d.ts",
-      "import": "./dist/context.js"
-    }
-  },
-  "typesVersions": {
-    "*": {
-      "context": [
-        "dist/context.d.ts"
-      ]
+      "default": "./dist/index.js"
     }
   },
   "scripts": {

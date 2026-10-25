@@ -29,7 +29,7 @@ GERARD_API_KEY=votre-clé-secrète
 npm run build -w mcp
 ```
 
-Le binaire compilé se retrouve dans `mcp/dist/index.js`.
+Le binaire compilé se retrouve dans `mcp/dist/bin.js`.
 
 ### 3. Configurer Claude Code
 
@@ -40,7 +40,7 @@ Le binaire compilé se retrouve dans `mcp/dist/index.js`.
   "mcpServers": {
     "gerard": {
       "command": "node",
-      "args": ["mcp/dist/index.js"],
+      "args": ["mcp/dist/bin.js"],
       "env": {
         "GERARD_URL": "http://localhost:3000",
         "GERARD_API_KEY": "votre-clé-secrète"
@@ -69,7 +69,23 @@ Pour itérer sans recompiler à chaque fois :
 npm run dev -w mcp
 ```
 
-Puis dans `.claude/settings.json`, remplacez `"node"` par `"npx"` et les args par `["tsx", "mcp/src/index.ts"]`.
+Puis dans `.claude/settings.json`, remplacez `"node"` par `"npx"` et les args par `["tsx", "mcp/src/bin.ts"]`.
+
+### Organisation du code
+
+Les outils sont définis une seule fois ici et servis par deux transports : le binaire stdio (`src/bin.ts`) et la route HTTP `/mcp` du serveur (`server/src/routes/mcp.ts`, celle du connecteur claude.ai).
+
+| Fichier | Rôle |
+|---|---|
+| `src/index.ts` | Point d'entrée du paquet `@gerard/mcp` |
+| `src/server.ts` | `createGerardServer(api)` : enregistre les outils et les ressources |
+| `src/client.ts` | `createApiClient(...)` : appels à l'API (JSON, upload, binaire) |
+| `src/resources.ts` | Documents exposés en ressources `gerard://documents/<id>` |
+| `src/types.ts` | Formes renvoyées par l'API |
+| `src/tools/<domaine>.ts` | Un fichier par domaine : définition, schéma et handler de chaque outil |
+| `src/tools/index.ts` | Liste de tous les outils |
+
+Ajouter un outil : l'écrire dans le fichier de son domaine, ou dans un nouveau fichier ajouté à `src/tools/index.ts`.
 
 ---
 

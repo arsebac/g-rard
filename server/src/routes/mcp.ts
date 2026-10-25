@@ -14,7 +14,8 @@ export default async function mcpRoutes(app: FastifyInstance) {
   const { StreamableHTTPServerTransport } = await import(
     "@modelcontextprotocol/sdk/server/streamableHttp.js"
   );
-  const { createMcpServer } = await import("../mcp-logic");
+  const { createApiClient, createGerardServer } = await import("@gerard/mcp");
+  const baseUrl = process.env.GERARD_URL ?? "http://localhost:3000";
 
   app.all("/mcp", async (request, reply) => {
     const identity = await authenticateMcpRequest(request);
@@ -28,7 +29,12 @@ export default async function mcpRoutes(app: FastifyInstance) {
     );
 
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
-    const server = createMcpServer(identity.userId);
+    const api = createApiClient({
+      baseUrl,
+      apiKey: process.env.GERARD_API_KEY,
+      getUserId: () => identity.userId,
+    });
+    const server = createGerardServer(api);
 
     reply.raw.on("close", () => {
       void transport.close();
