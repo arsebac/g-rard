@@ -5,10 +5,9 @@ services:
       dockerfile: Dockerfile
     container_name: gerard-app
     restart: unless-stopped
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - proxy
+      - db
     environment:
       DATABASE_URL: ${DATABASE_URL}
       SESSION_SECRET: ${SESSION_SECRET}
@@ -37,6 +36,9 @@ services:
 
 networks:
   proxy:
+    external: true
+  # Containerized MariaDB on duck-station (~/projets/mariadb), reached as mariadb:3306.
+  db:
     external: true
 
 volumes:
