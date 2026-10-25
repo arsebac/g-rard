@@ -233,4 +233,28 @@ export default async function wikiRoutes(app: FastifyInstance) {
     if (!(await canAccessPage(req, reply, page.projectId, "read"))) return reply;
     return reply.send(page);
   });
+
+  // GET /api/wiki/search — rechercher des pages par titre et contenu
+  app.get("/api/wiki/search", { preHandler: requireAuth }, async (req, reply) => {
+    const { q } = req.query as { q: string };
+    const pages = await db.wikiPage.findMany({
+      where: {
+        OR: [
+          { title: { contains: q } },
+          { body: { contains: q } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        projectId: true,
+        parentId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: { title: "asc" },
+    });
+    return reply.send(pages);
+  });
 }
