@@ -222,4 +222,15 @@ export default async function wikiRoutes(app: FastifyInstance) {
 
     return reply.status(201).send(page);
   });
+
+  // GET /api/wiki/pages/by-slug/:slug — rechercher une page par slug
+  app.get("/api/wiki/pages/by-slug/:slug", { preHandler: requireAuth }, async (req, reply) => {
+    const { slug } = req.params as { slug: string };
+    const page = await db.wikiPage.findFirst({
+      where: { slug },
+    });
+    if (!page) return reply.status(404).send({ error: "Page introuvable" });
+    if (!(await canAccessPage(req, reply, page.projectId, "read"))) return reply;
+    return reply.send(page);
+  });
 }
