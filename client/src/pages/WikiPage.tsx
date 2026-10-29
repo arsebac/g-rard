@@ -1,10 +1,10 @@
 import { useRef, useState } from "react";
 import { useParams, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { wikiApi, WikiPageSummary } from "@/api/wiki";
+import { wikiApi, WikiPageSummary, SLUG_PATTERN } from "@/api/wiki";
 import { attachmentsApi } from "@/api/attachments";
 import { AppShell } from "@/components/layout/AppShell";
-import { BookOpen, ChevronRight, Plus, Trash2, X, Download, Upload, Home, Loader2, Eye, Pencil, ArrowLeft, ImagePlus } from "lucide-react";
+import { BookOpen, ChevronRight, Plus, Trash2, X, Download, Upload, Home, Loader2, Eye, Pencil, ArrowLeft, ImagePlus, Search, Link2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
@@ -75,29 +75,32 @@ function PageTreeItem({ page, children, allPages, selectedId, depth, onSelect }:
 interface NewPageModalProps {
   pages: WikiPageSummary[];
   onClose: () => void;
-  onCreate: (id: number) => void;
+  onCreate: (slug: string) => void;
 }
 
 function NewPageModal({ pages, onClose, onCreate }: NewPageModalProps) {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [parentId, setParentId] = useState<number | "">("");
+  const [slug, setSlug] = useState("");
+  const slugInvalid = slug !== "" && !SLUG_PATTERN.test(slug);
 
   const createMutation = useMutation({
     mutationFn: wikiApi.create,
     onSuccess: (page) => {
       queryClient.invalidateQueries({ queryKey: ["wiki-pages"] });
-      onCreate(page.id);
+      onCreate(page.slug);
       onClose();
     },
   });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) return;
+    if (!title.trim() || slugInvalid) return;
     createMutation.mutate({
       title: title.trim(),
       parentId: parentId !== "" ? Number(parentId) : null,
+      ...(slug ? { slug } : {}),
     });
   };
 
@@ -125,6 +128,19 @@ function NewPageModal({ pages, onClose, onCreate }: NewPageModalProps) {
             />
           </div>
           <div>
+            <label className="text-xs text-gray-500 block mb-1">Slug (optional)</label>
+            <input
+              type="text"
+              value={slug}
+              onChange={(e) => setSlug(e.target.value.trim())}
+              placeholder="e.g. deploy-recipe — derived from the title if empty"
+              className={`w-full border rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 ${slugInvalid ? "border-red-300" : "border-gray-200"}`}
+            />
+            {slugInvalid && (
+              <p className="text-xs text-red-500 mt-1">Lowercase letters, digits and dashes, with at least one letter.</p>
+            )}
+          </div>
+          <div>
             <label className="text-xs text-gray-500 block mb-1">Parent page</label>
             <select
               value={parentId}
@@ -137,6 +153,9 @@ function NewPageModal({ pages, onClose, onCreate }: NewPageModalProps) {
               ))}
             </select>
           </div>
+          {createMutation.error && (
+            <p className="text-xs text-red-500">{createMutation.error.message}</p>
+          )}
           <div className="flex gap-2 pt-1">
             <button
               type="button"
@@ -147,7 +166,7 @@ function NewPageModal({ pages, onClose, onCreate }: NewPageModalProps) {
             </button>
             <button
               type="submit"
-              disabled={createMutation.isPending || !title.trim()}
+              disabled={createMutation.isPending || !title.trim() || slugInvalid}
               className="flex-1 px-4 py-2 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
             >
               {createMutation.isPending ? "Creating…" : "Create"}
@@ -204,16 +223,19 @@ interface PageContentProps {
   pageId: number;
   allPages: WikiPageSummary[];
   onSelectPage: (id: number) => void;
+  onSlugChange: (slug: string) => void;
   onBack?: () => void;
 }
 
-function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProps) {
+function PageContent({ pageId, allPages, onSelectPage, onSlugChange, onBack }: PageContentProps) {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [editTitle, setEditTitle] = useState("");
   const [isReadOnly, setIsReadOnly] = useState(true);
   const [editBody, setEditBody] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [editingSlug, setEditingSlug] = useState(false);
+  const [editSlug, setEditSlug] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -229,6 +251,16 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
       queryClient.invalidateQueries({ queryKey: ["wiki-page", pageId] });
       queryClient.invalidateQueries({ queryKey: ["wiki-pages"] });
       setEditing(false);
+    },
+  });
+
+  const slugMutation = useMutation({
+    mutationFn: (slug: string) => wikiApi.update(pageId, { slug }),
+    onSuccess: (updated) => {
+      queryClient.invalidateQueries({ queryKey: ["wiki-page", pageId] });
+      queryClient.invalidateQueries({ queryKey: ["wiki-pages"] });
+      setEditingSlug(false);
+      onSlugChange(updated.slug);
     },
   });
 
@@ -374,6 +406,40 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
             </div>
           </div>
         )}
+        <div className="flex items-center gap-1.5 mt-2 text-xs text-gray-400">
+          <Link2 size={12} className="flex-shrink-0" />
+          {editingSlug ? (
+            <>
+              <input
+                autoFocus
+                type="text"
+                value={editSlug}
+                onChange={(e) => setEditSlug(e.target.value.trim())}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && SLUG_PATTERN.test(editSlug)) {
+                    if (editSlug === page.slug) setEditingSlug(false);
+                    else slugMutation.mutate(editSlug);
+                  }
+                  if (e.key === "Escape") { setEditingSlug(false); slugMutation.reset(); }
+                }}
+                className={`font-mono border-b outline-none bg-transparent py-0.5 text-gray-700 ${SLUG_PATTERN.test(editSlug) ? "border-indigo-400" : "border-red-400"}`}
+              />
+              <span>
+                {slugMutation.error
+                  ? <span className="text-red-500">{slugMutation.error.message}</span>
+                  : SLUG_PATTERN.test(editSlug) ? "Enter to save, Esc to cancel" : <span className="text-red-500">lowercase letters, digits and dashes, at least one letter</span>}
+              </span>
+            </>
+          ) : (
+            <code
+              className="font-mono cursor-pointer hover:text-indigo-600 transition-colors"
+              onClick={() => { setEditSlug(page.slug); setEditingSlug(true); }}
+              title="Page slug — click to edit"
+            >
+              {page.slug}
+            </code>
+          )}
+        </div>
         <p className="text-xs text-gray-400 mt-1">
           Last modified{" "}
           {new Date(page.updatedAt).toLocaleDateString("en-US", {
@@ -481,22 +547,36 @@ function PageContent({ pageId, allPages, onSelectPage, onBack }: PageContentProp
 
 export function WikiPage() {
   const queryClient = useQueryClient();
-  const { pageId: pageIdParam } = useParams({ strict: false });
+  const { pageId: pageParam } = useParams({ strict: false });
   const navigate = useNavigate();
-  const selectedId = pageIdParam ? Number(pageIdParam) : null;
   const [showNewPage, setShowNewPage] = useState(false);
-  const [mobileShowContent, setMobileShowContent] = useState(selectedId !== null);
+  const [mobileShowContent, setMobileShowContent] = useState(pageParam !== undefined);
+  const [search, setSearch] = useState("");
+  const searchTerm = search.trim();
 
   const { data: pages = [], isLoading } = useQuery({
     queryKey: ["wiki-pages"],
     queryFn: wikiApi.list,
   });
 
+  // The URL holds the page slug; numeric IDs from older links still resolve.
+  const selectedId = pageParam
+    ? pages.find((p) => p.slug === pageParam || String(p.id) === pageParam)?.id ?? null
+    : null;
+
+  const { data: searchResults = [], isFetching: searching } = useQuery({
+    queryKey: ["wiki-search", searchTerm],
+    queryFn: () => wikiApi.search(searchTerm),
+    enabled: searchTerm.length >= 2,
+  });
+
+  const goToSlug = (slug: string) => navigate({ to: "/wiki/$pageId", params: { pageId: slug } });
+
   const importMutation = useMutation({
     mutationFn: (file: File) => wikiApi.importMd(file),
     onSuccess: (page) => {
       queryClient.invalidateQueries({ queryKey: ["wiki-pages"] });
-      navigate({ to: "/wiki/$pageId", params: { pageId: String(page.id) } });
+      goToSlug(page.slug);
     },
   });
 
@@ -516,7 +596,8 @@ export function WikiPage() {
       navigate({ to: "/wiki" });
       setMobileShowContent(false);
     } else {
-      navigate({ to: "/wiki/$pageId", params: { pageId: String(id) } });
+      const page = pages.find((p) => p.id === id);
+      navigate({ to: "/wiki/$pageId", params: { pageId: page?.slug ?? String(id) } });
       setMobileShowContent(true);
     }
   };
@@ -546,8 +627,54 @@ export function WikiPage() {
             </div>
           </div>
 
+          <div className="px-2 pt-2">
+            <div className="flex items-center gap-1.5 border border-gray-200 rounded-md px-2 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500">
+              <Search size={14} className="text-gray-400 flex-shrink-0" />
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Escape") setSearch(""); }}
+                placeholder="Search pages…"
+                className="flex-1 min-w-0 text-sm outline-none bg-transparent"
+              />
+              {search && (
+                <button onClick={() => setSearch("")} className="text-gray-400 hover:text-gray-600">
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          </div>
+
           <nav className="flex-1 overflow-y-auto py-2 px-2">
-            {isLoading ? (
+            {searchTerm.length >= 2 ? (
+              searching && searchResults.length === 0 ? (
+                <p className="text-xs text-gray-400 px-2 py-2">Searching…</p>
+              ) : searchResults.length === 0 ? (
+                <p className="text-xs text-gray-400 px-2 py-2">No matching page.</p>
+              ) : (
+                <ul className="space-y-0.5">
+                  {searchResults.map((result) => (
+                    <li key={result.id}>
+                      <button
+                        onClick={() => { goToSlug(result.slug); setMobileShowContent(true); }}
+                        className={`w-full text-left px-2 py-1.5 rounded-md transition-colors ${
+                          selectedId === result.id ? "bg-indigo-50" : "hover:bg-gray-100"
+                        }`}
+                      >
+                        <span className={`block text-sm truncate ${selectedId === result.id ? "text-indigo-700 font-medium" : "text-gray-700"}`}>
+                          {result.title}
+                        </span>
+                        <span className="block text-[11px] text-gray-400 font-mono truncate">{result.slug}</span>
+                        {result.snippet && (
+                          <span className="block text-xs text-gray-500 line-clamp-2">{result.snippet}</span>
+                        )}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )
+            ) : isLoading ? (
               <p className="text-xs text-gray-400 px-2 py-2">Loading…</p>
             ) : pages.length === 0 ? (
               <p className="text-xs text-gray-400 px-2 py-2">No pages yet.</p>
@@ -577,6 +704,7 @@ export function WikiPage() {
               pageId={selectedId}
               allPages={pages}
               onSelectPage={handleSelectPage}
+              onSlugChange={(slug) => navigate({ to: "/wiki/$pageId", params: { pageId: slug }, replace: true })}
               onBack={() => { setMobileShowContent(false); }}
             />
           ) : (
@@ -607,7 +735,7 @@ export function WikiPage() {
         <NewPageModal
           pages={pages}
           onClose={() => setShowNewPage(false)}
-          onCreate={(id) => navigate({ to: "/wiki/$pageId", params: { pageId: String(id) } })}
+          onCreate={goToSlug}
         />
       )}
     </AppShell>

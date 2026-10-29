@@ -29,18 +29,35 @@ export interface CreateWikiPageData {
   projectId?: number | null;
   parentId?: number | null;
   body?: string | null;
+  slug?: string;
 }
 
 export interface UpdateWikiPageData {
   title?: string;
   body?: string | null;
+  slug?: string;
 }
+
+export interface WikiSearchResult {
+  id: number;
+  title: string;
+  slug: string;
+  projectId: number | null;
+  parentId: number | null;
+  snippet: string;
+  updatedAt: string;
+}
+
+// Same rule as the server: lowercase letters, digits and dashes, at least one letter.
+export const SLUG_PATTERN = /^(?=.*[a-z])[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const wikiApi = {
   list: () => api.get<WikiPageSummary[]>("/api/wiki"),
   listByProject: (projectId: number) =>
     api.get<WikiPageSummary[]>(`/api/projects/${projectId}/wiki`),
   get: (id: number) => api.get<WikiPage>(`/api/wiki/pages/${id}`),
+  search: (q: string) =>
+    api.get<WikiSearchResult[]>(`/api/wiki/search?${new URLSearchParams({ q })}`),
   create: (data: CreateWikiPageData) =>
     api.post<WikiPage>("/api/wiki/pages", data),
   update: (id: number, data: UpdateWikiPageData) =>

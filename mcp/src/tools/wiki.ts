@@ -3,12 +3,19 @@ import type { WikiPage } from "../types.js";
 import type { Tool } from "./types.js";
 import { ok } from "./types.js";
 
-const pageIdSchema = {
-  type: "object" as const,
-  properties: { id: { type: "number", description: "Wiki page ID" } },
-  required: ["id"],
+const pageRefProperties = {
+  id: { type: "number", description: "Wiki page ID" },
+  slug: { type: "string", description: "Wiki page slug, e.g. deploy-recipe (alternative to id)" },
 };
-const pageIdArgs = z.object({ id: z.number() });
+const pageRefSchema = { type: "object" as const, properties: pageRefProperties };
+const pageRefArgs = z
+  .object({ id: z.number().optional(), slug: z.string().min(1).optional() })
+  .refine((a) => a.id !== undefined || a.slug !== undefined, { message: "Either id or slug is required" });
+const pagePath = (a: { id?: number; slug?: string }) =>
+  `/api/wiki/pages/${a.id !== undefined ? a.id : encodeURIComponent(a.slug!)}`;
+
+const slugDescription =
+  "Unique short identifier: lowercase letters, digits and dashes, at least one letter (e.g. deploy-recipe)";
 
 const summary = (p: WikiPage) => ({ id: p.id, title: p.title, slug: p.slug });
 
@@ -27,12 +34,30 @@ export const wikiTools: Tool[] = [
     },
   },
   {
-    name: "get_wiki_page",
-    description: "Retrieve a wiki page content by ID",
-    inputSchema: pageIdSchema,
+    name: "search_wiki_pages",
+    description:
+      "Search wiki pages by keywords (case-insensitive, in title, slug and content). Returns id, slug, title and a snippet; title matches come first.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        q: { type: "string", description: "Search terms (min 2 characters)" },
+        projectId: { type: "number", description: "Restrict to a project (optional)" },
+      },
+      required: ["q"],
+    },
     handler: async (args, api) => {
-      const { id } = pageIdArgs.parse(args);
-      return ok(await api.get<WikiPage>(`/api/wiki/pages/${id}`));
+      const { q, projectId } = z.object({ q: z.string().min(2), projectId: z.number().optional() }).parse(args);
+      const params = new URLSearchParams({ q });
+      if (projectId !== undefined) params.set("projectId", String(projectId));
+      return ok(await api.get<unknown[]>(`/api/wiki/search?${params}`));
+    },
+  },
+  {
+    name: "get_wiki_page",
+    description: "Retrieve a wiki page content by ID or slug",
+    inputSchema: pageRefSchema,
+    handler: async (args, api) => {
+      return ok(await api.get<WikiPage>(pagePath(pageRefArgs.parse(args))));
     },
   },
   {
@@ -45,6 +70,7 @@ export const wikiTools: Tool[] = [
         parentId: { type: "number", description: "Parent page ID (optional)" },
         title: { type: "string", description: "Page title" },
         body: { type: "string", description: "Markdown content" },
+        slug: { type: "string", description: `${slugDescription}. Derived from the title if omitted.` },
       },
       required: ["title", "body"],
     },
@@ -55,6 +81,7 @@ export const wikiTools: Tool[] = [
           parentId: z.number().optional(),
           title: z.string().min(1),
           body: z.string(),
+          slug: z.string().optional(),
         })
         .parse(args);
       return ok(summary(await api.post<WikiPage>("/api/wiki/pages", data)));
@@ -62,30 +89,30 @@ export const wikiTools: Tool[] = [
   },
   {
     name: "update_wiki_page",
-    description: "Modify an existing wiki page",
+    description: "Modify an existing wiki page, found by ID or slug. Renaming keeps the slug unless newSlug is given.",
     inputSchema: {
       type: "object",
       properties: {
-        id: { type: "number", description: "Wiki page ID" },
+        ...pageRefProperties,
         title: { type: "string", description: "New title" },
         body: { type: "string", description: "New content" },
+        newSlug: { type: "string", description: `New slug. ${slugDescription}` },
       },
-      required: ["id"],
     },
     handler: async (args, api) => {
-      const { id, ...body } = z
-        .object({ id: z.number(), title: z.string().optional(), body: z.string().optional() })
+      const { title, body, newSlug } = z
+        .object({ title: z.string().optional(), body: z.string().optional(), newSlug: z.string().optional() })
         .parse(args);
-      return ok(summary(await api.patch<WikiPage>(`/api/wiki/pages/${id}`, body)));
+      const ref = pageRefArgs.parse(args);
+      return ok(summary(await api.patch<WikiPage>(pagePath(ref), { title, body, slug: newSlug })));
     },
   },
   {
     name: "delete_wiki_page",
-    description: "Delete a wiki page",
-    inputSchema: pageIdSchema,
+    description: "Delete a wiki page, found by ID or slug",
+    inputSchema: pageRefSchema,
     handler: async (args, api) => {
-      const { id } = pageIdArgs.parse(args);
-      await api.delete(`/api/wiki/pages/${id}`);
+      await api.delete(pagePath(pageRefArgs.parse(args)));
       return ok({ success: true });
     },
   },
